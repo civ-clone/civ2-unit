@@ -35,6 +35,8 @@ import BuildCost from '@civ-clone/core-city-build/Rules/BuildCost';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
 import GreatWall from '@civ-clone/base-wonder-great-wall/GreatWall';
 import RequirementRegistry from '@civ-clone/core-requirement/RequirementRegistry';
+import { Requirement } from '@civ-clone/core-requirement/Requirement';
+import Metallurgy from '@civ-clone/base-science-advance-metallurgy/Metallurgy';
 import CruiseMissile from '@civ-clone/base-unit-cruisemissile/CruiseMissile';
 import Fortified from '@civ-clone/base-unit-improvement-fortified/UnitImprovements/Fortified';
 import Fundamentalism from '@civ-clone/base-government-fundamentalism/Fundamentalism';
@@ -372,9 +374,24 @@ describe('strength', (): void => {
     walls: boolean,
     city: boolean,
     river = false,
-    greatWall = false
+    greatWall: 'p' | 'q' | null = null,
+    obsolete = false
   ) => {
-    const registry = new RuleRegistry();
+    const registry = new RuleRegistry(),
+      requirementRegistry = new RequirementRegistry();
+
+    if (obsolete) {
+      requirementRegistry.add(
+        null,
+        new Requirement({
+          id: 'test:great-wall-obsolete',
+          subject: GreatWall,
+          relation: 'obsoletedBy',
+          targets: [Metallurgy],
+          range: 'world',
+        })
+      );
+    }
 
     registry.register(
       ...strength({
@@ -382,8 +399,8 @@ describe('strength', (): void => {
           getByTile: () => (city ? { player: () => 'p' } : null),
         } as never,
         wonderRegistry: {
-          getByPlayer: () =>
-            greatWall
+          getByPlayer: (player: unknown) =>
+            greatWall === player
               ? [
                   Object.assign(Object.create(GreatWall.prototype), {
                     city: () => ({ destroyed: () => false }),
@@ -391,8 +408,11 @@ describe('strength', (): void => {
                 ]
               : [],
         } as never,
-        requirementRegistry: new RequirementRegistry(),
-        playerResearchRegistry: { some: () => false } as never,
+        requirementRegistry,
+        playerResearchRegistry: {
+          some: (test: (research: unknown) => boolean) =>
+            test({ completed: () => obsolete }),
+        } as never,
         cityImprovementRegistry: {
           getByCity: () => (walls ? [new CityWalls()] : []),
         } as never,
@@ -463,11 +483,18 @@ describe('strength', (): void => {
 
     expect(fight(registryFor(false, true), warrior, pikeman)[1]).to.equal(1);
     expect(
-      fight(registryFor(false, true, false, true), warrior, pikeman)[1]
+      fight(registryFor(false, true, false, 'p'), warrior, pikeman)[1]
     ).to.equal(3);
     expect(
-      fight(registryFor(true, true, false, true), warrior, pikeman)[1]
+      fight(registryFor(true, true, false, 'p'), warrior, pikeman)[1]
     ).to.equal(3);
+    // Another player's Great Wall, or an obsolete one, does nothing here.
+    expect(
+      fight(registryFor(false, true, false, 'q'), warrior, pikeman)[1]
+    ).to.equal(1);
+    expect(
+      fight(registryFor(false, true, false, 'p', true), warrior, pikeman)[1]
+    ).to.equal(1);
   });
 
   it('gives the Pikeman ×1.5 against a mounted attacker only (land, two moves, one hit point)', (): void => {

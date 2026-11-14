@@ -27,7 +27,9 @@ import { Grassland, Hills, Mountains } from '@civ-clone/civ2-world/Terrains';
 import { Railroad, Road } from '@civ-clone/civ2-world/TileImprovements';
 import Terrain from '@civ-clone/core-terrain/Terrain';
 import TileImprovementRegistry from '@civ-clone/core-tile-improvement/TileImprovementRegistry';
-import { shortStep } from '../registerRules';
+import register, { shortStep } from '../registerRules';
+import { Game } from '@civ-clone/core-game/Game';
+import ValidateMove from '@civ-clone/core-unit/Rules/ValidateMove';
 import { River } from '@civ-clone/civ2-world/TerrainFeatures';
 import BuildCost from '@civ-clone/core-city-build/Rules/BuildCost';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
@@ -173,9 +175,14 @@ describe('movement', (): void => {
         city = false,
         river = false,
         y = (row += 4),
+        height = 10000,
       } = {}
     ) => {
-      const tile = { terrain: () => terrain, y: () => y };
+      const tile = {
+        terrain: () => terrain,
+        y: () => y,
+        map: () => ({ height: () => height }),
+      };
 
       if (road) {
         tileImprovements.register(new Road(tile as never, new RuleRegistry()));
@@ -280,16 +287,74 @@ describe('movement', (): void => {
       cost(Warrior, from, square(new Mountains(), { river: true, y: 12 }))
     ).to.equal(3);
     expect(cost(Warrior, from, square(new Mountains(), { y: 11 }))).to.equal(3);
+    // The same row, east or west: no discount.
+    expect(
+      cost(Warrior, from, square(new Mountains(), { river: true, y: 10 }))
+    ).to.equal(3);
+    // Rows wrap: the last row and the first share edges.
+    expect(
+      cost(
+        Warrior,
+        square(new Hills(), { river: true, y: 0, height: 80 }),
+        square(new Mountains(), { river: true, y: 79, height: 80 })
+      )
+    ).to.equal(1 / 3);
+    expect(
+      cost(
+        Warrior,
+        square(new Hills(), { river: true, y: 0, height: 80 }),
+        square(new Mountains(), { river: true, y: 78, height: 80 })
+      )
+    ).to.equal(3);
     expect(cost(Partisan, square(), square(new Mountains()))).to.equal(1 / 3);
   });
 });
 
 describe('a short step', (): void => {
   it("always succeeds for a unit that hasn't moved, and at remaining over cost for one that has", (): void => {
-    expect(shortStep.succeeds(1, 1, 3, () => 0.99)).to.true;
-    expect(shortStep.succeeds(1, 2, 2, () => 0.49)).to.true;
-    expect(shortStep.succeeds(1, 2, 2, () => 0.5)).to.false;
+    const warrior = unit(Warrior);
+
+    expect(shortStep.succeeds(warrior, 1, 1, 3, () => 0.99)).to.true;
+    expect(shortStep.succeeds(warrior, 1, 2, 2, () => 0.49)).to.true;
+    expect(shortStep.succeeds(warrior, 1, 2, 2, () => 0.5)).to.false;
+    // Only land units roll.
+    expect(shortStep.succeeds(unit(Bomber), 1, 2, 2, () => 0.5)).to.true;
     expect(shortStep.expectedCost(1)).to.equal(1);
+  });
+
+  it('is what register(game) wires: a fresh unit short of a step gets there without a draw', (): void => {
+    let draws = 0;
+    const game = new Game({
+        rng: Object.assign(
+          (): number => {
+            draws++;
+
+            return 0.99;
+          },
+          { restore() {}, calls: () => draws }
+        ) as never,
+      }),
+      shortStepped = (remaining: number, movement: number): boolean[] => {
+        let moves = remaining;
+        const warrior = Object.assign(Object.create(Warrior.prototype), {
+          moves: () => ({
+            value: () => moves,
+            set: (value: number) => (moves = value),
+            subtract: (value: number) => (moves -= value),
+          }),
+          movement: () => ({ value: () => movement }),
+        });
+
+        return game.rules.process(ValidateMove, warrior, 3);
+      };
+
+    register(game);
+
+    expect(shortStepped(1, 1)).to.deep.equal([true]);
+    expect(draws).to.equal(0);
+    // One that has moved draws once, and at 0.99 a third of the cost isn't enough.
+    expect(shortStepped(1, 2)).to.deep.equal([false]);
+    expect(draws).to.equal(1);
   });
 });
 

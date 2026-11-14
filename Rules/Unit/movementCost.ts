@@ -63,6 +63,14 @@ import movementCostRules from '@civ-clone/base-unit-movement/lib/movementCostRul
 export const terrainCost: (terrain: Terrain) => number | null =
   cachedTerrainLookup(terrainMovementCost);
 
+/** Whether two squares are on neighbouring rows, counting the last row and the first as neighbours (rows wrap). */
+export const rowsApart = (from: Tile, to: Tile): boolean => {
+  const height = from.map().height(),
+    dy = Math.abs(from.y() - to.y());
+
+  return dy === 1 || (height > 2 && dy === height - 1);
+};
+
 // A job's turns on the terrains where it can be done (civ2-world gives `null` where it can't).
 const where = (table: TerrainTable<number | null>): TerrainTable<number> =>
   table.filter((row): row is [typeof Terrain, number] => row[1] !== null);
@@ -174,10 +182,9 @@ export const getRules = (
         hasRiver(action.to())
       ),
       // Along the river only: a step to one of the four squares that share an edge with this one, one row up or down
-      //  on the staggered grid (`dx == 1` and `|dy| == 1` on Civ2's doubled-x grid).
-      new Criterion(
-        (unit: Unit, action: Action): boolean =>
-          Math.abs(action.from().y() - action.to().y()) === 1
+      //  on the staggered grid (`dx == 1` and `|dy| == 1` on Civ2's doubled-x grid), across the wrapping seam too.
+      new Criterion((unit: Unit, action: Action): boolean =>
+        rowsApart(action.from(), action.to())
       ),
       new Effect((): number => roadMove)
     ),

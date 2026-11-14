@@ -40,22 +40,22 @@ import treatyPartner from '@civ-clone/base-unit-lifecycle/lib/treatyPartner';
 import unitYield from './Rules/Unit/yield';
 import { unitTypes } from './lib/unitTable';
 
-/** Civ1's short-step factor, which `shortStep` replaces; `lifecycleRules` still asks for one. */
-export const shortfallFactor = 0.5;
-
 /**
  * A land unit short of the moves a step costs (`unit_move_dir`): one that hasn't moved this turn always gets there; one
- *  that has gets there with a chance of its remaining moves over the cost. Route planning can count on the first, so a
+ *  that has gets there with a chance of its remaining moves over the cost. Only land units roll; any other gets there. Route planning can count on the first, so a
  *  step is worth no more than a turn.
  */
 export const shortStep = {
   succeeds: (
+    unit: Unit,
     remaining: number,
     movement: number,
     cost: number,
     randomNumberGenerator: () => number
   ): boolean =>
-    remaining >= movement || remaining > cost * randomNumberGenerator(),
+    !(unit instanceof Land) ||
+    remaining >= movement ||
+    remaining > cost * randomNumberGenerator(),
   expectedCost: (movement: number): number => movement,
 };
 
@@ -95,7 +95,6 @@ export const register = (game: Game): void => {
         tileImprovementRegistry: game.tileImprovements,
         workedTileRegistry: game.workedTiles,
       }),
-      shortfallFactor,
       shortStep,
     }
   );

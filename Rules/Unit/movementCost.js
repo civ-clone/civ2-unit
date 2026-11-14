@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.civ2TerrainJobTurns = exports.terrainCost = void 0;
+exports.getRules = exports.civ2TerrainJobTurns = exports.rowsApart = exports.terrainCost = void 0;
 const Actions_1 = require("../../Actions");
 const jobTurns_1 = require("@civ-clone/base-terrain-properties/lib/jobTurns");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
@@ -20,6 +20,12 @@ const cosmic_1 = require("@civ-clone/civ2-rules/data/cosmic");
 const movementCostRules_1 = require("@civ-clone/base-unit-movement/lib/movementCostRules");
 /** What a land unit's move onto each terrain costs: civ2-world's `@TERRAIN` movement costs, looked up by class. */
 exports.terrainCost = (0, terrainTable_1.cachedTerrainLookup)(terrainProperties_1.movementCost);
+/** Whether two squares are on neighbouring rows, counting the last row and the first as neighbours (rows wrap). */
+const rowsApart = (from, to) => {
+    const height = from.map().height(), dy = Math.abs(from.y() - to.y());
+    return dy === 1 || (height > 2 && dy === height - 1);
+};
+exports.rowsApart = rowsApart;
 // A job's turns on the terrains where it can be done (civ2-world gives `null` where it can't).
 const where = (table) => table.filter((row) => row[1] !== null);
 const irrigating = where(terrainProperties_1.irrigationTurns), mining = where(terrainProperties_1.miningTurns);
@@ -78,8 +84,8 @@ const getRules = (tileImprovementRegistry = TileImprovementRegistry_1.instance, 
         cityRoute('city-railroad', TileImprovements_1.Railroad, 0),
         new MovementCost_1.default('civ2-unit:unit/movement-cost/river', new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => hasRiver(action.from())), new Criterion_1.default((unit, action) => hasRiver(action.to())), 
         // Along the river only: a step to one of the four squares that share an edge with this one, one row up or down
-        //  on the staggered grid (`dx == 1` and `|dy| == 1` on Civ2's doubled-x grid).
-        new Criterion_1.default((unit, action) => Math.abs(action.from().y() - action.to().y()) === 1), new Effect_1.default(() => roadMove)),
+        //  on the staggered grid (`dx == 1` and `|dy| == 1` on Civ2's doubled-x grid), across the wrapping seam too.
+        new Criterion_1.default((unit, action) => (0, exports.rowsApart)(action.from(), action.to())), new Effect_1.default(() => roadMove)),
         new MovementCost_1.default('civ2-unit:unit/movement-cost/terrain-as-road', new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit) => unit.hasTrait(TerrainAsRoad_1.default)), new Effect_1.default(() => roadMove)),
     ];
 };

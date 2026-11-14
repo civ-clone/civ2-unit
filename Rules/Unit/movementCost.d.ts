@@ -5,9 +5,12 @@ import { TileImprovementRegistry } from '@civ-clone/core-tile-improvement/TileIm
 import { TransportRegistry } from '@civ-clone/core-unit-transport/TransportRegistry';
 import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';
 import Terrain from '@civ-clone/core-terrain/Terrain';
+import Tile from '@civ-clone/core-world/Tile';
 import UnitAction from '@civ-clone/core-unit/Action';
 /** What a land unit's move onto each terrain costs: civ2-world's `@TERRAIN` movement costs, looked up by class. */
 export declare const terrainCost: (terrain: Terrain) => number | null;
+/** Whether two squares are on neighbouring rows, counting the last row and the first as neighbours (rows wrap). */
+export declare const rowsApart: (from: Tile, to: Tile) => boolean;
 /**
  * How many turns each terrain job takes in Civilization II (`unit_terrain_work_turns`): irrigating and mining from
  *  `@TERRAIN`, a road twice the terrain's movement cost and a railroad four times it, pollution 4. A conversion (Clear

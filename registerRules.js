@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.register = exports.defenders = exports.shortStep = exports.shortfallFactor = void 0;
+exports.register = exports.defenders = exports.shortStep = void 0;
 const units_1 = require("./data/units");
 const core_game_1 = require("@civ-clone/core-game");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
@@ -37,15 +37,15 @@ const traits_1 = require("./Rules/Unit/traits");
 const treatyPartner_1 = require("@civ-clone/base-unit-lifecycle/lib/treatyPartner");
 const yield_1 = require("./Rules/Unit/yield");
 const unitTable_1 = require("./lib/unitTable");
-/** Civ1's short-step factor, which `shortStep` replaces; `lifecycleRules` still asks for one. */
-exports.shortfallFactor = 0.5;
 /**
  * A land unit short of the moves a step costs (`unit_move_dir`): one that hasn't moved this turn always gets there; one
- *  that has gets there with a chance of its remaining moves over the cost. Route planning can count on the first, so a
+ *  that has gets there with a chance of its remaining moves over the cost. Only land units roll; any other gets there. Route planning can count on the first, so a
  *  step is worth no more than a turn.
  */
 exports.shortStep = {
-    succeeds: (remaining, movement, cost, randomNumberGenerator) => remaining >= movement || remaining > cost * randomNumberGenerator(),
+    succeeds: (unit, remaining, movement, cost, randomNumberGenerator) => !(unit instanceof Land_1.default) ||
+        remaining >= movement ||
+        remaining > cost * randomNumberGenerator(),
     expectedCost: (movement) => movement,
 };
 /** A new city's first defender, if its player asks for one: the defensive units, strongest defence first. */
@@ -79,7 +79,6 @@ const register = (game) => {
             tileImprovementRegistry: game.tileImprovements,
             workedTileRegistry: game.workedTiles,
         }),
-        shortfallFactor: exports.shortfallFactor,
         shortStep: exports.shortStep,
     });
     game.rules.register(...(0, action_1.default)({

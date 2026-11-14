@@ -230,5 +230,10 @@
     "@civ-clone/core-world-path": "^0.1.3",
     "@civ-clone/library-diplomacy": "^0.1.4",
     "@civ-clone/library-unit": "^0.1.15"
+  },
+  "civ-clone": {
+    "conflicts": [
+      "@civ-clone/civ1-unit"
+    ]
   }
 }

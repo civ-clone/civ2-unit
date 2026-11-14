@@ -160,8 +160,11 @@ const register = (game) => {
     }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,
+        playerResearchRegistry: game.playerResearch,
+        requirementRegistry: game.requirements,
         terrainFeatureRegistry: game.terrainFeatures,
         unitImprovementRegistry: game.unitImprovements,
+        wonderRegistry: game.wonders,
     }), ...(0, yield_1.default)(game.unitImprovements, game.rules, game.transports), ...lifecycle.unsupported, ...lifecycle.validateMove);
 };
 exports.register = register;

@@ -4,7 +4,10 @@ exports.getRules = exports.defenceMultipliers = void 0;
 const units_1 = require("../../data/units");
 const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
+const PlayerResearchRegistry_1 = require("@civ-clone/core-science/PlayerResearchRegistry");
+const RequirementRegistry_1 = require("@civ-clone/core-requirement/RequirementRegistry");
 const TerrainFeatureRegistry_1 = require("@civ-clone/core-terrain-feature/TerrainFeatureRegistry");
+const WonderRegistry_1 = require("@civ-clone/core-wonder/WonderRegistry");
 const UnitImprovementRegistry_1 = require("@civ-clone/core-unit-improvement/UnitImprovementRegistry");
 const Air_1 = require("@civ-clone/base-unit-type-air/Air");
 const CityWalls_1 = require("@civ-clone/base-city-improvement-citywalls/CityWalls");
@@ -12,6 +15,7 @@ const Criterion_1 = require("@civ-clone/core-rule/Criterion");
 const DefenceBonusVsAir_1 = require("@civ-clone/base-unit-trait-defence-bonus-vs-air/DefenceBonusVsAir");
 const DefenceBonusVsMounted_1 = require("@civ-clone/base-unit-trait-defence-bonus-vs-mounted/DefenceBonusVsMounted");
 const Effect_1 = require("@civ-clone/core-rule/Effect");
+const GreatWall_1 = require("@civ-clone/base-wonder-great-wall/GreatWall");
 const Fortified_1 = require("@civ-clone/base-unit-improvement-fortified/UnitImprovements/Fortified");
 const IgnoresFortifications_1 = require("@civ-clone/base-unit-trait-ignores-fortifications/IgnoresFortifications");
 const Interceptor_1 = require("@civ-clone/base-unit-trait-interceptor/Interceptor");
@@ -20,6 +24,7 @@ const Units_1 = require("../../Units");
 const TerrainFeatures_1 = require("@civ-clone/civ2-world/TerrainFeatures");
 const SingleUse_1 = require("@civ-clone/base-unit-trait-single-use/SingleUse");
 const Strength_1 = require("@civ-clone/core-unit/Rules/Strength");
+const hasImprovementOrWonder_1 = require("@civ-clone/base-wonder/lib/hasImprovementOrWonder");
 const terrainTable_1 = require("@civ-clone/base-terrain-properties/lib/terrainTable");
 const terrainProperties_1 = require("@civ-clone/civ2-world/lib/terrainProperties");
 const defenceMultipliers_1 = require("@civ-clone/base-unit-yield/lib/defenceMultipliers");
@@ -35,11 +40,11 @@ const rowOf = (unit) => rows.get(unit.constructor);
 /**
  * Civilization II's defence bonuses for `defender` against `attacker` (`null`: against any), as named multipliers
  *  (`unit_defense_strength`): the terrain's half steps, plus one for a river; then a fortified land unit ×1.5, or in a
- *  city with City Walls ×3 for a land unit against a land attacker that doesn't ignore them (the walls replace being
+ *  city with City Walls (or its owner's Great Wall) ×3 for a land unit against a land attacker that doesn't ignore them (the walls replace being
  *  fortified); and an interceptor in a city against an aircraft that isn't a missile ×4, or ×2 against another
  *  interceptor. Any other unit in a city, and every unit but a land unit outside one, gets no bonus beyond the terrain.
  */
-const defenceMultipliers = ({ cityImprovementRegistry = CityImprovementRegistry_1.instance, cityRegistry = CityRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, } = {}) => (defender, attacker) => {
+const defenceMultipliers = ({ cityImprovementRegistry = CityImprovementRegistry_1.instance, cityRegistry = CityRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, requirementRegistry = RequirementRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, wonderRegistry = WonderRegistry_1.instance, } = {}) => (defender, attacker) => {
     var _a;
     const tile = defender.tile(), terrain = tile.terrain(), halves = (_a = terrainHalves(terrain)) !== null && _a !== void 0 ? _a : 2, river = terrainFeatureRegistry
         .getByTerrain(terrain)
@@ -77,9 +82,14 @@ const defenceMultipliers = ({ cityImprovementRegistry = CityImprovementRegistry_
     if ((attacker === null ||
         (attacker instanceof Land_1.default &&
             !attacker.hasTrait(IgnoresFortifications_1.default))) &&
-        cityImprovementRegistry
-            .getByCity(city)
-            .some((improvement) => improvement instanceof CityWalls_1.default)) {
+        // City Walls, or the Great Wall in every one of its owner's cities while it stands and isn't obsolete: one test, so
+        //  the two never stack (`unit_defense_strength`).
+        (0, hasImprovementOrWonder_1.cityHasImprovementOrWonder)(city, CityWalls_1.default, GreatWall_1.default, {
+            cityImprovementRegistry,
+            wonderRegistry,
+            playerResearchRegistry,
+            requirementRegistry,
+        })) {
         multipliers.push([CityWalls_1.default.name, 3]);
         return multipliers;
     }

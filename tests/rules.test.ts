@@ -33,12 +33,18 @@ import ValidateMove from '@civ-clone/core-unit/Rules/ValidateMove';
 import { River } from '@civ-clone/civ2-world/TerrainFeatures';
 import BuildCost from '@civ-clone/core-city-build/Rules/BuildCost';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
+import GreatWall from '@civ-clone/base-wonder-great-wall/GreatWall';
+import RequirementRegistry from '@civ-clone/core-requirement/RequirementRegistry';
+import { Requirement } from '@civ-clone/core-requirement/Requirement';
+import Metallurgy from '@civ-clone/base-science-advance-metallurgy/Metallurgy';
 import CruiseMissile from '@civ-clone/base-unit-cruisemissile/CruiseMissile';
 import Fortified from '@civ-clone/base-unit-improvement-fortified/UnitImprovements/Fortified';
 import Fundamentalism from '@civ-clone/base-government-fundamentalism/Fundamentalism';
 import Gunpowder from '@civ-clone/base-science-advance-gunpowder/Gunpowder';
 import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';
 import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
+import CanJoinCity from '@civ-clone/base-unit-action-join-city/Rules/CanJoinCity';
+import canJoinCity from '../Rules/Unit/canJoinCity';
 import Strength from '@civ-clone/core-unit/Rules/Strength';
 import Unit from '@civ-clone/core-unit/Unit';
 import UnitTraits from '@civ-clone/core-unit/Rules/UnitTraits';
@@ -366,12 +372,49 @@ describe('a short step', (): void => {
 describe('strength', (): void => {
   const fortified = new Set<Unit>();
 
-  const registryFor = (walls: boolean, city: boolean, river = false) => {
-    const registry = new RuleRegistry();
+  const registryFor = (
+    walls: boolean,
+    city: boolean,
+    river = false,
+    greatWall: 'p' | 'q' | null = null,
+    obsolete = false
+  ) => {
+    const registry = new RuleRegistry(),
+      requirementRegistry = new RequirementRegistry();
+
+    if (obsolete) {
+      requirementRegistry.add(
+        null,
+        new Requirement({
+          id: 'test:great-wall-obsolete',
+          subject: GreatWall,
+          relation: 'obsoletedBy',
+          targets: [Metallurgy],
+          range: 'world',
+        })
+      );
+    }
 
     registry.register(
       ...strength({
-        cityRegistry: { getByTile: () => (city ? {} : null) } as never,
+        cityRegistry: {
+          getByTile: () => (city ? { player: () => 'p' } : null),
+        } as never,
+        wonderRegistry: {
+          getByPlayer: (player: unknown) =>
+            greatWall === player
+              ? [
+                  Object.assign(Object.create(GreatWall.prototype), {
+                    city: () => ({ destroyed: () => false }),
+                  }),
+                ]
+              : [],
+        } as never,
+        requirementRegistry,
+        playerResearchRegistry: {
+          some: (test: (research: unknown) => boolean) =>
+            test({ completed: () => obsolete }),
+        } as never,
         cityImprovementRegistry: {
           getByCity: () => (walls ? [new CityWalls()] : []),
         } as never,
@@ -434,6 +477,26 @@ describe('strength', (): void => {
     expect(fight(registryFor(true, true), unit(Bomber), pikeman)[1]).to.equal(
       3
     );
+  });
+
+  it("counts its owner's Great Wall as City Walls in every city, once", (): void => {
+    const pikeman = unit(Pikeman, on(new Grassland())),
+      warrior = unit(Warrior, on(new Grassland()));
+
+    expect(fight(registryFor(false, true), warrior, pikeman)[1]).to.equal(1);
+    expect(
+      fight(registryFor(false, true, false, 'p'), warrior, pikeman)[1]
+    ).to.equal(3);
+    expect(
+      fight(registryFor(true, true, false, 'p'), warrior, pikeman)[1]
+    ).to.equal(3);
+    // Another player's Great Wall, or an obsolete one, does nothing here.
+    expect(
+      fight(registryFor(false, true, false, 'q'), warrior, pikeman)[1]
+    ).to.equal(1);
+    expect(
+      fight(registryFor(false, true, false, 'p', true), warrior, pikeman)[1]
+    ).to.equal(1);
   });
 
   it('gives the Pikeman ×1.5 against a mounted attacker only (land, two moves, one hit point)', (): void => {
@@ -609,5 +672,25 @@ describe('single use', (): void => {
     });
 
     expect(destroyed).to.deep.equal(['CruiseMissile']);
+  });
+});
+
+describe('canJoinCity', (): void => {
+  it("lets Settlers join a city below @COSMIC's Aqueduct size (8) only, Aqueduct or not, as `unit_cmd_build_city`", (): void => {
+    const registry = new RuleRegistry(),
+      size = { value: 7 };
+
+    registry.register(
+      ...canJoinCity({
+        getByCity: () => ({ size: () => size.value }),
+      } as never)
+    );
+
+    const joins = (): boolean[] =>
+      registry.process(CanJoinCity, {} as never, {} as never) as boolean[];
+
+    expect(joins()).to.deep.equal([true]);
+    size.value = 8;
+    expect(joins()).to.deep.equal([false]);
   });
 });

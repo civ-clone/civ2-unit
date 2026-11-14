@@ -43,6 +43,8 @@ import Fundamentalism from '@civ-clone/base-government-fundamentalism/Fundamenta
 import Gunpowder from '@civ-clone/base-science-advance-gunpowder/Gunpowder';
 import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';
 import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
+import CanJoinCity from '@civ-clone/base-unit-action-join-city/Rules/CanJoinCity';
+import canJoinCity from '../Rules/Unit/canJoinCity';
 import Strength from '@civ-clone/core-unit/Rules/Strength';
 import Unit from '@civ-clone/core-unit/Unit';
 import UnitTraits from '@civ-clone/core-unit/Rules/UnitTraits';
@@ -670,5 +672,25 @@ describe('single use', (): void => {
     });
 
     expect(destroyed).to.deep.equal(['CruiseMissile']);
+  });
+});
+
+describe('canJoinCity', (): void => {
+  it("lets Settlers join a city below @COSMIC's Aqueduct size (8) only, Aqueduct or not, as `unit_cmd_build_city`", (): void => {
+    const registry = new RuleRegistry(),
+      size = { value: 7 };
+
+    registry.register(
+      ...canJoinCity({
+        getByCity: () => ({ size: () => size.value }),
+      } as never)
+    );
+
+    const joins = (): boolean[] =>
+      registry.process(CanJoinCity, {} as never, {} as never) as boolean[];
+
+    expect(joins()).to.deep.equal([true]);
+    size.value = 8;
+    expect(joins()).to.deep.equal([false]);
   });
 });

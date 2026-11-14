@@ -201,6 +201,7 @@
     "@civ-clone/base-unit-warrior": "^0.1.0",
     "@civ-clone/base-unit-yield": "^0.1.0",
     "@civ-clone/base-wonder": "^0.1.1",
+    "@civ-clone/base-wonder-great-wall": "^0.1.1",
     "@civ-clone/base-wonder-manhattanproject": "^0.1.0",
     "@civ-clone/base-zone-of-control": "^0.1.0",
     "@civ-clone/civ2-rules": "github:civ-clone/civ2-rules",

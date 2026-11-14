@@ -241,8 +241,11 @@ export const register = (game: Game): void => {
     ...strength({
       cityImprovementRegistry: game.cityImprovements,
       cityRegistry: game.cities,
+      playerResearchRegistry: game.playerResearch,
+      requirementRegistry: game.requirements,
       terrainFeatureRegistry: game.terrainFeatures,
       unitImprovementRegistry: game.unitImprovements,
+      wonderRegistry: game.wonders,
     }),
     ...unitYield(game.unitImprovements, game.rules, game.transports),
     ...lifecycle.unsupported,

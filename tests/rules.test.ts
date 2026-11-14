@@ -33,6 +33,8 @@ import ValidateMove from '@civ-clone/core-unit/Rules/ValidateMove';
 import { River } from '@civ-clone/civ2-world/TerrainFeatures';
 import BuildCost from '@civ-clone/core-city-build/Rules/BuildCost';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
+import GreatWall from '@civ-clone/base-wonder-great-wall/GreatWall';
+import RequirementRegistry from '@civ-clone/core-requirement/RequirementRegistry';
 import CruiseMissile from '@civ-clone/base-unit-cruisemissile/CruiseMissile';
 import Fortified from '@civ-clone/base-unit-improvement-fortified/UnitImprovements/Fortified';
 import Fundamentalism from '@civ-clone/base-government-fundamentalism/Fundamentalism';
@@ -366,12 +368,31 @@ describe('a short step', (): void => {
 describe('strength', (): void => {
   const fortified = new Set<Unit>();
 
-  const registryFor = (walls: boolean, city: boolean, river = false) => {
+  const registryFor = (
+    walls: boolean,
+    city: boolean,
+    river = false,
+    greatWall = false
+  ) => {
     const registry = new RuleRegistry();
 
     registry.register(
       ...strength({
-        cityRegistry: { getByTile: () => (city ? {} : null) } as never,
+        cityRegistry: {
+          getByTile: () => (city ? { player: () => 'p' } : null),
+        } as never,
+        wonderRegistry: {
+          getByPlayer: () =>
+            greatWall
+              ? [
+                  Object.assign(Object.create(GreatWall.prototype), {
+                    city: () => ({ destroyed: () => false }),
+                  }),
+                ]
+              : [],
+        } as never,
+        requirementRegistry: new RequirementRegistry(),
+        playerResearchRegistry: { some: () => false } as never,
         cityImprovementRegistry: {
           getByCity: () => (walls ? [new CityWalls()] : []),
         } as never,
@@ -434,6 +455,19 @@ describe('strength', (): void => {
     expect(fight(registryFor(true, true), unit(Bomber), pikeman)[1]).to.equal(
       3
     );
+  });
+
+  it("counts its owner's Great Wall as City Walls in every city, once", (): void => {
+    const pikeman = unit(Pikeman, on(new Grassland())),
+      warrior = unit(Warrior, on(new Grassland()));
+
+    expect(fight(registryFor(false, true), warrior, pikeman)[1]).to.equal(1);
+    expect(
+      fight(registryFor(false, true, false, true), warrior, pikeman)[1]
+    ).to.equal(3);
+    expect(
+      fight(registryFor(true, true, false, true), warrior, pikeman)[1]
+    ).to.equal(3);
   });
 
   it('gives the Pikeman ×1.5 against a mounted attacker only (land, two moves, one hit point)', (): void => {

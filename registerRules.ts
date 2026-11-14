@@ -29,6 +29,7 @@ import { cosmic } from '@civ-clone/civ2-rules/data/cosmic';
 import diplomatRules from '@civ-clone/base-unit-lifecycle/lib/diplomatRules';
 import detonatedRules from '@civ-clone/base-unit-lifecycle/lib/detonatedRules';
 import homeCity from '@civ-clone/base-unit-build/lib/homeCity';
+import manhattanProjectBuilt from './lib/manhattanProject';
 import lifecycleRules from '@civ-clone/base-unit-lifecycle/lib/lifecycleRules';
 import movedRules from '@civ-clone/base-unit-lifecycle/lib/movedRules';
 import movementCost from './Rules/Unit/movementCost';
@@ -125,6 +126,10 @@ export const register = (game: Game): void => {
       clientRegistry: game.clients,
       playerGovernmentRegistry: game.playerGovernments,
       playerResearchRegistry: game.playerResearch,
+      manhattanProjectBuilt: manhattanProjectBuilt(
+        game.wonders,
+        game.cityImprovements
+      ),
     })
   );
 

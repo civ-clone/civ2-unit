@@ -44,7 +44,8 @@ export interface BuildDependencies {
   clientRegistry?: ClientRegistry;
   playerGovernmentRegistry?: PlayerGovernmentRegistry;
   playerResearchRegistry?: PlayerResearchRegistry;
-  // Whether anyone has built the Manhattan Project. There is none in M2a, so never.
+  // Whether anyone has ever built the Manhattan Project (`lib/manhattanProject`, which `registerRules` passes). Never,
+  //  unless given.
   manhattanProjectBuilt?: () => boolean;
 }
 

@@ -27,6 +27,7 @@ const cosmic_1 = require("@civ-clone/civ2-rules/data/cosmic");
 const diplomatRules_1 = require("@civ-clone/base-unit-lifecycle/lib/diplomatRules");
 const detonatedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/detonatedRules");
 const homeCity_1 = require("@civ-clone/base-unit-build/lib/homeCity");
+const manhattanProject_1 = require("./lib/manhattanProject");
 const lifecycleRules_1 = require("@civ-clone/base-unit-lifecycle/lib/lifecycleRules");
 const movedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/movedRules");
 const movementCost_1 = require("./Rules/Unit/movementCost");
@@ -103,6 +104,7 @@ const register = (game) => {
         clientRegistry: game.clients,
         playerGovernmentRegistry: game.playerGovernments,
         playerResearchRegistry: game.playerResearch,
+        manhattanProjectBuilt: (0, manhattanProject_1.default)(game.wonders, game.cityImprovements),
     }));
     // Which units a city may build, from the entries in `Requirements`, through the game's `requirements`.
     game.requirements.add((0, buildRules_1.deriveBuildRules)(game.playerResearch), ...Requirements_1.default);

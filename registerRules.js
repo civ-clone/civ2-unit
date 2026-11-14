@@ -1,0 +1,159 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.register = exports.defenders = exports.shortfallFactor = void 0;
+const units_1 = require("./data/units");
+const core_game_1 = require("@civ-clone/core-game");
+const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
+const Requirements_1 = require("./Requirements");
+const buildRules_1 = require("@civ-clone/base-unit-build/lib/buildRules");
+const ActiveUnit_1 = require("@civ-clone/base-player-action-active-unit/ActiveUnit");
+const Air_1 = require("@civ-clone/base-unit-type-air/Air");
+const Attack_1 = require("@civ-clone/base-unit-action-attack/Attack");
+const Disembark_1 = require("@civ-clone/base-unit-action-disembark/Disembark");
+const Fortified_1 = require("@civ-clone/base-unit-improvement-fortified/UnitImprovements/Fortified");
+const InactiveUnit_1 = require("@civ-clone/base-player-action-inactive-unit/InactiveUnit");
+const Land_1 = require("@civ-clone/base-unit-type-land/Land");
+const Move_1 = require("@civ-clone/base-unit-action-move/Move");
+const RuleSets_1 = require("./RuleSets");
+const RuleSet_1 = require("@civ-clone/core-rule/RuleSet");
+const Actions_1 = require("./Actions");
+const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
+const action_1 = require("./Rules/Unit/action");
+const build_1 = require("./Rules/City/build");
+const buildCost_1 = require("./Rules/City/buildCost");
+const canJoinCity_1 = require("./Rules/Unit/canJoinCity");
+const cityUnitRules_1 = require("@civ-clone/base-unit-build/lib/cityUnitRules");
+const cosmic_1 = require("@civ-clone/civ2-rules/data/cosmic");
+const diplomatRules_1 = require("@civ-clone/base-unit-lifecycle/lib/diplomatRules");
+const detonatedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/detonatedRules");
+const homeCity_1 = require("@civ-clone/base-unit-build/lib/homeCity");
+const lifecycleRules_1 = require("@civ-clone/base-unit-lifecycle/lib/lifecycleRules");
+const movedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/movedRules");
+const movementCost_1 = require("./Rules/Unit/movementCost");
+const roles_1 = require("./Rules/Unit/roles");
+const strength_1 = require("./Rules/Unit/strength");
+const traits_1 = require("./Rules/Unit/traits");
+const treatyPartner_1 = require("@civ-clone/base-unit-lifecycle/lib/treatyPartner");
+const yield_1 = require("./Rules/Unit/yield");
+const unitTable_1 = require("./lib/unitTable");
+/** A unit stepping one move short of a square's cost gets there with this chance per move it has (as Civ1's). */
+exports.shortfallFactor = 0.5;
+/** A new city's first defender, if its player asks for one: the defensive units, strongest defence first. */
+exports.defenders = units_1.units
+    .map((row, index) => [
+    row,
+    unitTable_1.unitTypes[index],
+])
+    .filter(([[, , , , , , , , , , role]]) => role === units_1.DEFEND)
+    .sort(([a], [b]) => b[5] - a[5])
+    .map(([, UnitType]) => UnitType);
+const register = (game) => {
+    // What each unit type can do and what it's for, first, so that no rule below is asked about a unit before then.
+    game.rules.register(...(0, traits_1.default)(), ...(0, roles_1.default)());
+    const lifecycle = (0, lifecycleRules_1.default)('civ2-unit', {
+        cityRegistry: game.cities,
+        engine: game.engine,
+        randomNumberGenerator: game.rng,
+        ruleRegistry: game.rules,
+        transportRegistry: game.transports,
+        unitImprovementRegistry: game.unitImprovements,
+        unitLossRegistry: game.unitLosses,
+        unitRegistry: game.units,
+    }, {
+        ActiveUnit: ActiveUnit_1.default,
+        InactiveUnit: InactiveUnit_1.default,
+        removedOnActivate: [Fortified_1.default],
+        stowable: [Land_1.default, Air_1.default],
+        partnerOf: (0, treatyPartner_1.default)(action_1.territoryImprovements, {
+            interactionRegistry: game.interactions,
+            tileImprovementRegistry: game.tileImprovements,
+            workedTileRegistry: game.workedTiles,
+        }),
+        shortfallFactor: exports.shortfallFactor,
+    });
+    game.rules.register(...(0, action_1.default)({
+        cityGrowthRegistry: game.cityGrowth,
+        cityNameRegistry: game.cityNames,
+        cityRegistry: game.cities,
+        engine: game.engine,
+        interactionRegistry: game.interactions,
+        pathFinderRegistry: game.pathFinders,
+        playerResearchRegistry: game.playerResearch,
+        ruleRegistry: game.rules,
+        strategyNoteRegistry: game.strategyNotes,
+        strategyRegistry: game.strategies,
+        terrainFeatureRegistry: game.terrainFeatures,
+        tileImprovementRegistry: game.tileImprovements,
+        transportRegistry: game.transports,
+        turn: game.turn,
+        unitImprovementRegistry: game.unitImprovements,
+        unitRegistry: game.units,
+        workedTileRegistry: game.workedTiles,
+    }), ...lifecycle.activate, (0, buildRules_1.navalNeedsCoastRule)('civ2-unit'), ...(0, build_1.default)({
+        clientRegistry: game.clients,
+        playerGovernmentRegistry: game.playerGovernments,
+        playerResearchRegistry: game.playerResearch,
+    }));
+    // Which units a city may build, from the entries in `Requirements`, through the game's `requirements`.
+    game.requirements.add((0, buildRules_1.deriveBuildRules)(game.playerResearch), ...Requirements_1.default);
+    // Units going obsolete, as a set a game can switch off.
+    game.ruleSets.register(new RuleSet_1.default(RuleSets_1.OBSOLESCENCE, ...Requirements_1.obsoletedBy.map((entry) => entry.id)));
+    const cityUnits = (0, cityUnitRules_1.default)('civ2-unit', {
+        buildPreferencesRegistry: game.buildPreferences,
+        cityBuildRegistry: game.cityBuilds,
+        cityGrowthRegistry: game.cityGrowth,
+        cityRegistry: game.cities,
+        engine: game.engine,
+        unitImprovementRegistry: game.unitImprovements,
+        unitRegistry: game.units,
+    }, {
+        defenders: exports.defenders,
+        homeCity: (0, homeCity_1.default)((from, to) => from.distanceFrom(to), game.cities),
+        lostWithCity: [Veteran_1.default],
+        defectingCauses: [],
+    });
+    const missions = (0, diplomatRules_1.default)('civ2-unit', {
+        engine: game.engine,
+        interactionRegistry: game.interactions,
+        ruleRegistry: game.rules,
+        turn: game.turn,
+    });
+    game.rules.register(...(0, buildCost_1.default)(), ...cityUnits.buildingComplete, ...cityUnits.created, ...(0, canJoinCity_1.default)(game.cityGrowth), ...lifecycle.canStow, ...lifecycle.created, ...lifecycle.defeated, ...lifecycle.destroyed, ...(0, detonatedRules_1.default)('civ2-unit', {
+        cityGrowthRegistry: game.cityGrowth,
+        cityRegistry: game.cities,
+        engine: game.engine,
+        randomNumberGenerator: game.rng,
+        ruleRegistry: game.rules,
+        tileImprovementRegistry: game.tileImprovements,
+        unitRegistry: game.units,
+    }, {
+        // No SDI Defense in M2a.
+        sparesUnits: () => false,
+        Pollution: TileImprovements_1.Pollution,
+        falloutChance: 2 / 3,
+    }), ...lifecycle.expectedMovementCost, ...lifecycle.impassable, ...lifecycle.halted, ...lifecycle.lostAtSea, ...(0, movedRules_1.default)('civ2-unit', {
+        cityRegistry: game.cities,
+        engine: game.engine,
+        interactionRegistry: game.interactions,
+        randomNumberGenerator: game.rng,
+        ruleRegistry: game.rules,
+        transportRegistry: game.transports,
+        unitRegistry: game.units,
+    }, {
+        Move: Move_1.default,
+        Disembark: Disembark_1.default,
+        attacks: [Attack_1.default, Actions_1.SneakAttack],
+        noVendetta: [Actions_1.SneakMove, Actions_1.SneakPillage],
+        coastBoundLoss: 1 / cosmic_1.cosmic.triremeLossChance,
+    }), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...missions.leaderMet, ...lifecycle.transferred, ...(0, strength_1.default)({
+        cityImprovementRegistry: game.cityImprovements,
+        cityRegistry: game.cities,
+        terrainFeatureRegistry: game.terrainFeatures,
+        unitImprovementRegistry: game.unitImprovements,
+    }), ...(0, yield_1.default)(game.unitImprovements, game.rules, game.transports), ...lifecycle.unsupported, ...lifecycle.validateMove);
+};
+exports.register = register;
+// The plugin loader imports each package for this side effect.
+(0, exports.register)(core_game_1.defaultGame);
+exports.default = exports.register;
+//# sourceMappingURL=registerRules.js.map

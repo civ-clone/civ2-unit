@@ -200,7 +200,7 @@
     "@civ-clone/base-unit-type-naval-transport": "^0.1.3",
     "@civ-clone/base-unit-warrior": "^0.1.0",
     "@civ-clone/base-unit-yield": "^0.1.0",
-    "@civ-clone/base-wonder": "github:civ-clone/base-wonder#feat/civ2-wonder-factories",
+    "@civ-clone/base-wonder": "^0.1.1",
     "@civ-clone/base-wonder-manhattanproject": "^0.1.0",
     "@civ-clone/base-zone-of-control": "^0.1.0",
     "@civ-clone/civ2-rules": "github:civ-clone/civ2-rules",

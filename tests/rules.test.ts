@@ -57,6 +57,11 @@ import { Attack as AttackAction, Move } from '../Actions';
 import singleUse from '../Rules/Unit/singleUse';
 import TheWheel from '@civ-clone/base-science-advance-thewheel/TheWheel';
 import Chivalry from '@civ-clone/base-science-advance-chivalry/Chivalry';
+import City from '@civ-clone/core-city/City';
+import CityImprovementRegistry from '@civ-clone/core-city-improvement/CityImprovementRegistry';
+import ManhattanProject from '@civ-clone/base-wonder-manhattanproject/ManhattanProject';
+import WonderRegistry from '@civ-clone/core-wonder/WonderRegistry';
+import manhattanProjectBuilt from '../lib/manhattanProject';
 import NuclearFission from '@civ-clone/base-science-advance-nuclearfission/NuclearFission';
 
 const ruleRegistry = new RuleRegistry();
@@ -541,6 +546,43 @@ describe('the build list', (): void => {
     expect(allowed(rulesFor([], { government: Fundamentalism }), Fanatic)).to
       .true;
     expect(allowed(rulesFor([NuclearFission]), Nuclear)).to.false;
+  });
+
+  it('builds nuclear weapons with Nuclear Fission once anyone has ever built the Manhattan Project', (): void => {
+    const wonderRegistry = new WonderRegistry(),
+      cityImprovementRegistry = new CityImprovementRegistry(),
+      built = manhattanProjectBuilt(wonderRegistry, cityImprovementRegistry),
+      rules = (known: Function[]) =>
+        build({
+          clientRegistry: { getBy: () => [{}] } as never,
+          playerResearchRegistry: {
+            getByPlayer: () => ({
+              completed: (Advance: Function) => known.includes(Advance),
+            }),
+          } as never,
+          manhattanProjectBuilt: built,
+        }),
+      // A `City` the registries accept; the Wonder's city is destroyed later.
+      wonderCity = Object.assign(Object.create(City.prototype), {
+        destroyed: () => false,
+      }),
+      manhattanProject = new ManhattanProject(wonderCity);
+
+    expect(built()).to.false;
+    expect(allowed(rules([NuclearFission]), Nuclear)).to.false;
+
+    cityImprovementRegistry.register(manhattanProject);
+    wonderRegistry.register(manhattanProject);
+
+    expect(built()).to.true;
+    expect(allowed(rules([NuclearFission]), Nuclear)).to.true;
+    expect(allowed(rules([]), Nuclear)).to.false;
+
+    // Lost with its city: still built, as the original's -2 isn't -1.
+    manhattanProject.destroy();
+    wonderRegistry.unregister(manhattanProject);
+
+    expect(built()).to.true;
   });
 });
 

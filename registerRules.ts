@@ -33,6 +33,7 @@ import lifecycleRules from '@civ-clone/base-unit-lifecycle/lib/lifecycleRules';
 import movedRules from '@civ-clone/base-unit-lifecycle/lib/movedRules';
 import movementCost from './Rules/Unit/movementCost';
 import roles from './Rules/Unit/roles';
+import singleUse from './Rules/Unit/singleUse';
 import strength from './Rules/Unit/strength';
 import traits from './Rules/Unit/traits';
 import treatyPartner from '@civ-clone/base-unit-lifecycle/lib/treatyPartner';
@@ -204,6 +205,7 @@ export const register = (game: Game): void => {
         coastBoundLoss: 1 / cosmic.triremeLossChance,
       }
     ),
+    ...singleUse(),
     ...movementCost(
       game.tileImprovements,
       game.transports,

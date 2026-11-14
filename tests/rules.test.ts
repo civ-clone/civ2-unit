@@ -47,7 +47,9 @@ import strength from '../Rules/Unit/strength';
 import { terrainCost } from '../Rules/Unit/movementCost';
 import traits from '../Rules/Unit/traits';
 import unitYield from '../Rules/Unit/yield';
-import { Move } from '../Actions';
+import { Attack as AttackAction, Move } from '../Actions';
+import singleUse from '../Rules/Unit/singleUse';
+import TheWheel from '@civ-clone/base-science-advance-thewheel/TheWheel';
 import Chivalry from '@civ-clone/base-science-advance-chivalry/Chivalry';
 import NuclearFission from '@civ-clone/base-science-advance-nuclearfission/NuclearFission';
 
@@ -367,10 +369,44 @@ describe('the build list', (): void => {
     expect(allowed(rulesFor([Chivalry]), Knight)).to.true;
   });
 
+  it("doesn't let a computer player build a multi-move unit another it can build outclasses", (): void => {
+    // A Chariot (3/1, The Wheel) outclasses a Horseman (2/1) of the same role; Chivalry, which obsoletes the Horseman,
+    //  is unknown, so only this rule refuses it, and only for a computer player.
+    expect(allowed(rulesFor([TheWheel], { human: false }), Horseman)).to.false;
+    expect(allowed(rulesFor([TheWheel], { human: true }), Horseman)).to.true;
+    expect(allowed(rulesFor([], { human: false }), Horseman)).to.true;
+  });
+
   it('builds Fanatics only under Fundamentalism, and nuclear weapons never without the Manhattan Project', (): void => {
     expect(allowed(rulesFor([]), Fanatic)).to.false;
     expect(allowed(rulesFor([], { government: Fundamentalism }), Fanatic)).to
       .true;
     expect(allowed(rulesFor([NuclearFission]), Nuclear)).to.false;
+  });
+});
+
+describe('single use', (): void => {
+  it('spends a missile when it attacks, and nothing else', (): void => {
+    const [rule] = singleUse(),
+      destroyed: string[] = [],
+      attacker = (UnitType: typeof Unit) =>
+        Object.assign(unit(UnitType), {
+          destroyed: () => false,
+          destroy: () => destroyed.push(UnitType.name),
+        }),
+      attack = Object.create(AttackAction.prototype),
+      move = Object.create(Move.prototype);
+
+    [
+      [attacker(CruiseMissile), attack],
+      [attacker(CruiseMissile), move],
+      [attacker(Warrior), attack],
+    ].forEach(([u, action]) => {
+      if (rule.validate(u, action)) {
+        rule.process(u, action);
+      }
+    });
+
+    expect(destroyed).to.deep.equal(['CruiseMissile']);
   });
 });

@@ -31,6 +31,7 @@ const lifecycleRules_1 = require("@civ-clone/base-unit-lifecycle/lib/lifecycleRu
 const movedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/movedRules");
 const movementCost_1 = require("./Rules/Unit/movementCost");
 const roles_1 = require("./Rules/Unit/roles");
+const singleUse_1 = require("./Rules/Unit/singleUse");
 const strength_1 = require("./Rules/Unit/strength");
 const traits_1 = require("./Rules/Unit/traits");
 const treatyPartner_1 = require("@civ-clone/base-unit-lifecycle/lib/treatyPartner");
@@ -145,7 +146,7 @@ const register = (game) => {
         attacks: [Attack_1.default, Actions_1.SneakAttack],
         noVendetta: [Actions_1.SneakMove, Actions_1.SneakPillage],
         coastBoundLoss: 1 / cosmic_1.cosmic.triremeLossChance,
-    }), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...missions.leaderMet, ...lifecycle.transferred, ...(0, strength_1.default)({
+    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...missions.leaderMet, ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,
         terrainFeatureRegistry: game.terrainFeatures,

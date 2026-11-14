@@ -18,6 +18,10 @@ import {
   multipleOf,
 } from '@civ-clone/base-terrain-properties/lib/jobTurns';
 import {
+  CityRegistry,
+  instance as cityRegistryInstance,
+} from '@civ-clone/core-city/CityRegistry';
+import {
   TerrainFeatureRegistry,
   instance as terrainFeatureRegistryInstance,
 } from '@civ-clone/core-terrain-feature/TerrainFeatureRegistry';
@@ -45,6 +49,7 @@ import Terrain from '@civ-clone/core-terrain/Terrain';
 import TerrainAsRoad from '@civ-clone/base-unit-trait-terrain-as-road/TerrainAsRoad';
 import TerrainFeature from '@civ-clone/core-terrain-feature/TerrainFeature';
 import Tile from '@civ-clone/core-world/Tile';
+import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
 import Unit from '@civ-clone/core-unit/Unit';
 import UnitAction from '@civ-clone/core-unit/Action';
 import {
@@ -87,18 +92,53 @@ export const civ2TerrainJobTurns: TerrainJob<typeof UnitAction>[] = [
 
 /**
  * Civilization II's movement costs (`unit_move_dir_step_cost`): base-unit-movement's rules with Civ2's terrain,
- *  routes and jobs, and two of Civ2's own: along a river, and a unit that treats every square as road (Alpine Troops,
- *  Partisans, Explorers). A move takes the cheapest answer.
+ *  routes and jobs, and Civ2's own: a city's square counts as road and railroad, a step along a river costs as a road,
+ *  and so does every step of a unit that treats every square as road (Alpine Troops, Partisans, Explorers). A move
+ *  takes the cheapest answer.
  */
 export const getRules = (
   tileImprovementRegistry: TileImprovementRegistry = tileImprovementRegistryInstance,
   transportRegistry: TransportRegistry = transportRegistryInstance,
-  terrainFeatureRegistry: TerrainFeatureRegistry = terrainFeatureRegistryInstance
+  terrainFeatureRegistry: TerrainFeatureRegistry = terrainFeatureRegistryInstance,
+  cityRegistry: CityRegistry = cityRegistryInstance
 ): MovementCost[] => {
   const hasRiver = (tile: Tile): boolean =>
-    terrainFeatureRegistry
-      .getByTerrain(tile.terrain())
-      .some((feature: TerrainFeature): boolean => feature instanceof River);
+      terrainFeatureRegistry
+        .getByTerrain(tile.terrain())
+        .some((feature: TerrainFeature): boolean => feature instanceof River),
+    // A city's square counts as both road and railroad (`unit_move_dir_step_cost` tests the city bit with each).
+    routeOrCity =
+      (Improvement: typeof TileImprovement) =>
+      (tile: Tile): boolean =>
+        cityRegistry.getByTile(tile) !== null ||
+        tileImprovementRegistry
+          .getByTile(tile)
+          .some(
+            (improvement: TileImprovement): boolean =>
+              improvement instanceof Improvement
+          ),
+    cityRoute = (
+      name: string,
+      Improvement: typeof TileImprovement,
+      cost: number
+    ): MovementCost => {
+      const has = routeOrCity(Improvement);
+
+      return new MovementCost(
+        `civ2-unit:unit/movement-cost/${name}`,
+        new Criterion(
+          (unit: Unit, action: Action): boolean => action instanceof Move
+        ),
+        new Criterion((unit: Unit): boolean => unit instanceof Land),
+        new Criterion((unit: Unit, action: Action): boolean =>
+          has(action.from())
+        ),
+        new Criterion((unit: Unit, action: Action): boolean =>
+          has(action.to())
+        ),
+        new Effect((): number => cost)
+      );
+    };
 
   return [
     ...movementCostRules(
@@ -119,6 +159,8 @@ export const getRules = (
         jobs: civ2TerrainJobTurns,
       }
     ),
+    cityRoute('city-road', Road, roadMove),
+    cityRoute('city-railroad', Railroad, 0),
     new MovementCost(
       'civ2-unit:unit/movement-cost/river',
       new Criterion(
@@ -130,6 +172,12 @@ export const getRules = (
       ),
       new Criterion((unit: Unit, action: Action): boolean =>
         hasRiver(action.to())
+      ),
+      // Along the river only: a step to one of the four squares that share an edge with this one, one row up or down
+      //  on the staggered grid (`dx == 1` and `|dy| == 1` on Civ2's doubled-x grid).
+      new Criterion(
+        (unit: Unit, action: Action): boolean =>
+          Math.abs(action.from().y() - action.to().y()) === 1
       ),
       new Effect((): number => roadMove)
     ),

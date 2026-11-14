@@ -24,6 +24,10 @@ import {
   Warrior,
 } from '../Units';
 import { Grassland, Hills, Mountains } from '@civ-clone/civ2-world/Terrains';
+import { Railroad, Road } from '@civ-clone/civ2-world/TileImprovements';
+import Terrain from '@civ-clone/core-terrain/Terrain';
+import TileImprovementRegistry from '@civ-clone/core-tile-improvement/TileImprovementRegistry';
+import { shortStep } from '../registerRules';
 import { River } from '@civ-clone/civ2-world/TerrainFeatures';
 import BuildCost from '@civ-clone/core-city-build/Rules/BuildCost';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
@@ -140,22 +144,59 @@ describe('build costs', (): void => {
 });
 
 describe('movement', (): void => {
-  const registry = new RuleRegistry(),
-    rivers = new Set<unknown>();
+  const rivers = new Set<unknown>(),
+    cities = new Set<unknown>(),
+    tileImprovements = new TileImprovementRegistry(),
+    registry = new RuleRegistry();
 
   registry.register(
     ...traits(),
     ...movementCost(
-      { getByTile: () => [] } as never,
+      tileImprovements,
       { hasUnit: () => false } as never,
       {
         getByTerrain: (terrain: unknown) =>
           rivers.has(terrain) ? [new River(terrain as never)] : [],
-      } as never
+      } as never,
+      { getByTile: (tile: unknown) => (cities.has(tile) ? {} : null) } as never
     )
   );
 
-  const square = (terrain: unknown) => ({ terrain: () => terrain }),
+  let row = 0;
+
+  // A square of `terrain` on its own row (or `y`), with any of a road, a railroad, a city and a river.
+  const square = (
+      terrain: Terrain = new Hills(),
+      {
+        road = false,
+        railroad = false,
+        city = false,
+        river = false,
+        y = (row += 4),
+      } = {}
+    ) => {
+      const tile = { terrain: () => terrain, y: () => y };
+
+      if (road) {
+        tileImprovements.register(new Road(tile as never, new RuleRegistry()));
+      }
+
+      if (railroad) {
+        tileImprovements.register(
+          new Railroad(tile as never, new RuleRegistry())
+        );
+      }
+
+      if (city) {
+        cities.add(tile);
+      }
+
+      if (river) {
+        rivers.add(terrain);
+      }
+
+      return tile;
+    },
     cost = (UnitType: typeof Unit, from: unknown, to: unknown): number => {
       const mover = Object.assign(Object.create(UnitType.prototype), {
         hasTrait: (Trait: Function) =>
@@ -180,22 +221,75 @@ describe('movement', (): void => {
       );
     };
 
-  it("costs a terrain's @TERRAIN movement, a third along a river, and a third anywhere for alpine moves", (): void => {
-    const hills = new Hills(),
-      mountains = new Mountains(),
-      riverHills = new Hills();
-
-    rivers.add(riverHills);
-    rivers.add(mountains);
-
+  it("costs a terrain's @TERRAIN movement, a road a third and a railroad nothing", (): void => {
     expect(terrainCost(new Grassland())).to.equal(1);
-    expect(cost(Warrior, square(new Grassland()), square(hills))).to.equal(2);
-    expect(cost(Warrior, square(riverHills), square(mountains))).to.equal(
-      1 / 3
-    );
-    expect(cost(Partisan, square(hills), square(new Mountains()))).to.equal(
-      1 / 3
-    );
+    expect(cost(Warrior, square(new Grassland()), square())).to.equal(2);
+    expect(
+      cost(
+        Warrior,
+        square(new Hills(), { road: true }),
+        square(new Hills(), { road: true })
+      )
+    ).to.equal(1 / 3);
+    expect(
+      cost(Warrior, square(new Hills(), { road: true }), square())
+    ).to.equal(2);
+    expect(
+      cost(
+        Warrior,
+        square(new Hills(), { railroad: true }),
+        square(new Hills(), { railroad: true })
+      )
+    ).to.equal(0);
+  });
+
+  it('counts a city square as road and railroad', (): void => {
+    expect(
+      cost(
+        Warrior,
+        square(new Hills(), { city: true }),
+        square(new Hills(), { railroad: true })
+      )
+    ).to.equal(0);
+    expect(
+      cost(
+        Warrior,
+        square(new Hills(), { city: true }),
+        square(new Hills(), { city: true })
+      )
+    ).to.equal(0);
+    expect(
+      cost(
+        Warrior,
+        square(new Hills(), { city: true }),
+        square(new Hills(), { road: true })
+      )
+    ).to.equal(1 / 3);
+    expect(
+      cost(Warrior, square(new Hills(), { city: true }), square())
+    ).to.equal(2);
+  });
+
+  it('costs a third along a river, to a square one row up or down, and a third anywhere for alpine moves', (): void => {
+    const from = square(new Hills(), { river: true, y: 10 });
+
+    expect(
+      cost(Warrior, from, square(new Mountains(), { river: true, y: 11 }))
+    ).to.equal(1 / 3);
+    expect(
+      cost(Warrior, from, square(new Mountains(), { river: true, y: 12 }))
+    ).to.equal(3);
+    expect(cost(Warrior, from, square(new Mountains(), { y: 11 }))).to.equal(3);
+    expect(cost(Partisan, square(), square(new Mountains()))).to.equal(1 / 3);
+  });
+});
+
+describe('a short step', (): void => {
+  it("always succeeds for a unit that hasn't moved, and at remaining over cost for one that has", (): void => {
+    expect(shortStep.succeeds(1, 1, 3, () => 0.99)).to.true;
+    expect(shortStep.succeeds(1, 2, 2, () => 0.49)).to.true;
+    expect(shortStep.succeeds(1, 2, 2, () => 0.5)).to.false;
+    expect(shortStep.expectedCost(1)).to.equal(1);
   });
 });
 

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRules = exports.civ2TerrainJobTurns = exports.terrainCost = void 0;
 const Actions_1 = require("../../Actions");
 const jobTurns_1 = require("@civ-clone/base-terrain-properties/lib/jobTurns");
+const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
 const TerrainFeatureRegistry_1 = require("@civ-clone/core-terrain-feature/TerrainFeatureRegistry");
 const TileImprovementRegistry_1 = require("@civ-clone/core-tile-improvement/TileImprovementRegistry");
 const TransportRegistry_1 = require("@civ-clone/core-unit-transport/TransportRegistry");
@@ -42,13 +43,22 @@ exports.civ2TerrainJobTurns = [
 ];
 /**
  * Civilization II's movement costs (`unit_move_dir_step_cost`): base-unit-movement's rules with Civ2's terrain,
- *  routes and jobs, and two of Civ2's own: along a river, and a unit that treats every square as road (Alpine Troops,
- *  Partisans, Explorers). A move takes the cheapest answer.
+ *  routes and jobs, and Civ2's own: a city's square counts as road and railroad, a step along a river costs as a road,
+ *  and so does every step of a unit that treats every square as road (Alpine Troops, Partisans, Explorers). A move
+ *  takes the cheapest answer.
  */
-const getRules = (tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance) => {
+const getRules = (tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, cityRegistry = CityRegistry_1.instance) => {
     const hasRiver = (tile) => terrainFeatureRegistry
         .getByTerrain(tile.terrain())
-        .some((feature) => feature instanceof TerrainFeatures_1.River);
+        .some((feature) => feature instanceof TerrainFeatures_1.River), 
+    // A city's square counts as both road and railroad (`unit_move_dir_step_cost` tests the city bit with each).
+    routeOrCity = (Improvement) => (tile) => cityRegistry.getByTile(tile) !== null ||
+        tileImprovementRegistry
+            .getByTile(tile)
+            .some((improvement) => improvement instanceof Improvement), cityRoute = (name, Improvement, cost) => {
+        const has = routeOrCity(Improvement);
+        return new MovementCost_1.default(`civ2-unit:unit/movement-cost/${name}`, new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => has(action.from())), new Criterion_1.default((unit, action) => has(action.to())), new Effect_1.default(() => cost));
+    };
     return [
         ...(0, movementCostRules_1.default)('civ2-unit', { tileImprovementRegistry, transportRegistry }, {
             Move: Actions_1.Move,
@@ -64,7 +74,12 @@ const getRules = (tileImprovementRegistry = TileImprovementRegistry_1.instance, 
             ],
             jobs: exports.civ2TerrainJobTurns,
         }),
-        new MovementCost_1.default('civ2-unit:unit/movement-cost/river', new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => hasRiver(action.from())), new Criterion_1.default((unit, action) => hasRiver(action.to())), new Effect_1.default(() => roadMove)),
+        cityRoute('city-road', TileImprovements_1.Road, roadMove),
+        cityRoute('city-railroad', TileImprovements_1.Railroad, 0),
+        new MovementCost_1.default('civ2-unit:unit/movement-cost/river', new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => hasRiver(action.from())), new Criterion_1.default((unit, action) => hasRiver(action.to())), 
+        // Along the river only: a step to one of the four squares that share an edge with this one, one row up or down
+        //  on the staggered grid (`dx == 1` and `|dy| == 1` on Civ2's doubled-x grid).
+        new Criterion_1.default((unit, action) => Math.abs(action.from().y() - action.to().y()) === 1), new Effect_1.default(() => roadMove)),
         new MovementCost_1.default('civ2-unit:unit/movement-cost/terrain-as-road', new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit) => unit.hasTrait(TerrainAsRoad_1.default)), new Effect_1.default(() => roadMove)),
     ];
 };

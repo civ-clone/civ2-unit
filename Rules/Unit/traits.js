@@ -61,13 +61,13 @@ const traitsOf = (row) => {
         ...(has(units_1.IGNORES_CITY_WALLS) ? [IgnoresFortifications_1.default] : []),
         ...(has(units_1.PARADROPS) ? [Paradrop_1.default] : []),
         ...(has(units_1.TREATS_ALL_AS_ROAD) ? [TerrainAsRoad_1.default] : []),
-        // "x2 vs horse" is ×1.5 in the code (`unit_resolve_attack`).
+        // Flag 10's defence bonus is ×1.5 in the code (`unit_resolve_attack`).
         ...(has(units_1.DEFENCE_BONUS_VS_MOUNTED) ? [new DefenceBonusVsMounted_1.default(1.5)] : []),
         ...(has(units_1.FUNDAMENTALISM_FREE_SUPPORT)
             ? [new SupportExemptUnder_1.default(Fundamentalism_1.default)]
             : []),
         ...(has(units_1.DESTROYED_AFTER_ATTACKING) ? [SingleUse_1.default] : []),
-        // "x2 vs air" is ×3 against aircraft and ×5 against missiles (`unit_resolve_attack`).
+        // Flag 13's is ×3 against aircraft and ×5 against missiles (`unit_resolve_attack`).
         ...(has(units_1.DEFENCE_BONUS_VS_AIR) ? [new DefenceBonusVsAir_1.default(3, 5)] : []),
         ...(has(units_1.DETECTS_SUBMARINES) ? [DetectsSubmerged_1.default] : []),
         ...(attack >= units_1.NUCLEAR_ATTACK ? [Detonates_1.default] : []),

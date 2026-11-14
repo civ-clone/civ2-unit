@@ -62,9 +62,55 @@
       "PlantForest",
       "Automate"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildIrrigation",
+      "BuildMine",
+      "BuildRoad",
+      "Automate"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildRoad",
+      "ClearJungle",
+      "PlantForest",
+      "Automate"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildRoad",
+      "PlantForest",
+      "ClearSwamp",
+      "Automate"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildIrrigation",
+      "BuildRailroad",
+      "PlantForest",
+      "Automate"
+    ],
     "distant square": [
       "GoTo",
       "RoadTo"
+    ],
+    "distant square, Railroad known": [
+      "GoTo",
+      "RoadTo",
+      "RailroadTo"
     ],
     "own square in own city": [
       "Sleep",
@@ -148,9 +194,55 @@
       "PlantForest",
       "Automate"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildIrrigation",
+      "BuildMine",
+      "BuildRoad",
+      "Automate"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildRoad",
+      "ClearJungle",
+      "PlantForest",
+      "Automate"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildRoad",
+      "PlantForest",
+      "ClearSwamp",
+      "Automate"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "FoundCity",
+      "BuildIrrigation",
+      "BuildRailroad",
+      "PlantForest",
+      "Automate"
+    ],
     "distant square": [
       "GoTo",
       "RoadTo"
+    ],
+    "distant square, Railroad known": [
+      "GoTo",
+      "RoadTo",
+      "RailroadTo"
     ],
     "own square in own city": [
       "Sleep",
@@ -228,7 +320,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -304,7 +428,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -380,7 +536,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -456,7 +644,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -532,7 +752,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -608,7 +860,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -684,7 +968,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -760,7 +1076,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -836,7 +1184,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -912,7 +1292,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -988,7 +1400,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1064,7 +1508,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1140,7 +1616,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1216,7 +1724,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1292,7 +1832,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1368,7 +1940,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1444,7 +2048,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1520,7 +2156,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1596,7 +2264,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1672,7 +2372,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1748,7 +2480,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1824,7 +2588,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1900,7 +2696,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -1976,7 +2804,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -2052,7 +2912,39 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Pillage",
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -2116,7 +3008,30 @@
       "Disband",
       "NoOrders"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -2182,7 +3097,30 @@
       "Disband",
       "NoOrders"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -2248,7 +3186,30 @@
       "Disband",
       "NoOrders"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -2314,7 +3275,30 @@
       "Disband",
       "NoOrders"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -2380,7 +3364,30 @@
       "Disband",
       "NoOrders"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -2439,7 +3446,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2497,7 +3529,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2551,7 +3608,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2609,7 +3691,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2667,7 +3774,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2724,7 +3856,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2781,7 +3938,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2838,7 +4020,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2895,7 +4102,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -2948,7 +4180,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -3005,7 +4262,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -3058,7 +4340,32 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [],
+    "distant square, Railroad known": [],
     "own square in own city": [
       "Sleep",
       "Disband",
@@ -3123,7 +4430,30 @@
       "Disband",
       "NoOrders"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -3193,7 +4523,30 @@
       "Disband",
       "NoOrders"
     ],
+    "own hills square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own jungle square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own swamp square": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
+    "own road square, Railroad known": [
+      "Sleep",
+      "Disband",
+      "NoOrders"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -3221,14 +4574,12 @@
     "foreign unit": [],
     "foreign city": [
       "EstablishEmbassy",
-      "InvestigateCity",
-      "MeetWithLeader"
+      "InvestigateCity"
     ],
     "foreign unit, at peace": [],
     "foreign city, at peace": [
       "EstablishEmbassy",
-      "InvestigateCity",
-      "MeetWithLeader"
+      "InvestigateCity"
     ],
     "own city": [
       "Move"
@@ -3268,7 +4619,38 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -3294,14 +4676,12 @@
     "foreign unit": [],
     "foreign city": [
       "EstablishEmbassy",
-      "InvestigateCity",
-      "MeetWithLeader"
+      "InvestigateCity"
     ],
     "foreign unit, at peace": [],
     "foreign city, at peace": [
       "EstablishEmbassy",
-      "InvestigateCity",
-      "MeetWithLeader"
+      "InvestigateCity"
     ],
     "own city": [
       "Move"
@@ -3341,7 +4721,38 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -3406,7 +4817,38 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -3471,7 +4913,38 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [
@@ -3536,7 +5009,38 @@
       "NoOrders",
       "Explore"
     ],
+    "own hills square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own jungle square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own swamp square": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
+    "own road square, Railroad known": [
+      "Fortify",
+      "Sleep",
+      "Disband",
+      "NoOrders",
+      "Explore"
+    ],
     "distant square": [
+      "GoTo"
+    ],
+    "distant square, Railroad known": [
       "GoTo"
     ],
     "own square in own city": [

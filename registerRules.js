@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.register = exports.defenders = exports.shortfallFactor = void 0;
+exports.register = exports.defenders = exports.shortStep = exports.shortfallFactor = void 0;
 const units_1 = require("./data/units");
 const core_game_1 = require("@civ-clone/core-game");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
@@ -37,8 +37,17 @@ const traits_1 = require("./Rules/Unit/traits");
 const treatyPartner_1 = require("@civ-clone/base-unit-lifecycle/lib/treatyPartner");
 const yield_1 = require("./Rules/Unit/yield");
 const unitTable_1 = require("./lib/unitTable");
-/** A unit stepping one move short of a square's cost gets there with this chance per move it has (as Civ1's). */
+/** Civ1's short-step factor, which `shortStep` replaces; `lifecycleRules` still asks for one. */
 exports.shortfallFactor = 0.5;
+/**
+ * A land unit short of the moves a step costs (`unit_move_dir`): one that hasn't moved this turn always gets there; one
+ *  that has gets there with a chance of its remaining moves over the cost. Route planning can count on the first, so a
+ *  step is worth no more than a turn.
+ */
+exports.shortStep = {
+    succeeds: (remaining, movement, cost, randomNumberGenerator) => remaining >= movement || remaining > cost * randomNumberGenerator(),
+    expectedCost: (movement) => movement,
+};
 /** A new city's first defender, if its player asks for one: the defensive units, strongest defence first. */
 exports.defenders = units_1.units
     .map((row, index) => [
@@ -71,6 +80,7 @@ const register = (game) => {
             workedTileRegistry: game.workedTiles,
         }),
         shortfallFactor: exports.shortfallFactor,
+        shortStep: exports.shortStep,
     });
     game.rules.register(...(0, action_1.default)({
         cityGrowthRegistry: game.cityGrowth,
@@ -146,7 +156,7 @@ const register = (game) => {
         attacks: [Attack_1.default, Actions_1.SneakAttack],
         noVendetta: [Actions_1.SneakMove, Actions_1.SneakPillage],
         coastBoundLoss: 1 / cosmic_1.cosmic.triremeLossChance,
-    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...missions.leaderMet, ...lifecycle.transferred, ...(0, strength_1.default)({
+    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,
         terrainFeatureRegistry: game.terrainFeatures,

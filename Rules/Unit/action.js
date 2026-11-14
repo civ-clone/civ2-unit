@@ -60,7 +60,8 @@ exports.territoryImprovements = [
  * Civilization II's unit actions, as base-unit-action-rules' `actionRules('civ2-unit', table)` with civ1-unit's
  *  criteria and Civ2's terrain, in the order a unit is offered them (the AI takes the first). There is no Senate, so no
  *  row is gated and no `overruled/` form is made: a treaty-breaking row is offered as it is. Of the Diplomat's and Spy's
- *  missions, only an embassy, an investigation and a meeting are offered; theft, sabotage, revolt and bribery, and the
+ *  missions, only an embassy and an investigation are offered (Civ2's mission menu, `spy_city_mission_menu`, has no
+ *  meeting outside network games); theft, sabotage, revolt and bribery, and the
  *  Caravan's and Freight's trade routes and help with a wonder, are M2a deviations.
  */
 const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityNameRegistry = CityNameRegistry_1.instance, cityRegistry = CityRegistry_1.instance, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pathFinderRegistry = PathFinderRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, strategyNoteRegistry = StrategyNoteRegistry_1.instance, strategyRegistry = StrategyRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, workedTileRegistry = WorkedTileRegistry_1.instance, } = {}) => {
@@ -119,12 +120,6 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityName
             name: 'investigate-city',
             criteria: [...diplomatCriteria],
             effect: (unit, to, from = unit.tile()) => new Actions_1.InvestigateCity(from, to, unit, cityRegistry.getByTile(to), ruleRegistry),
-        },
-        // The Diplomat stays, with no moves left.
-        {
-            name: 'meet-with-leader',
-            criteria: [...diplomatCriteria],
-            effect: (unit, to, from = unit.tile()) => new Actions_1.MeetWithLeader(from, to, unit, cityRegistry.getByTile(to).player(), ruleRegistry),
         },
         // Before `move`, so it's the first action for a square an aircraft can land on.
         {

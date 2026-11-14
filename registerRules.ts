@@ -40,8 +40,24 @@ import treatyPartner from '@civ-clone/base-unit-lifecycle/lib/treatyPartner';
 import unitYield from './Rules/Unit/yield';
 import { unitTypes } from './lib/unitTable';
 
-/** A unit stepping one move short of a square's cost gets there with this chance per move it has (as Civ1's). */
+/** Civ1's short-step factor, which `shortStep` replaces; `lifecycleRules` still asks for one. */
 export const shortfallFactor = 0.5;
+
+/**
+ * A land unit short of the moves a step costs (`unit_move_dir`): one that hasn't moved this turn always gets there; one
+ *  that has gets there with a chance of its remaining moves over the cost. Route planning can count on the first, so a
+ *  step is worth no more than a turn.
+ */
+export const shortStep = {
+  succeeds: (
+    remaining: number,
+    movement: number,
+    cost: number,
+    randomNumberGenerator: () => number
+  ): boolean =>
+    remaining >= movement || remaining > cost * randomNumberGenerator(),
+  expectedCost: (movement: number): number => movement,
+};
 
 /** A new city's first defender, if its player asks for one: the defensive units, strongest defence first. */
 export const defenders: (typeof Unit)[] = units
@@ -80,6 +96,7 @@ export const register = (game: Game): void => {
         workedTileRegistry: game.workedTiles,
       }),
       shortfallFactor,
+      shortStep,
     }
   );
 
@@ -209,13 +226,13 @@ export const register = (game: Game): void => {
     ...movementCost(
       game.tileImprovements,
       game.transports,
-      game.terrainFeatures
+      game.terrainFeatures,
+      game.cities
     ),
     ...lifecycle.playerAction,
     ...lifecycle.stowed,
     ...missions.embassyEstablished,
     ...missions.cityInvestigated,
-    ...missions.leaderMet,
     ...lifecycle.transferred,
     ...strength({
       cityImprovementRegistry: game.cityImprovements,

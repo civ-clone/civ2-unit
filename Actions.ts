@@ -24,7 +24,6 @@ export { GoTo } from '@civ-clone/base-unit-action-goto/GoTo';
 export { InvestigateCity } from '@civ-clone/base-unit-action-investigate-city/InvestigateCity';
 export { JoinCity } from '@civ-clone/base-unit-action-join-city/JoinCity';
 export { LandAircraft } from '@civ-clone/base-unit-action-land-aircraft/LandAircraft';
-export { MeetWithLeader } from '@civ-clone/base-unit-action-meet-with-leader/MeetWithLeader';
 export { Move } from '@civ-clone/base-unit-action-move/Move';
 export { NoOrders } from '@civ-clone/base-unit-action-no-orders/NoOrders';
 export { NuclearAttack } from '@civ-clone/base-unit-action-nuclear-attack/NuclearAttack';

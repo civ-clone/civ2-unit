@@ -1,5 +1,17 @@
-import { Forest, Grassland, Ocean } from '@civ-clone/civ2-world/Terrains';
-import { Irrigation, Pollution } from '@civ-clone/civ2-world/TileImprovements';
+import {
+  Forest,
+  Grassland,
+  Hills,
+  Jungle,
+  Ocean,
+  Swamp,
+} from '@civ-clone/civ2-world/Terrains';
+import {
+  Irrigation,
+  Pollution,
+  Road,
+} from '@civ-clone/civ2-world/TileImprovements';
+import RailroadAdvance from '@civ-clone/base-science-advance-railroad/Railroad';
 import { Sail, Warrior } from '../../Units';
 import AdvanceRegistry from '@civ-clone/core-science/AdvanceRegistry';
 import AvailableCityBuildItemsRegistry from '@civ-clone/core-city-build/AvailableCityBuildItemsRegistry';
@@ -206,7 +218,39 @@ export const scenarios: Scenario[] = [
     target: ({ from }) => from,
   },
   { name: 'own grassland square', target: ({ from }) => from },
+  // Civ2-only scenarios (not in civ1-unit's matrix): squares where mines, the jungle and swamp conversions, railroads
+  //  and Railroad to are offered.
+  {
+    name: 'own hills square',
+    originTerrain: Hills,
+    target: ({ from }) => from,
+  },
+  {
+    name: 'own jungle square',
+    originTerrain: Jungle,
+    target: ({ from }) => from,
+  },
+  {
+    name: 'own swamp square',
+    originTerrain: Swamp,
+    target: ({ from }) => from,
+  },
+  {
+    name: 'own road square, Railroad known',
+    target: ({ from }) => from,
+    prepare: ({ game, player, from }) => {
+      game.tileImprovements.register(new Road(from, game.rules));
+      game.playerResearch.getByPlayer(player).addAdvance(RailroadAdvance);
+    },
+  },
   { name: 'distant square', target: ({ world }) => at(world, distant) },
+  {
+    name: 'distant square, Railroad known',
+    target: ({ world }) => at(world, distant),
+    prepare: ({ game, player }) => {
+      game.playerResearch.getByPlayer(player).addAdvance(RailroadAdvance);
+    },
+  },
   {
     name: 'own square in own city',
     target: ({ from }) => from,

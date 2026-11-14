@@ -88,13 +88,13 @@ export const traitsOf = (row: UnitRow): Trait[] => {
     ...(has(IGNORES_CITY_WALLS) ? [IgnoresFortifications] : []),
     ...(has(PARADROPS) ? [Paradrop] : []),
     ...(has(TREATS_ALL_AS_ROAD) ? [TerrainAsRoad] : []),
-    // "x2 vs horse" is ×1.5 in the code (`unit_resolve_attack`).
+    // Flag 10's defence bonus is ×1.5 in the code (`unit_resolve_attack`).
     ...(has(DEFENCE_BONUS_VS_MOUNTED) ? [new DefenceBonusVsMounted(1.5)] : []),
     ...(has(FUNDAMENTALISM_FREE_SUPPORT)
       ? [new SupportExemptUnder(Fundamentalism)]
       : []),
     ...(has(DESTROYED_AFTER_ATTACKING) ? [SingleUse] : []),
-    // "x2 vs air" is ×3 against aircraft and ×5 against missiles (`unit_resolve_attack`).
+    // Flag 13's is ×3 against aircraft and ×5 against missiles (`unit_resolve_attack`).
     ...(has(DEFENCE_BONUS_VS_AIR) ? [new DefenceBonusVsAir(3, 5)] : []),
     ...(has(DETECTS_SUBMARINES) ? [DetectsSubmerged] : []),
     ...(attack >= NUCLEAR_ATTACK ? [Detonates] : []),

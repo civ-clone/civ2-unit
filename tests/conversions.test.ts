@@ -129,9 +129,19 @@ describe('terrain conversions', function (): void {
 
         shields += count;
 
-        defaultGame.terrainFeatures.unregister(
-          ...defaultGame.terrainFeatures.entries()
-        );
+        // Only this world's: other files' worlds share the singleton registry.
+        tile
+          .map()
+          .tiles()
+          .forEach((square: Tile): void => {
+            const left = defaultGame.terrainFeatures.getByTerrain(
+              square.terrain()
+            );
+
+            if (left.length > 0) {
+              defaultGame.terrainFeatures.unregister(...left);
+            }
+          });
       }
 
       // Half, give or take: with the conversion's own roll kept as well, it was about three in four.

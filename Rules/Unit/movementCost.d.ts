@@ -1,4 +1,5 @@
 import { TerrainJob } from '@civ-clone/base-terrain-properties/lib/jobTurns';
+import { CityRegistry } from '@civ-clone/core-city/CityRegistry';
 import { TerrainFeatureRegistry } from '@civ-clone/core-terrain-feature/TerrainFeatureRegistry';
 import { TileImprovementRegistry } from '@civ-clone/core-tile-improvement/TileImprovementRegistry';
 import { TransportRegistry } from '@civ-clone/core-unit-transport/TransportRegistry';
@@ -15,12 +16,14 @@ export declare const terrainCost: (terrain: Terrain) => number | null;
 export declare const civ2TerrainJobTurns: TerrainJob<typeof UnitAction>[];
 /**
  * Civilization II's movement costs (`unit_move_dir_step_cost`): base-unit-movement's rules with Civ2's terrain,
- *  routes and jobs, and two of Civ2's own: along a river, and a unit that treats every square as road (Alpine Troops,
- *  Partisans, Explorers). A move takes the cheapest answer.
+ *  routes and jobs, and Civ2's own: a city's square counts as road and railroad, a step along a river costs as a road,
+ *  and so does every step of a unit that treats every square as road (Alpine Troops, Partisans, Explorers). A move
+ *  takes the cheapest answer.
  */
 export declare const getRules: (
   tileImprovementRegistry?: TileImprovementRegistry,
   transportRegistry?: TransportRegistry,
-  terrainFeatureRegistry?: TerrainFeatureRegistry
+  terrainFeatureRegistry?: TerrainFeatureRegistry,
+  cityRegistry?: CityRegistry
 ) => MovementCost[];
 export default getRules;

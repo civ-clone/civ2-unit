@@ -23,7 +23,6 @@ import {
   InvestigateCity,
   JoinCity,
   LandAircraft,
-  MeetWithLeader,
   Move,
   NoOrders,
   NuclearAttack,
@@ -208,7 +207,8 @@ export interface ActionDependencies {
  * Civilization II's unit actions, as base-unit-action-rules' `actionRules('civ2-unit', table)` with civ1-unit's
  *  criteria and Civ2's terrain, in the order a unit is offered them (the AI takes the first). There is no Senate, so no
  *  row is gated and no `overruled/` form is made: a treaty-breaking row is offered as it is. Of the Diplomat's and Spy's
- *  missions, only an embassy, an investigation and a meeting are offered; theft, sabotage, revolt and bribery, and the
+ *  missions, only an embassy and an investigation are offered (Civ2's mission menu, `spy_city_mission_menu`, has no
+ *  meeting outside network games); theft, sabotage, revolt and bribery, and the
  *  Caravan's and Freight's trade routes and help with a wonder, are M2a deviations.
  */
 export const getRules = ({
@@ -358,20 +358,6 @@ export const getRules = ({
             to,
             unit,
             cityRegistry.getByTile(to)!,
-            ruleRegistry
-          ) as UnitAction,
-      },
-
-      // The Diplomat stays, with no moves left.
-      {
-        name: 'meet-with-leader',
-        criteria: [...diplomatCriteria],
-        effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
-          new MeetWithLeader(
-            from,
-            to,
-            unit,
-            cityRegistry.getByTile(to)!.player(),
             ruleRegistry
           ) as UnitAction,
       },

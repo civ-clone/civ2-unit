@@ -7,8 +7,8 @@ import SingleUse from '@civ-clone/base-unit-trait-single-use/SingleUse';
 import Unit from '@civ-clone/core-unit/Unit';
 
 /**
- * A `SingleUse` unit (a missile) is spent by its attack, whether it won or not (`@UNITS` flag 12, "destroyed after
- *  attacking"; OpenCiv2 `unit_resolve_attack`). No one destroyed it, so it is no loss.
+ * A `SingleUse` unit (a missile, `@UNITS` flag 12) is spent by its attack, whether it won or not (OpenCiv2
+ *  `unit_resolve_attack`). No one destroyed it, so it is no loss.
  */
 export const getRules = (): Moved[] => [
   new Moved(

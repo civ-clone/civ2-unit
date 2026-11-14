@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Unload = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.MeetWithLeader = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.Automate = exports.Attack = exports.Activate = exports.AbortMove = void 0;
+exports.Unload = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.Automate = exports.Attack = exports.Activate = exports.AbortMove = void 0;
 // The unit actions Civilization II's table offers (and the ones its rules ask about), from their own packages. The treaty-breaking forms and Set Home
 //  City are defined only in library-unit (no `main`, registers nothing) until they have base homes (#1041).
 var AbortMove_1 = require("@civ-clone/library-unit/Actions/AbortMove");
@@ -51,8 +51,6 @@ var JoinCity_1 = require("@civ-clone/base-unit-action-join-city/JoinCity");
 Object.defineProperty(exports, "JoinCity", { enumerable: true, get: function () { return JoinCity_1.JoinCity; } });
 var LandAircraft_1 = require("@civ-clone/base-unit-action-land-aircraft/LandAircraft");
 Object.defineProperty(exports, "LandAircraft", { enumerable: true, get: function () { return LandAircraft_1.LandAircraft; } });
-var MeetWithLeader_1 = require("@civ-clone/base-unit-action-meet-with-leader/MeetWithLeader");
-Object.defineProperty(exports, "MeetWithLeader", { enumerable: true, get: function () { return MeetWithLeader_1.MeetWithLeader; } });
 var Move_1 = require("@civ-clone/base-unit-action-move/Move");
 Object.defineProperty(exports, "Move", { enumerable: true, get: function () { return Move_1.Move; } });
 var NoOrders_1 = require("@civ-clone/base-unit-action-no-orders/NoOrders");

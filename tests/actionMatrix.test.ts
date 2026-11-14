@@ -13,13 +13,12 @@ import register from '../registerRules';
 import { unitTypes } from '../lib/unitTable';
 
 // Pins which unit actions civ2-unit registers, in what order, and which of them each of the 51 unit types is offered in
-//  each of civ1-unit's scenarios (less those under a Senate). The AI takes the first action it's offered and the UI
+//  each of civ1-unit's scenarios (less those under a Senate), and five of its own (hills, jungle, swamp, a road with Railroad known, and a distant square with Railroad known). The AI takes the first action it's offered and the UI
 //  lists them in order, so the order is behaviour.
 
 const actionRuleIds = [
   'establish-embassy',
   'investigate-city',
-  'meet-with-leader',
   'land-aircraft',
   'move',
   'sneak-move',
@@ -69,7 +68,7 @@ const fixturePath = join(
 describe('unit actions', function (): void {
   this.timeout(300000);
 
-  it('registers the 40 action rules in their order, with no overruled forms', (): void => {
+  it('registers the 39 action rules in their order, with no overruled forms', (): void => {
     const game = new Game({ rng: createRng(1008) });
 
     register(game);
@@ -82,9 +81,9 @@ describe('unit actions', function (): void {
     ).to.deep.equal(actionRuleIds);
   });
 
-  it('asks all 51 unit types in 18 scenarios', (): void => {
+  it('asks all 51 unit types in 23 scenarios', (): void => {
     expect(unitTypes).length(51);
-    expect(scenarios).length(18);
+    expect(scenarios).length(23);
   });
 
   // The offered-actions matrix: the action classes `unit.actions(to, from)` returns, in order, for each unit type and
@@ -137,6 +136,21 @@ describe('unit actions', function (): void {
       'GoTo',
       'RoadTo',
     ]);
+    expect(
+      offered(await cell('distant square, Railroad known', Settlers))
+    ).to.include.members(['GoTo', 'RoadTo', 'RailroadTo']);
+    expect(offered(await cell('own hills square', Settlers))).to.include(
+      'BuildMine'
+    );
+    expect(offered(await cell('own jungle square', Settlers))).to.include(
+      'ClearJungle'
+    );
+    expect(offered(await cell('own swamp square', Settlers))).to.include(
+      'ClearSwamp'
+    );
+    expect(
+      offered(await cell('own road square, Railroad known', Settlers))
+    ).to.include('BuildRailroad');
   });
 
   // A deterministic stand-in for the hot path's cost: the plain criteria the action rules validate across every cell
@@ -146,7 +160,7 @@ describe('unit actions', function (): void {
 
     for (const UnitType of unitTypes) {
       for (const scenario of scenarios) {
-        if (scenario.name !== 'distant square') {
+        if (!scenario.name.startsWith('distant square')) {
           cells.push(await setUp(scenario, UnitType));
         }
       }
@@ -170,7 +184,7 @@ describe('unit actions', function (): void {
       Criterion.prototype.validate = validate;
     }
 
-    expect(cells).length(51 * 17);
-    expect(count).to.equal(217744);
+    expect(cells).length(51 * 21);
+    expect(count).to.equal(247259);
   });
 });

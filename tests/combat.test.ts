@@ -9,6 +9,7 @@ import {
   Fighter,
   Helicopter,
   Howitzer,
+  Knight,
   MissileCruiser,
   Musketman as Musketeers,
   Paratrooper,
@@ -28,7 +29,8 @@ import { Promoted } from '@civ-clone/base-unit-veteran-promotion/lib/Rules';
 import CityGrowth from '@civ-clone/core-city-growth/CityGrowth';
 import Criterion from '@civ-clone/core-rule/Criterion';
 import Effect from '@civ-clone/core-rule/Effect';
-import Shrink from '@civ-clone/core-city-growth/Rules/Shrink';
+import civ2CityDestroyed from '@civ-clone/civ2-city/Rules/City/destroyed';
+import civ2CityShrink from '@civ-clone/civ2-city/Rules/City/shrink';
 import { Chieftain } from '@civ-clone/civ2-difficulty/Difficulties';
 import Client from '@civ-clone/core-client/Client';
 import CruiseMissile from '@civ-clone/base-unit-cruisemissile/CruiseMissile';
@@ -451,21 +453,26 @@ describe('combat: losing a defender', function (): void {
       { game, player, enemy, at } = setting,
       city = addCity(game, enemy, at(3, 3), 'Small');
 
-    // civ2-city's `civ2-city:city/shrink/destroy-empty-city`, which civ2-unit doesn't load: a city shrunk to nothing is
-    //  destroyed.
+    // civ2-city's own shrink and destroyed rules (civ2-unit doesn't load civ2-city): a city shrunk to nothing is
+    //  destroyed, and the units it supports with it.
     game.rules.register(
-      new Shrink(
-        new Criterion(
-          (cityGrowth: CityGrowth): boolean => cityGrowth.size() <= 0
-        ),
-        new Effect((cityGrowth: CityGrowth): void =>
-          cityGrowth.city().destroy()
-        )
+      ...civ2CityShrink(game.workedTiles, game.specialists, game.engine),
+      ...civ2CityDestroyed(
+        game.tileImprovements,
+        game.engine,
+        game.units,
+        game.workedTiles,
+        game.specialists,
+        game.rules
       )
     );
 
+    // The city's own unit, and a later one (which defends, ties going to the later unit) from elsewhere. `city_delete`
+    //  deletes the units a city supports; a unit from another city in it would survive, as here the defender doesn't.
+    const other = new Phalanx(city, enemy, at(3, 3), game.rules);
+
     new Phalanx(null, enemy, at(3, 3), game.rules);
-    new Phalanx(null, enemy, at(3, 3), game.rules);
+
     fight(
       setting,
       new Armor(null, player, at(2, 3), game.rules),
@@ -474,6 +481,8 @@ describe('combat: losing a defender', function (): void {
     );
 
     expect(city.destroyed()).to.true;
+    expect(other.destroyed()).to.true;
+    expect(game.units.getByTile(at(3, 3))).to.be.empty;
     expect(game.cityGrowth.getByCity(city).size()).to.equal(0);
   });
 
@@ -544,5 +553,24 @@ describe('combat: losing a defender', function (): void {
     }
 
     expect(missiles).to.be.empty;
+  });
+});
+
+describe('combat: Pikemen against mounted units (`unit_resolve_attack`)', function (): void {
+  this.timeout(20000);
+
+  it('counts an attacker as mounted by its moves now, after damage', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      knights = new Knight(null, player, at(1, 1), game.rules),
+      pikemen = new Pikemen(null, enemy, at(2, 1), game.rules),
+      defence = (): number => strength(knights, pikemen, game.rules)[1].value();
+
+    // Pikemen 2 on Grassland, ×1.5 against 2-move Knights.
+    expect(defence()).to.equal(3);
+
+    // At half their hit points, Knights have 1 move: no longer mounted.
+    knights.setDamage(5);
+    expect(knights.movement().value()).to.equal(1);
+    expect(defence()).to.equal(2);
   });
 });

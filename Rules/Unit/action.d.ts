@@ -18,6 +18,7 @@ import { Turn } from '@civ-clone/core-turn-based-game/Turn';
 import { UnitImprovementRegistry } from '@civ-clone/core-unit-improvement/UnitImprovementRegistry';
 import { UnitRegistry } from '@civ-clone/core-unit/UnitRegistry';
 import { WorkedTileRegistry } from '@civ-clone/core-city/WorkedTileRegistry';
+import Criterion from '@civ-clone/core-rule/Criterion';
 import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
 /** The tile improvements that make a worked square a treaty partner's land. */
 export declare const territoryImprovements: (typeof TileImprovement)[];
@@ -30,6 +31,8 @@ export declare const pillageOrder: (typeof TileImprovement)[];
 export declare const partisanPillageOrder: (typeof TileImprovement)[];
 /** Whether `improvement` can be pillaged. */
 export declare const pillageable: (improvement: TileImprovement) => boolean;
+/** `criteria` less its last, which must be base-unit-action-rules' by-domain `Or`. */
+export declare const withoutDomainTest: (criteria: Criterion[]) => Criterion[];
 export interface ActionDependencies {
   cityGrowthRegistry?: CityGrowthRegistry;
   cityImprovementRegistry?: CityImprovementRegistry;

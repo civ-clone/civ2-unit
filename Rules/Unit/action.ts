@@ -195,6 +195,7 @@ import transport from '@civ-clone/base-unit-action-rules/lib/criteria/transport'
 import treatyPartner from '@civ-clone/base-unit-lifecycle/lib/treatyPartner';
 import routeOrders from '../../lib/routeOrders';
 import zoneOfControl from '@civ-clone/base-zone-of-control/lib/zoneOfControl';
+import Submerged from '@civ-clone/base-unit-trait-submerged/Submerged';
 import Interceptor from '@civ-clone/base-unit-trait-interceptor/Interceptor';
 import ParadropTrait from '@civ-clone/base-unit-trait-paradrop/Paradrop';
 import Covert from '@civ-clone/base-unit-trait-covert/Covert';
@@ -249,6 +250,19 @@ export const pillageable = (improvement: TileImprovement): boolean =>
     (Improvement: typeof TileImprovement): boolean =>
       improvement instanceof Improvement
   );
+
+/** `criteria` less its last, which must be base-unit-action-rules' by-domain `Or`. */
+export const withoutDomainTest = (criteria: Criterion[]): Criterion[] => {
+  const last = criteria[criteria.length - 1];
+
+  if (!(last instanceof Or)) {
+    throw new TypeError(
+      "base-unit-action-rules' attack criteria no longer end with their by-domain test."
+    );
+  }
+
+  return criteria.slice(0, -1);
+};
 
 // Each unit type's `@UNITS` row, by class.
 const rows = new Map<Function, UnitRow>(
@@ -349,8 +363,25 @@ export const getRules = ({
         stack.some((row): boolean => ((row?.[12] ?? 0) & CARRIES_AIR) !== 0)
       );
     }),
+    // base-unit-action-rules' attack criteria up to its last, Civ1's by-domain test (a land unit only against a city
+    //  or a land unit, an aircraft against an air-only stack only if it's an interceptor), which Civ2 doesn't have
+    //  (`unit_move_dir_attack_unit`): what reaches a square may attack it, a land unit on land, a submarine only at
+    //  sea, and any aircraft, but for `bomberCover`.
     attackCriteria = [
-      ...buildAttackCriteria({ cityRegistry, unitRegistry }),
+      ...withoutDomainTest(buildAttackCriteria({ cityRegistry, unitRegistry })),
+      new Criterion((unit: Unit, to: Tile): boolean => {
+        const row = rowOf(unit);
+
+        if (row === undefined || row[1] === AIR) {
+          return true;
+        }
+
+        if (row[1] === LAND) {
+          return to.isLand();
+        }
+
+        return !unit.hasTrait(Submerged) || to.isWater();
+      }),
       bomberCover,
     ],
     // A land unit or a Helicopter (an aircraft with no range) takes an empty city; ships and other aircraft can't

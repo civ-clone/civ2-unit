@@ -53,7 +53,9 @@ import { Yield as UnitYield } from '@civ-clone/core-unit/Rules/Yield';
 import build from '../Rules/City/build';
 import buildCost from '../Rules/City/buildCost';
 import { defenceMultipliers } from '../Rules/Unit/strength';
+import { UnitRow, units } from '../data/units';
 import { expect } from 'chai';
+import { unitTypes } from '../lib/unitTable';
 import movementCost from '../Rules/Unit/movementCost';
 import strength from '../Rules/Unit/strength';
 import { terrainCost } from '../Rules/Unit/movementCost';
@@ -72,12 +74,17 @@ import NuclearFission from '@civ-clone/base-science-advance-nuclearfission/Nucle
 
 const ruleRegistry = new RuleRegistry();
 
+const rowFor = (UnitType: typeof Unit): UnitRow =>
+  units[unitTypes.indexOf(UnitType)];
+
 ruleRegistry.register(...traits());
 
-// A stand-in unit of `UnitType` with this registry's traits, on `tile`.
+// A stand-in unit of `UnitType` with this registry's traits, on `tile`, undamaged: its row's moves and hit points.
 const unit = (UnitType: typeof Unit, tile: unknown = {}): Unit =>
   Object.assign(Object.create(UnitType.prototype), {
     tile: () => tile,
+    movement: () => ({ value: () => rowFor(UnitType)[2] }),
+    hitPoints: () => [rowFor(UnitType)[6] * 10, rowFor(UnitType)[6] * 10],
     hasTrait: (Trait: Function) =>
       ruleRegistry
         .get(UnitTraits)

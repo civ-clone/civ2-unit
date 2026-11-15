@@ -1,6 +1,12 @@
 // Civilization II's new orders and the rules around them, as civ2-unit registers them (survey-units §4.1, §5.1 and §7;
 //  OpenCiv2 richardpenman/civ2@49f26ec).
+import airliftShotDown, { airliftThreat } from '../Rules/Unit/airlift';
+import Moved from '@civ-clone/core-unit/Rules/Moved';
+import { Peace } from '@civ-clone/library-diplomacy/Declarations';
+import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
+import Veteran from '@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran';
 import {
+  Airlift,
   BuildAirbase,
   BuildFortress,
   Pillage,
@@ -274,6 +280,70 @@ describe('unit improvements a save names', (): void => {
       'Aloft',
       'MovedThisTurn',
       'Paradropped',
+    ]);
+  });
+});
+
+describe('airlift interception (`unit_cmd_airlift`, `unit_airlift_perform`)', function (): void {
+  this.timeout(20000);
+
+  it('counts each enemy air-superiority unit within its moves of either city, a veteran twice, none at peace', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      dependencies = {
+        interactionRegistry: game.interactions,
+        unitImprovementRegistry: game.unitImprovements,
+        unitRegistry: game.units,
+      };
+
+    // Fighters have 10 moves: (1, 1) to (5, 5) is 4 away.
+    new Fighter(null, enemy, at(5, 5), game.rules);
+    expect(
+      airliftThreat(player, at(1, 1), at(1, 11), dependencies)[0]
+    ).to.equal(1);
+
+    game.unitImprovements.register(
+      new Veteran(new Fighter(null, enemy, at(6, 6), game.rules))
+    );
+    expect(
+      airliftThreat(player, at(1, 1), at(1, 11), dependencies)[0]
+    ).to.equal(3);
+
+    game.interactions.register(new Peace(player, enemy, game.rules));
+    expect(
+      airliftThreat(player, at(1, 1), at(1, 11), dependencies)[0]
+    ).to.equal(0);
+  });
+
+  it('shoots the unit down on a roll of 1 in 6 for each count', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      shotDown = (roll: number): boolean => {
+        const ruleRegistry = new RuleRegistry(),
+          musketeers = new Musketeers(null, player, at(1, 1), game.rules);
+
+        ruleRegistry.register(
+          ...airliftShotDown({
+            engine: game.engine,
+            interactionRegistry: game.interactions,
+            randomNumberGenerator: (): number => roll,
+            unitImprovementRegistry: game.unitImprovements,
+            unitRegistry: game.units,
+          })
+        );
+        ruleRegistry.process(
+          Moved,
+          musketeers,
+          new Airlift(at(1, 1), at(4, 4), musketeers, game.rules)
+        );
+
+        return musketeers.destroyed();
+      };
+
+    new Fighter(null, enemy, at(5, 5), game.rules);
+
+    expect([shotDown(0), shotDown(0.2), shotDown(0.9)]).to.deep.equal([
+      true,
+      false,
+      false,
     ]);
   });
 });

@@ -120,9 +120,13 @@ const defenceMultipliers = ({ cityImprovementRegistry = CityImprovementRegistry_
 };
 exports.defenceMultipliers = defenceMultipliers;
 // A land attacker with two moves and one hit point (10): "mounted", for the Pikemen's bonus (`unit_resolve_attack`).
+//  The moves are its moves now, after damage, as `unit_max_moves` gives them, and the hit points its maximum.
 const isMounted = (unit) => {
     const row = rowOf(unit);
-    return row !== undefined && row[1] === units_1.LAND && row[2] === 2 && row[6] === 1;
+    return (row !== undefined &&
+        row[1] === units_1.LAND &&
+        unit.movement().value() === 2 &&
+        unit.hitPoints()[1] === 10);
 };
 /**
  * Civilization II's battle modifiers (`unit_resolve_attack`), after the defence bonuses: an air-superiority attacker

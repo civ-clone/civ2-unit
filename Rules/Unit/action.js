@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.pillageable = exports.partisanPillageOrder = exports.pillageOrder = exports.territoryImprovements = void 0;
+exports.getRules = exports.withoutDomainTest = exports.pillageable = exports.partisanPillageOrder = exports.pillageOrder = exports.territoryImprovements = void 0;
 const Actions_1 = require("../../Actions");
 const units_1 = require("../../data/units");
 const Action_1 = require("@civ-clone/core-unit/Rules/Action");
@@ -54,6 +54,7 @@ const transport_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/tran
 const treatyPartner_1 = require("@civ-clone/base-unit-lifecycle/lib/treatyPartner");
 const routeOrders_1 = require("../../lib/routeOrders");
 const zoneOfControl_1 = require("@civ-clone/base-zone-of-control/lib/zoneOfControl");
+const Submerged_1 = require("@civ-clone/base-unit-trait-submerged/Submerged");
 const Interceptor_1 = require("@civ-clone/base-unit-trait-interceptor/Interceptor");
 const Paradrop_1 = require("@civ-clone/base-unit-trait-paradrop/Paradrop");
 const Covert_1 = require("@civ-clone/base-unit-trait-covert/Covert");
@@ -95,6 +96,15 @@ exports.partisanPillageOrder = [
 /** Whether `improvement` can be pillaged. */
 const pillageable = (improvement) => exports.pillageOrder.some((Improvement) => improvement instanceof Improvement);
 exports.pillageable = pillageable;
+/** `criteria` less its last, which must be base-unit-action-rules' by-domain `Or`. */
+const withoutDomainTest = (criteria) => {
+    const last = criteria[criteria.length - 1];
+    if (!(last instanceof Or_1.default)) {
+        throw new TypeError("base-unit-action-rules' attack criteria no longer end with their by-domain test.");
+    }
+    return criteria.slice(0, -1);
+};
+exports.withoutDomainTest = withoutDomainTest;
 // Each unit type's `@UNITS` row, by class.
 const rows = new Map(units_1.units.map((row, index) => [unitTable_1.unitTypes[index], row]));
 const rowOf = (unit) => rows.get(unit.constructor);
@@ -131,8 +141,23 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
         const stack = unitRegistry.getByTile(to).map(rowOf);
         return (!stack.some((row) => (row === null || row === void 0 ? void 0 : row[1]) === units_1.AIR && row[3] > 1) ||
             stack.some((row) => { var _a; return (((_a = row === null || row === void 0 ? void 0 : row[12]) !== null && _a !== void 0 ? _a : 0) & units_1.CARRIES_AIR) !== 0; }));
-    }), attackCriteria = [
-        ...(0, attack_1.attackCriteria)({ cityRegistry, unitRegistry }),
+    }), 
+    // base-unit-action-rules' attack criteria up to its last, Civ1's by-domain test (a land unit only against a city
+    //  or a land unit, an aircraft against an air-only stack only if it's an interceptor), which Civ2 doesn't have
+    //  (`unit_move_dir_attack_unit`): what reaches a square may attack it, a land unit on land, a submarine only at
+    //  sea, and any aircraft, but for `bomberCover`.
+    attackCriteria = [
+        ...(0, exports.withoutDomainTest)((0, attack_1.attackCriteria)({ cityRegistry, unitRegistry })),
+        new Criterion_1.default((unit, to) => {
+            const row = rowOf(unit);
+            if (row === undefined || row[1] === units_1.AIR) {
+                return true;
+            }
+            if (row[1] === units_1.LAND) {
+                return to.isLand();
+            }
+            return !unit.hasTrait(Submerged_1.default) || to.isWater();
+        }),
         bomberCover,
     ], 
     // A land unit or a Helicopter (an aircraft with no range) takes an empty city; ships and other aircraft can't

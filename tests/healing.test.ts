@@ -13,6 +13,7 @@ import {
 import { addCity, setUp } from './lib/game';
 import Airport from '@civ-clone/base-city-improvement-airport/Airport';
 import Barracks from '@civ-clone/base-city-improvement-barracks/Barracks';
+import { Refuel } from '@civ-clone/base-unit-fuel/lib/Rules';
 import Move from '@civ-clone/base-unit-action-move/Move';
 import MovedThisTurn from '@civ-clone/base-unit-healing/lib/MovedThisTurn';
 import Player from '@civ-clone/core-player/Player';
@@ -214,6 +215,20 @@ describe('fuel (`unit_move_dir_air_fuel`)', function (): void {
     expect(
       [inCity, onAirbase, onCarrier].map((unit) => unit.destroyed())
     ).to.deep.equal([false, false, false]);
+  });
+
+  it("refuels in any city's square, another player's too (`tile_city_owner`)", async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      fighter = new Fighter(null, player, at(1, 1), game.rules);
+
+    addCity(game, enemy, at(3, 3), 'Theirs');
+
+    expect(
+      game.rules.process(Refuel, fighter, at(3, 3)).some((answer) => answer)
+    ).to.true;
+    expect(
+      game.rules.process(Refuel, fighter, at(3, 4)).some((answer) => answer)
+    ).to.false;
   });
 
   it('lets a bomber spend one turn out, and a helicopter fly without fuel', async (): Promise<void> => {

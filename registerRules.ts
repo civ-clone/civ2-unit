@@ -28,6 +28,7 @@ import action, {
 } from './Rules/Unit/action';
 import defeated, { sparesStack } from './Rules/Unit/defeated';
 import { Partisan } from './Units';
+import airliftShotDown from './Rules/Unit/airlift';
 import airliftRules from '@civ-clone/base-unit-action-airlift/lib/airliftRules';
 import combat from './Rules/Unit/combat';
 import fuel from './Rules/Unit/fuel';

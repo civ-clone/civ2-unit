@@ -215,10 +215,16 @@ export const defenceMultipliers =
   };
 
 // A land attacker with two moves and one hit point (10): "mounted", for the Pikemen's bonus (`unit_resolve_attack`).
+//  The moves are its moves now, after damage, as `unit_max_moves` gives them, and the hit points its maximum.
 const isMounted = (unit: Unit): boolean => {
   const row = rowOf(unit);
 
-  return row !== undefined && row[1] === LAND && row[2] === 2 && row[6] === 1;
+  return (
+    row !== undefined &&
+    row[1] === LAND &&
+    unit.movement().value() === 2 &&
+    unit.hitPoints()[1] === 10
+  );
 };
 
 /**

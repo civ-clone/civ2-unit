@@ -25,8 +25,8 @@ export interface FuelDependencies {
 /**
  * Civilization II's fuel (`unit_move_dir_air_fuel`): a unit's range is its `Fuel` yield (the `@UNITS` range column, 0
  *  for the Helicopter, which needs none), counted each time it runs out of moves away from a refuelling point
- *  (base-unit-fuel's `'out-of-moves'`), and it crashes when the count reaches its range. It refuels in one of its
- *  player's cities, on an Airbase, and on a square with one of its player's carriers (a missile also with a submarine)
+ *  (base-unit-fuel's `'out-of-moves'`), and it crashes when the count reaches its range. It refuels in a city (any
+ *  player's, `tile_city_owner`), on an Airbase, and on a square with one of its player's carriers (a missile also with a submarine)
  *  or aboard one. A crash emits
  *  `unit:out-of-fuel` (base-unit-fuel's emit rule) before the unit is destroyed.
  */

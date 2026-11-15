@@ -30,6 +30,7 @@ import CityGrowth from '@civ-clone/core-city-growth/CityGrowth';
 import Criterion from '@civ-clone/core-rule/Criterion';
 import Effect from '@civ-clone/core-rule/Effect';
 import civ2CityDestroyed from '@civ-clone/civ2-city/Rules/City/destroyed';
+import civ2CityUnitDefeated from '@civ-clone/civ2-city/Rules/Unit/defeated';
 import civ2CityShrink from '@civ-clone/civ2-city/Rules/City/shrink';
 import { Chieftain } from '@civ-clone/civ2-difficulty/Difficulties';
 import Client from '@civ-clone/core-client/Client';
@@ -484,6 +485,44 @@ describe('combat: losing a defender', function (): void {
     expect(other.destroyed()).to.true;
     expect(game.units.getByTile(at(3, 3))).to.be.empty;
     expect(game.cityGrowth.getByCity(city).size()).to.equal(0);
+  });
+
+  it("costs a city exactly one citizen per lost defender, and none behind walls, with civ2-city's defeat and shrink rules loaded too", async (): Promise<void> => {
+    const setting = await setUp(),
+      { game, player, enemy, at } = setting;
+
+    // civ2-city's rules for a defeated unit and a shrinking city, as the game registers them (civ2-city once had a
+    //  shrink rule of its own as well, and a city lost two citizens).
+    game.rules.register(
+      ...civ2CityUnitDefeated(game.engine),
+      ...civ2CityShrink(game.workedTiles, game.specialists, game.engine)
+    );
+
+    const city = addCity(game, enemy, at(3, 3), 'Both'),
+      growth = game.cityGrowth.getByCity(city);
+
+    growth.grow();
+    growth.grow();
+    expect(growth.size()).to.equal(3);
+
+    new Phalanx(null, enemy, at(3, 3), game.rules);
+    fight(
+      setting,
+      new Armor(null, player, at(2, 3), game.rules),
+      at(3, 3),
+      true
+    );
+    expect(growth.size()).to.equal(2);
+
+    game.cityImprovements.register(new CityWalls(city, game.rules));
+    new Phalanx(null, enemy, at(3, 3), game.rules);
+    fight(
+      setting,
+      new Armor(null, player, at(2, 3), game.rules),
+      at(3, 3),
+      true
+    );
+    expect(growth.size()).to.equal(2);
   });
 
   it("doesn't shrink a human player's city on Chieftain", async (): Promise<void> => {

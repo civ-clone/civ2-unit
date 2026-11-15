@@ -4,6 +4,7 @@ import { PlayerResearchRegistry } from '@civ-clone/core-science/PlayerResearchRe
 import { RequirementRegistry } from '@civ-clone/core-requirement/RequirementRegistry';
 import { TerrainFeatureRegistry } from '@civ-clone/core-terrain-feature/TerrainFeatureRegistry';
 import { WonderRegistry } from '@civ-clone/core-wonder/WonderRegistry';
+import { TileImprovementRegistry } from '@civ-clone/core-tile-improvement/TileImprovementRegistry';
 import { UnitImprovementRegistry } from '@civ-clone/core-unit-improvement/UnitImprovementRegistry';
 import Strength from '@civ-clone/core-unit/Rules/Strength';
 import Unit from '@civ-clone/core-unit/Unit';
@@ -13,12 +14,15 @@ export interface Dependencies {
   playerResearchRegistry?: PlayerResearchRegistry;
   requirementRegistry?: RequirementRegistry;
   terrainFeatureRegistry?: TerrainFeatureRegistry;
+  tileImprovementRegistry?: TileImprovementRegistry;
   unitImprovementRegistry?: UnitImprovementRegistry;
   wonderRegistry?: WonderRegistry;
 }
 /**
  * Civilization II's defence bonuses for `defender` against `attacker` (`null`: against any), as named multipliers
- *  (`unit_defense_strength`): the terrain's half steps, plus one for a river; then a fortified land unit ×1.5, or in a
+ *  (`unit_defense_strength`): the terrain's half steps, plus one for a river; then, outside a city, a land unit on a
+ *  Fortress ×2 against an attacker that isn't an aircraft and doesn't ignore walls (instead of being fortified, not as
+ *  well), or a fortified land unit ×1.5; or in a
  *  city with City Walls (or its owner's Great Wall) ×3 for a land unit against a land attacker that doesn't ignore them (the walls replace being
  *  fortified); and an interceptor in a city against an aircraft that isn't a missile ×4, or ×2 against another
  *  interceptor. Any other unit in a city, and every unit but a land unit outside one, gets no bonus beyond the terrain.
@@ -29,6 +33,7 @@ export declare const defenceMultipliers: ({
   playerResearchRegistry,
   requirementRegistry,
   terrainFeatureRegistry,
+  tileImprovementRegistry,
   unitImprovementRegistry,
   wonderRegistry,
 }?: Dependencies) => (

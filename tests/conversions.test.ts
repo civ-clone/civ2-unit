@@ -16,6 +16,7 @@ import {
 } from '@civ-clone/civ2-world/lib/terrainProperties';
 import { River, Shield } from '@civ-clone/civ2-world/TerrainFeatures';
 import Player from '@civ-clone/core-player/Player';
+import PlayerResearch from '@civ-clone/core-science/PlayerResearch';
 import { Settlers } from '../Units';
 import Terrain from '@civ-clone/core-terrain/Terrain';
 import Tile from '@civ-clone/core-world/Tile';
@@ -47,7 +48,11 @@ const offeredOn = async (
       defaultGame.rules
     ).build(),
     tile = world.get(1, 1),
-    settlers = new Settlers(null, new Player(defaultGame.rules), tile);
+    player = new Player(defaultGame.rules),
+    settlers = new Settlers(null, player, tile);
+
+  // A fortress and an airbase ask what the player knows.
+  defaultGame.playerResearch.register(new PlayerResearch(player));
 
   settlers.moves().set(1);
 

@@ -159,6 +159,7 @@
       "FoundCity",
       "BuildRoad",
       "PlantForest",
+      "TransformTerrain",
       "Automate"
     ],
     "own transport with space": [
@@ -172,6 +173,7 @@
       "FoundCity",
       "BuildRoad",
       "PlantForest",
+      "TransformTerrain",
       "CleanPollution",
       "Automate"
     ],
@@ -182,6 +184,7 @@
       "FoundCity",
       "BuildRoad",
       "ClearForest",
+      "TransformTerrain",
       "Automate"
     ],
     "own grassland square": [
@@ -192,6 +195,7 @@
       "BuildIrrigation",
       "BuildRoad",
       "PlantForest",
+      "TransformTerrain",
       "Automate"
     ],
     "own hills square": [
@@ -202,6 +206,7 @@
       "BuildIrrigation",
       "BuildMine",
       "BuildRoad",
+      "TransformTerrain",
       "Automate"
     ],
     "own jungle square": [
@@ -212,6 +217,7 @@
       "BuildRoad",
       "ClearJungle",
       "PlantForest",
+      "TransformTerrain",
       "Automate"
     ],
     "own swamp square": [
@@ -222,6 +228,7 @@
       "BuildRoad",
       "PlantForest",
       "ClearSwamp",
+      "TransformTerrain",
       "Automate"
     ],
     "own road square, Railroad known": [
@@ -233,6 +240,7 @@
       "BuildIrrigation",
       "BuildRailroad",
       "PlantForest",
+      "TransformTerrain",
       "Automate"
     ],
     "distant square": [
@@ -252,6 +260,7 @@
       "BuildIrrigation",
       "BuildRoad",
       "PlantForest",
+      "TransformTerrain",
       "SetHomeCity",
       "Automate"
     ],
@@ -3148,11 +3157,15 @@
     "foreign unit": [
       "Attack"
     ],
-    "foreign city": [],
+    "foreign city": [
+      "CaptureCity"
+    ],
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [],
+    "foreign city, at peace": [
+      "SneakCaptureCity"
+    ],
     "own city": [
       "LandAircraft",
       "Move"
@@ -4673,7 +4686,9 @@
     "empty land neighbour": [
       "Move"
     ],
-    "foreign unit": [],
+    "foreign unit": [
+      "SabotageUnit"
+    ],
     "foreign city": [
       "EstablishEmbassy",
       "InvestigateCity"

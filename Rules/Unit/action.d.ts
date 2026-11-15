@@ -4,6 +4,8 @@ import { CityNameRegistry } from '@civ-clone/core-civilization/CityNameRegistry'
 import { CityRegistry } from '@civ-clone/core-city/CityRegistry';
 import { Engine } from '@civ-clone/core-engine/Engine';
 import { InteractionRegistry } from '@civ-clone/core-diplomacy/InteractionRegistry';
+import { CityImprovementRegistry } from '@civ-clone/core-city-improvement/CityImprovementRegistry';
+import { PendingEffectRegistry } from '@civ-clone/core-pending-effect/PendingEffectRegistry';
 import { PathFinderRegistry } from '@civ-clone/core-world-path/PathFinderRegistry';
 import { PlayerResearchRegistry } from '@civ-clone/core-science/PlayerResearchRegistry';
 import { RuleRegistry } from '@civ-clone/core-rule/RuleRegistry';
@@ -17,15 +19,26 @@ import { UnitImprovementRegistry } from '@civ-clone/core-unit-improvement/UnitIm
 import { UnitRegistry } from '@civ-clone/core-unit/UnitRegistry';
 import { WorkedTileRegistry } from '@civ-clone/core-city/WorkedTileRegistry';
 import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
-/** The tile improvements that make a worked square a treaty partner's land, and that pillage takes. */
+/** The tile improvements that make a worked square a treaty partner's land. */
 export declare const territoryImprovements: (typeof TileImprovement)[];
+/**
+ * What a pillage takes, in the order the original takes it when no target is chosen (`unit_pillage`): farmland (leaving
+ *  the irrigation), a mine or irrigation, a fortress or an airbase, the railroad, then the road.
+ */
+export declare const pillageOrder: (typeof TileImprovement)[];
+/** Partisans take the railroad, then the road, before anything else (`unit_pillage`). */
+export declare const partisanPillageOrder: (typeof TileImprovement)[];
+/** Whether `improvement` can be pillaged. */
+export declare const pillageable: (improvement: TileImprovement) => boolean;
 export interface ActionDependencies {
   cityGrowthRegistry?: CityGrowthRegistry;
+  cityImprovementRegistry?: CityImprovementRegistry;
   cityNameRegistry?: CityNameRegistry;
   cityRegistry?: CityRegistry;
   engine?: Engine;
   interactionRegistry?: InteractionRegistry;
   pathFinderRegistry?: PathFinderRegistry;
+  pendingEffectRegistry?: PendingEffectRegistry;
   playerResearchRegistry?: PlayerResearchRegistry;
   ruleRegistry?: RuleRegistry;
   strategyNoteRegistry?: StrategyNoteRegistry;
@@ -48,11 +61,13 @@ export interface ActionDependencies {
  */
 export declare const getRules: ({
   cityGrowthRegistry,
+  cityImprovementRegistry,
   cityNameRegistry,
   cityRegistry,
   engine,
   interactionRegistry,
   pathFinderRegistry,
+  pendingEffectRegistry,
   playerResearchRegistry,
   ruleRegistry,
   strategyNoteRegistry,

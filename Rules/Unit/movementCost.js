@@ -34,7 +34,9 @@ const roadMove = 1 / cosmic_1.cosmic.roadMoveMultiplier;
 /**
  * How many turns each terrain job takes in Civilization II (`unit_terrain_work_turns`): irrigating and mining from
  *  `@TERRAIN`, a road twice the terrain's movement cost and a railroad four times it, pollution 4. A conversion (Clear
- *  Forest, Plant Forest...) is the irrigate or mine order on that terrain, so it takes that order's time.
+ *  Forest, Plant Forest...) is the irrigate or mine order on that terrain, so it takes that order's time. A fortress
+ *  takes half the terrain's movement cost (rounded down) and 3, an airbase 4, and a transform the movement cost times
+ *  @COSMIC's transform time. Engineers do each in half the turns (`Rules/Unit/workRate`).
  */
 exports.civ2TerrainJobTurns = [
     [Actions_1.BuildIrrigation, irrigating],
@@ -46,6 +48,15 @@ exports.civ2TerrainJobTurns = [
     [Actions_1.ClearJungle, irrigating],
     [Actions_1.ClearSwamp, irrigating],
     [Actions_1.PlantForest, mining],
+    [
+        Actions_1.BuildFortress,
+        (terrain) => {
+            const cost = (0, exports.terrainCost)(terrain);
+            return cost === null ? null : Math.trunc(cost / 2) + 3;
+        },
+    ],
+    [Actions_1.BuildAirbase, () => 4],
+    [Actions_1.TransformTerrain, (0, jobTurns_1.multipleOf)(exports.terrainCost, cosmic_1.cosmic.transformTime)],
 ];
 /**
  * Civilization II's movement costs (`unit_move_dir_step_cost`): base-unit-movement's rules with Civ2's terrain,

@@ -9,9 +9,11 @@ import {
   TransportRole,
 } from '@civ-clone/base-unit-role/Roles';
 import {
+  Bomber,
   Carrier,
   Diplomat,
   Engineer,
+  Fighter,
   Explorer,
   Fanatic,
   Frigate,
@@ -93,6 +95,7 @@ describe('the unit table', (): void => {
       ['Sail', 3],
       ['Galleon', 4],
       ['Frigate', 2],
+      ['Submarine', 8],
       ['Carrier', 8],
       ['Transport', 8],
     ]);
@@ -110,11 +113,13 @@ describe('traits', (): void => {
       [Fanatic, ['Fortifies', 'SupportExemptUnder']],
       [Partisan, ['Fortifies', 'IgnoresZoneOfControl', 'TerrainAsRoad']],
       [Marine, ['Fortifies', 'Amphibious']],
-      [Helicopter, ['DetectsSubmerged']],
+      [Helicopter, ['DetectsSubmerged', 'AttackEndsTurn']],
+      [Bomber, ['AttackEndsTurn']],
+      [Fighter, ['Interceptor']],
       [Trireme, ['CoastBound', 'Carries']],
       [Galleon, ['Carries']],
       [MissileCruiser, ['DefenceBonusVsAir', 'DetectsSubmerged']],
-      [Submarine, ['Submerged']],
+      [Submarine, ['Submerged', 'Carries']],
       [Carrier, ['Carries']],
       [Nuclear, ['SingleUse', 'Detonates']],
       [

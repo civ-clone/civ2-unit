@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.territoryImprovements = void 0;
+exports.getRules = exports.withoutDomainTest = exports.pillageable = exports.partisanPillageOrder = exports.pillageOrder = exports.territoryImprovements = void 0;
 const Actions_1 = require("../../Actions");
+const units_1 = require("../../data/units");
 const Action_1 = require("@civ-clone/core-unit/Rules/Action");
 const CityGrowthRegistry_1 = require("@civ-clone/core-city-growth/CityGrowthRegistry");
 const CityNameRegistry_1 = require("@civ-clone/core-civilization/CityNameRegistry");
@@ -10,6 +11,8 @@ const Engine_1 = require("@civ-clone/core-engine/Engine");
 const Terrains_1 = require("@civ-clone/civ2-world/Terrains");
 const InteractionRegistry_1 = require("@civ-clone/core-diplomacy/InteractionRegistry");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
+const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
+const PendingEffectRegistry_1 = require("@civ-clone/core-pending-effect/PendingEffectRegistry");
 const PathFinderRegistry_1 = require("@civ-clone/core-world-path/PathFinderRegistry");
 const PlayerResearchRegistry_1 = require("@civ-clone/core-science/PlayerResearchRegistry");
 const RuleRegistry_1 = require("@civ-clone/core-rule/RuleRegistry");
@@ -25,6 +28,7 @@ const WorkedTileRegistry_1 = require("@civ-clone/core-city/WorkedTileRegistry");
 const actionRules_1 = require("@civ-clone/base-unit-action-rules/lib/actionRules");
 const attack_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/attack");
 const worker_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/worker");
+const Airport_1 = require("@civ-clone/base-city-improvement-airport/Airport");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
 const IgnoresZoneOfControl_1 = require("@civ-clone/base-unit-trait-ignores-zone-of-control/IgnoresZoneOfControl");
 const Land_1 = require("@civ-clone/base-unit-type-land/Land");
@@ -33,6 +37,7 @@ const Or_1 = require("@civ-clone/core-rule/Criteria/Or");
 const Declarations_1 = require("@civ-clone/library-diplomacy/Declarations");
 const TerrainFeatures_1 = require("@civ-clone/civ2-world/TerrainFeatures");
 const RoutePlanner_1 = require("@civ-clone/base-unit-action-rules/lib/RoutePlanner");
+const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
 const Types_1 = require("@civ-clone/core-terrain/Types");
 const diplomat_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/diplomat");
 const move_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/move");
@@ -49,13 +54,60 @@ const transport_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/tran
 const treatyPartner_1 = require("@civ-clone/base-unit-lifecycle/lib/treatyPartner");
 const routeOrders_1 = require("../../lib/routeOrders");
 const zoneOfControl_1 = require("@civ-clone/base-zone-of-control/lib/zoneOfControl");
-/** The tile improvements that make a worked square a treaty partner's land, and that pillage takes. */
+const Submerged_1 = require("@civ-clone/base-unit-trait-submerged/Submerged");
+const Interceptor_1 = require("@civ-clone/base-unit-trait-interceptor/Interceptor");
+const Paradrop_1 = require("@civ-clone/base-unit-trait-paradrop/Paradrop");
+const Covert_1 = require("@civ-clone/base-unit-trait-covert/Covert");
+const criteria_1 = require("@civ-clone/base-unit-action-airlift/lib/criteria");
+const cosmic_1 = require("@civ-clone/civ2-rules/data/cosmic");
+const distance_1 = require("../../lib/distance");
+const domain_2 = require("@civ-clone/base-unit-action-rules/lib/criteria/domain");
+const criteria_2 = require("@civ-clone/base-unit-action-paradrop/lib/criteria");
+const criteria_3 = require("@civ-clone/base-unit-action-sabotage-unit/lib/criteria");
+const criteria_4 = require("@civ-clone/base-unit-action-transform-terrain/lib/criteria");
+const unitTable_1 = require("../../lib/unitTable");
+const Units_1 = require("../../Units");
+/** The tile improvements that make a worked square a treaty partner's land. */
 exports.territoryImprovements = [
     TileImprovements_1.Irrigation,
     TileImprovements_1.Mine,
     TileImprovements_1.Railroad,
     TileImprovements_1.Road,
 ];
+/**
+ * What a pillage takes, in the order the original takes it when no target is chosen (`unit_pillage`): farmland (leaving
+ *  the irrigation), a mine or irrigation, a fortress or an airbase, the railroad, then the road.
+ */
+exports.pillageOrder = [
+    TileImprovements_1.Farmland,
+    TileImprovements_1.Mine,
+    TileImprovements_1.Irrigation,
+    TileImprovements_1.Fortress,
+    TileImprovements_1.Airbase,
+    TileImprovements_1.Railroad,
+    TileImprovements_1.Road,
+];
+/** Partisans take the railroad, then the road, before anything else (`unit_pillage`). */
+exports.partisanPillageOrder = [
+    TileImprovements_1.Railroad,
+    TileImprovements_1.Road,
+    ...exports.pillageOrder.filter((Improvement) => Improvement !== TileImprovements_1.Railroad && Improvement !== TileImprovements_1.Road),
+];
+/** Whether `improvement` can be pillaged. */
+const pillageable = (improvement) => exports.pillageOrder.some((Improvement) => improvement instanceof Improvement);
+exports.pillageable = pillageable;
+/** `criteria` less its last, which must be base-unit-action-rules' by-domain `Or`. */
+const withoutDomainTest = (criteria) => {
+    const last = criteria[criteria.length - 1];
+    if (!(last instanceof Or_1.default)) {
+        throw new TypeError("base-unit-action-rules' attack criteria no longer end with their by-domain test.");
+    }
+    return criteria.slice(0, -1);
+};
+exports.withoutDomainTest = withoutDomainTest;
+// Each unit type's `@UNITS` row, by class.
+const rows = new Map(units_1.units.map((row, index) => [unitTable_1.unitTypes[index], row]));
+const rowOf = (unit) => rows.get(unit.constructor);
 /**
  * Civilization II's unit actions, as base-unit-action-rules' `actionRules('civ2-unit', table)` with civ1-unit's
  *  criteria and Civ2's terrain, in the order a unit is offered them (the AI takes the first). There is no Senate, so no
@@ -64,7 +116,7 @@ exports.territoryImprovements = [
  *  meeting outside network games); theft, sabotage, revolt and bribery, and the
  *  Caravan's and Freight's trade routes and help with a wonder, are M2a deviations.
  */
-const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityNameRegistry = CityNameRegistry_1.instance, cityRegistry = CityRegistry_1.instance, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pathFinderRegistry = PathFinderRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, strategyNoteRegistry = StrategyNoteRegistry_1.instance, strategyRegistry = StrategyRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, workedTileRegistry = WorkedTileRegistry_1.instance, } = {}) => {
+const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImprovementRegistry = CityImprovementRegistry_1.instance, cityNameRegistry = CityNameRegistry_1.instance, cityRegistry = CityRegistry_1.instance, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pathFinderRegistry = PathFinderRegistry_1.instance, pendingEffectRegistry = PendingEffectRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, strategyNoteRegistry = StrategyNoteRegistry_1.instance, strategyRegistry = StrategyRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, workedTileRegistry = WorkedTileRegistry_1.instance, } = {}) => {
     const { landsInCity, landingTransport, canLandAircraft } = (0, landing_1.default)({
         cityRegistry,
         unitRegistry,
@@ -75,14 +127,58 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityName
         pathFinderRegistry,
         ruleRegistry,
         strategyNoteRegistry,
-    }), { atPeace, allPeaceExpired, allAtPeace, ownerPeaceExpired, peaceWithOwner, } = (0, peace_1.default)({ cityRegistry, interactionRegistry, unitRegistry }), attackCriteria = (0, attack_1.attackCriteria)({ cityRegistry, unitRegistry }), captureCityCriteria = (0, attack_1.captureCityCriteria)({
+    }), { atPeace, allPeaceExpired, allAtPeace, ownerPeaceExpired, peaceWithOwner, } = (0, peace_1.default)({ cityRegistry, interactionRegistry, unitRegistry }), 
+    // Outside a city or an airbase, a stack with a bomber (an aircraft with a range above 1) can only be attacked by an
+    //  interceptor, unless it has a carrier (`unit_move_dir_attack_unit`).
+    bomberCover = new Criterion_1.default((unit, to) => {
+        if (unit.hasTrait(Interceptor_1.default) ||
+            (0, domain_1.tileHasCity)(to, cityRegistry) ||
+            tileImprovementRegistry
+                .getByTile(to)
+                .some((improvement) => improvement instanceof TileImprovements_1.Airbase)) {
+            return true;
+        }
+        const stack = unitRegistry.getByTile(to).map(rowOf);
+        return (!stack.some((row) => (row === null || row === void 0 ? void 0 : row[1]) === units_1.AIR && row[3] > 1) ||
+            stack.some((row) => { var _a; return (((_a = row === null || row === void 0 ? void 0 : row[12]) !== null && _a !== void 0 ? _a : 0) & units_1.CARRIES_AIR) !== 0; }));
+    }), 
+    // base-unit-action-rules' attack criteria up to its last, Civ1's by-domain test (a land unit only against a city
+    //  or a land unit, an aircraft against an air-only stack only if it's an interceptor), which Civ2 doesn't have
+    //  (`unit_move_dir_attack_unit`): what reaches a square may attack it, a land unit on land, a submarine only at
+    //  sea, and any aircraft, but for `bomberCover`.
+    attackCriteria = [
+        ...(0, exports.withoutDomainTest)((0, attack_1.attackCriteria)({ cityRegistry, unitRegistry })),
+        new Criterion_1.default((unit, to) => {
+            const row = rowOf(unit);
+            if (row === undefined || row[1] === units_1.AIR) {
+                return true;
+            }
+            if (row[1] === units_1.LAND) {
+                return to.isLand();
+            }
+            return !unit.hasTrait(Submerged_1.default) || to.isWater();
+        }),
+        bomberCover,
+    ], 
+    // A land unit or a Helicopter (an aircraft with no range) takes an empty city; ships and other aircraft can't
+    //  (`unit_move_dir_enemy_city`).
+    captureCityCriteria = (0, attack_1.captureCityCriteria)({
         cityRegistry,
         unitRegistry,
-    }), { nuclearTargets, nuclearAttackCriteria, noNuclearTargetAtPeace, anyNuclearTargetAtPeace, } = (0, nuclear_1.default)({ cityRegistry, unitRegistry }, atPeace), partnerOf = (0, treatyPartner_1.default)(exports.territoryImprovements, {
+    }).map((criterion) => criterion === domain_2.isLandUnit
+        ? new Or_1.default(domain_2.isLandUnit, new Criterion_1.default((unit) => {
+            const row = rowOf(unit);
+            return row !== undefined && row[1] === units_1.AIR && row[3] === 0;
+        }))
+        : criterion), { nuclearTargets, nuclearAttackCriteria, noNuclearTargetAtPeace, anyNuclearTargetAtPeace, } = (0, nuclear_1.default)({ cityRegistry, unitRegistry }, atPeace), partnerOf = (0, treatyPartner_1.default)(exports.territoryImprovements, {
         interactionRegistry,
         tileImprovementRegistry,
         workedTileRegistry,
-    }), { movePartner, onPartnersLand, offPartnersLand, pillagingPartnersLand, notPillagingPartnersLand, } = (0, partners_1.default)({ unitRegistry }, partnerOf), pillageCriteria = (0, pillage_1.pillageCriteria)({ tileImprovementRegistry }, (improvement) => exports.territoryImprovements.some((Improvement) => improvement instanceof Improvement)), 
+    }), { movePartner, onPartnersLand, offPartnersLand, pillagingPartnersLand, notPillagingPartnersLand, } = (0, partners_1.default)({ unitRegistry }, partnerOf), pillageCriteria = (0, pillage_1.pillageCriteria)({ tileImprovementRegistry }, exports.pillageable), 
+    // Building a fortress or an airbase: never in a city (`unit_terrain_work_finish` builds neither there).
+    noCity = new Criterion_1.default((unit, to, from = unit.tile()) => !(0, domain_1.tileHasCity)(from, cityRegistry)), cityHasAirport = (city) => cityImprovementRegistry
+        .getByCity(city)
+        .some((improvement) => improvement instanceof Airport_1.default), 
     // Civ2's zones of control (`unit_move_dir_land_unit_checks`, `tile_in_enemy_zoc`, `tile_zoc_unit_adjacent`): a
     //  land unit that doesn't ignore them may not step from a square next to another player's unit to another such
     //  square. Any unit on land exerts one, whatever it is and whether or not its player is at peace (only an alliance,
@@ -120,6 +216,29 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityName
             name: 'investigate-city',
             criteria: [...diplomatCriteria],
             effect: (unit, to, from = unit.tile()) => new Actions_1.InvestigateCity(from, to, unit, cityRegistry.getByTile(to), ruleRegistry),
+        },
+        // A Spy's mission against another player's lone unit outside a city (`spy_unit_mission`): it loses half its hit
+        //  points. A veteran Spy escapes at twice the odds, and an escaped one becomes a veteran (`spy_try_escape`).
+        {
+            name: 'sabotage-unit',
+            criteria: [
+                ...(0, criteria_3.default)({ cityRegistry, unitRegistry }, (unit) => unit.hasTrait(Covert_1.default)),
+                allPeaceExpired,
+            ],
+            effect: (unit, to, from = unit.tile()) => new Actions_1.SabotageUnit(from, to, unit, ruleRegistry, unitRegistry, cityRegistry, undefined, {
+                escapeOdds: (spy) => unitImprovementRegistry
+                    .getByUnit(spy)
+                    .some((improvement) => improvement instanceof Veteran_1.default)
+                    ? 4
+                    : 2,
+                escaped: (spy) => {
+                    if (!unitImprovementRegistry
+                        .getByUnit(spy)
+                        .some((improvement) => improvement instanceof Veteran_1.default)) {
+                        unitImprovementRegistry.register(new Veteran_1.default(spy));
+                    }
+                },
+            }),
         },
         // Before `move`, so it's the first action for a square an aircraft can land on.
         {
@@ -195,6 +314,41 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityName
                 return new Actions_1.SneakCaptureCity(from, to, unit, city, city.player(), ruleRegistry);
             },
         },
+        // Paratroopers from a city or an airbase, with no moves used, onto land within @COSMIC's range by `map_distance`
+        //  with no other player's unit on it, and not into the city of a player at peace (`unit_cmd_paradrop`,
+        //  `unit_paradrop`; the original asks a human to confirm that, and has a computer player give up).
+        {
+            name: 'paradrop',
+            criteria: [
+                ...(0, criteria_2.default)({ unitImprovementRegistry, unitRegistry }, {
+                    canParadrop: (unit) => unit.hasTrait(Paradrop_1.default),
+                    canDropFrom: (unit, from) => (0, domain_1.tileHasCity)(from, cityRegistry) ||
+                        tileImprovementRegistry
+                            .getByTile(from)
+                            .some((improvement) => improvement instanceof TileImprovements_1.Airbase),
+                    range: cosmic_1.cosmic.paradropRange,
+                    distance: distance_1.default,
+                    hasFullMoves: criteria_2.hasFullMoves,
+                }),
+                new Criterion_1.default((unit, to, from = unit.tile()) => {
+                    const city = cityRegistry.getByTile(to);
+                    return (city === null ||
+                        city.player() === unit.player() ||
+                        !peaceWithOwner.validate(unit, to, from));
+                }),
+            ],
+            effect: (unit, to, from = unit.tile()) => new Actions_1.Paradrop(from, to, unit, ruleRegistry, cityRegistry, unitImprovementRegistry),
+        },
+        // A land unit between two of its player's cities with an Airport, each airlifting once a turn
+        //  (`unit_cmd_airlift`, `unit_airlift_perform`).
+        {
+            name: 'airlift',
+            criteria: (0, criteria_1.default)({ cityRegistry, pendingEffectRegistry, turn }, {
+                canAirlift: (unit) => { var _a; return ((_a = rowOf(unit)) === null || _a === void 0 ? void 0 : _a[1]) === units_1.LAND; },
+                canAirliftFrom: cityHasAirport,
+            }),
+            effect: (unit, to, from = unit.tile()) => new Actions_1.Airlift(from, to, unit, ruleRegistry, cityRegistry, pendingEffectRegistry, turn),
+        },
         {
             name: 'pillage',
             criteria: [...pillageCriteria, notPillagingPartnersLand],
@@ -264,6 +418,8 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityName
                 Actions_1.BuildRailroad,
                 (0, worker_1.requiresImprovement)({ tileImprovementRegistry }, TileImprovements_1.Road),
             ],
+            [TileImprovements_1.Fortress, Actions_1.BuildFortress, noCity],
+            [TileImprovements_1.Airbase, Actions_1.BuildAirbase, noCity],
         ].map(([Improvement, ActionType, ...extra]) => ({
             improvement: Improvement,
             extra,
@@ -281,6 +437,12 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityName
             terrains,
             effect: (unit, to, from = unit.tile()) => new ActionType(from, to, unit, ruleRegistry, terrainFeatureRegistry, turn),
         })),
+        // Engineers transform their square's terrain, to what civ2-world's `TerrainConversion` rules say.
+        {
+            name: 'transform-terrain',
+            criteria: (0, criteria_4.default)({ ruleRegistry }, (unit) => unit instanceof Units_1.Engineer),
+            effect: (unit, to, from = unit.tile()) => new Actions_1.TransformTerrain(from, to, unit, ruleRegistry, turn),
+        },
         {
             name: 'clean-pollution',
             criteria: (0, worker_1.cleanPollution)({ tileImprovementRegistry }, TileImprovements_1.Pollution),

@@ -1,4 +1,5 @@
 import {
+  AIR,
   AMPHIBIOUS,
   ATTACKS_AIR,
   CARRIES_AIR,
@@ -41,6 +42,7 @@ import IgnoresZoneOfControl from '@civ-clone/base-unit-trait-ignores-zone-of-con
 import Interceptor from '@civ-clone/base-unit-trait-interceptor/Interceptor';
 import Land from '@civ-clone/base-unit-type-land/Land';
 import NonCombatant from '@civ-clone/base-unit-trait-non-combatant/NonCombatant';
+import AttackEndsTurn from '@civ-clone/base-unit-trait-attack-ends-turn/AttackEndsTurn';
 import Paradrop from '@civ-clone/base-unit-trait-paradrop/Paradrop';
 import SingleUse from '@civ-clone/base-unit-trait-single-use/SingleUse';
 import { Spy } from '../../Units';
@@ -64,7 +66,7 @@ type Trait = Parameters<typeof unitTraits>[2];
  *  `unit_move_dir_step_cost`, `unit_defense_strength`).
  */
 export const traitsOf = (row: UnitRow): Trait[] => {
-  const [, domain, , , attack, , , , , hold, role, , flags] = row,
+  const [, domain, , range, attack, , , , , hold, role, , flags] = row,
     has = (flag: number): boolean => (flags & flag) !== 0;
 
   return [
@@ -98,7 +100,12 @@ export const traitsOf = (row: UnitRow): Trait[] => {
     ...(has(DEFENCE_BONUS_VS_AIR) ? [new DefenceBonusVsAir(3, 5)] : []),
     ...(has(DETECTS_SUBMARINES) ? [DetectsSubmerged] : []),
     ...(attack >= NUCLEAR_ATTACK ? [Detonates] : []),
+    // An aircraft with a range other than 1 (Bombers, Helicopters) has its moves used up by a win
+    //  (`unit_resolve_attack_after_win`); fighters, at 1, keep theirs, and a missile is gone.
+    ...(domain === AIR && range !== 1 ? [AttackEndsTurn] : []),
     ...(has(CARRIES_AIR) ? [new Carries(Air)] : []),
+    // A submarine carries missiles (`unit_gather_cargo`; `@UNITS` gives it no hold).
+    ...(domain === SEA && has(SUBMARINE) ? [new Carries(SingleUse)] : []),
     ...(domain === SEA && hold > 0 && !has(CARRIES_AIR)
       ? [new Carries(Land)]
       : []),

@@ -25,6 +25,10 @@ import {
   instance as wonderRegistryInstance,
 } from '@civ-clone/core-wonder/WonderRegistry';
 import {
+  TileImprovementRegistry,
+  instance as tileImprovementRegistryInstance,
+} from '@civ-clone/core-tile-improvement/TileImprovementRegistry';
+import {
   UnitImprovementRegistry,
   instance as unitImprovementRegistryInstance,
 } from '@civ-clone/core-unit-improvement/UnitImprovementRegistry';
@@ -34,6 +38,7 @@ import Criterion from '@civ-clone/core-rule/Criterion';
 import DefenceBonusVsAir from '@civ-clone/base-unit-trait-defence-bonus-vs-air/DefenceBonusVsAir';
 import DefenceBonusVsMounted from '@civ-clone/base-unit-trait-defence-bonus-vs-mounted/DefenceBonusVsMounted';
 import Effect from '@civ-clone/core-rule/Effect';
+import { Fortress } from '@civ-clone/civ2-world/TileImprovements';
 import GreatWall from '@civ-clone/base-wonder-great-wall/GreatWall';
 import Fortified from '@civ-clone/base-unit-improvement-fortified/UnitImprovements/Fortified';
 import IgnoresFortifications from '@civ-clone/base-unit-trait-ignores-fortifications/IgnoresFortifications';
@@ -42,9 +47,11 @@ import Land from '@civ-clone/base-unit-type-land/Land';
 import { Partisan } from '../../Units';
 import { River } from '@civ-clone/civ2-world/TerrainFeatures';
 import SingleUse from '@civ-clone/base-unit-trait-single-use/SingleUse';
+import Paradropped from '@civ-clone/base-unit-action-paradrop/UnitImprovements/Paradropped';
 import Strength from '@civ-clone/core-unit/Rules/Strength';
 import Terrain from '@civ-clone/core-terrain/Terrain';
 import TerrainFeature from '@civ-clone/core-terrain-feature/TerrainFeature';
+import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
 import Unit from '@civ-clone/core-unit/Unit';
 import UnitImprovement from '@civ-clone/core-unit-improvement/UnitImprovement';
 import { cityHasImprovementOrWonder } from '@civ-clone/base-wonder/lib/hasImprovementOrWonder';
@@ -74,13 +81,16 @@ export interface Dependencies {
   playerResearchRegistry?: PlayerResearchRegistry;
   requirementRegistry?: RequirementRegistry;
   terrainFeatureRegistry?: TerrainFeatureRegistry;
+  tileImprovementRegistry?: TileImprovementRegistry;
   unitImprovementRegistry?: UnitImprovementRegistry;
   wonderRegistry?: WonderRegistry;
 }
 
 /**
  * Civilization II's defence bonuses for `defender` against `attacker` (`null`: against any), as named multipliers
- *  (`unit_defense_strength`): the terrain's half steps, plus one for a river; then a fortified land unit ×1.5, or in a
+ *  (`unit_defense_strength`): the terrain's half steps, plus one for a river; then, outside a city, a land unit on a
+ *  Fortress ×2 against an attacker that isn't an aircraft and doesn't ignore walls (instead of being fortified, not as
+ *  well), or a fortified land unit ×1.5; or in a
  *  city with City Walls (or its owner's Great Wall) ×3 for a land unit against a land attacker that doesn't ignore them (the walls replace being
  *  fortified); and an interceptor in a city against an aircraft that isn't a missile ×4, or ×2 against another
  *  interceptor. Any other unit in a city, and every unit but a land unit outside one, gets no bonus beyond the terrain.
@@ -92,6 +102,7 @@ export const defenceMultipliers =
     playerResearchRegistry = playerResearchRegistryInstance,
     requirementRegistry = requirementRegistryInstance,
     terrainFeatureRegistry = terrainFeatureRegistryInstance,
+    tileImprovementRegistry = tileImprovementRegistryInstance,
     unitImprovementRegistry = unitImprovementRegistryInstance,
     wonderRegistry = wonderRegistryInstance,
   }: Dependencies = {}) =>
@@ -116,8 +127,29 @@ export const defenceMultipliers =
       isLand = defender instanceof Land;
 
     if (city === null) {
+      if (!isLand) {
+        return multipliers;
+      }
+
+      // A Fortress (an Airbase is another improvement here, and a Fortress replaces it): ×2 unless the attacker is an
+      //  aircraft or ignores walls, in place of being fortified.
       if (
-        isLand &&
+        tileImprovementRegistry
+          .getByTile(tile)
+          .some(
+            (improvement: TileImprovement): boolean =>
+              improvement instanceof Fortress
+          ) &&
+        (attacker === null ||
+          (!(attacker instanceof Air) &&
+            !attacker.hasTrait(IgnoresFortifications)))
+      ) {
+        multipliers.push([Fortress.name, 2]);
+
+        return multipliers;
+      }
+
+      if (
         unitImprovementRegistry
           .getByUnit(defender)
           .some(
@@ -183,10 +215,16 @@ export const defenceMultipliers =
   };
 
 // A land attacker with two moves and one hit point (10): "mounted", for the Pikemen's bonus (`unit_resolve_attack`).
+//  The moves are its moves now, after damage, as `unit_max_moves` gives them, and the hit points its maximum.
 const isMounted = (unit: Unit): boolean => {
   const row = rowOf(unit);
 
-  return row !== undefined && row[1] === LAND && row[2] === 2 && row[6] === 1;
+  return (
+    row !== undefined &&
+    row[1] === LAND &&
+    unit.movement().value() === 2 &&
+    unit.hitPoints()[1] === 10
+  );
 };
 
 /**
@@ -265,6 +303,22 @@ export const getRules = (dependencies: Dependencies = {}): Strength[] => [
 
         defence.add(defence.value() * (multiplier - 1), DefenceBonusVsAir.name);
       }
+    )
+  ),
+
+  // A unit that paradropped this turn attacks at half as much again, after its veteran's half (`unit_attack_strength`).
+  new Strength(
+    'civ2-unit:unit/strength/paradropped',
+    new Criterion((attacker: Unit): boolean =>
+      (dependencies.unitImprovementRegistry ?? unitImprovementRegistryInstance)
+        .getByUnit(attacker)
+        .some(
+          (improvement: UnitImprovement): boolean =>
+            improvement instanceof Paradropped
+        )
+    ),
+    new Effect((attacker: Unit, defender: Unit, attack: Attack): void =>
+      attack.add(attack.value() / 2, Paradropped.name)
     )
   ),
 

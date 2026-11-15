@@ -20,18 +20,44 @@ import RuleSet from '@civ-clone/core-rule/RuleSet';
 import { SneakAttack, SneakMove, SneakPillage } from './Actions';
 import Unit from '@civ-clone/core-unit/Unit';
 import Veteran from '@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran';
-import action, { territoryImprovements } from './Rules/Unit/action';
+import action, {
+  partisanPillageOrder,
+  pillageOrder,
+  pillageable,
+  territoryImprovements,
+} from './Rules/Unit/action';
+import defeated, { sparesStack } from './Rules/Unit/defeated';
+import { Partisan } from './Units';
+import airliftShotDown from './Rules/Unit/airlift';
+import airliftRules from '@civ-clone/base-unit-action-airlift/lib/airliftRules';
+import combat from './Rules/Unit/combat';
+import fuel from './Rules/Unit/fuel';
+import healing from './Rules/Unit/healing';
+import paradropRules from '@civ-clone/base-unit-action-paradrop/lib/paradropRules';
+import pillageTarget from '@civ-clone/base-unit-action-pillage/lib/pillageTarget';
+import promotion from './Rules/Unit/promotion';
+import workRate from './Rules/Unit/workRate';
 import build from './Rules/City/build';
 import buildCost from './Rules/City/buildCost';
 import canJoinCity from './Rules/Unit/canJoinCity';
 import cityUnitRules from '@civ-clone/base-unit-build/lib/cityUnitRules';
-import { cosmic } from '@civ-clone/civ2-rules/data/cosmic';
 import diplomatRules from '@civ-clone/base-unit-lifecycle/lib/diplomatRules';
-import detonatedRules from '@civ-clone/base-unit-lifecycle/lib/detonatedRules';
+import detonatedRules, {
+  protectedByCityWithin,
+} from '@civ-clone/base-unit-lifecycle/lib/detonatedRules';
+import movedRules, {
+  adjacentToLand,
+} from '@civ-clone/base-unit-lifecycle/lib/movedRules';
+import City from '@civ-clone/core-city/City';
+import SdiDefence from '@civ-clone/base-city-improvement-sdidefence/SdiDefence';
+import SingleUse from '@civ-clone/base-unit-trait-single-use/SingleUse';
+import Tile from '@civ-clone/core-world/Tile';
+import { cityHasImprovement } from '@civ-clone/base-wonder/lib/hasImprovementOrWonder';
+import distance from './lib/distance';
+import triremeLossChance from './lib/coastBound';
 import homeCity from '@civ-clone/base-unit-build/lib/homeCity';
 import manhattanProjectBuilt from './lib/manhattanProject';
 import lifecycleRules from '@civ-clone/base-unit-lifecycle/lib/lifecycleRules';
-import movedRules from '@civ-clone/base-unit-lifecycle/lib/movedRules';
 import movementCost from './Rules/Unit/movementCost';
 import roles from './Rules/Unit/roles';
 import singleUse from './Rules/Unit/singleUse';
@@ -90,24 +116,28 @@ export const register = (game: Game): void => {
       ActiveUnit,
       InactiveUnit,
       removedOnActivate: [Fortified],
-      stowable: [Land, Air],
+      // Missiles go aboard a submarine as a `SingleUse` unit.
+      stowable: [Land, Air, SingleUse as unknown as typeof Unit],
       partnerOf: treatyPartner(territoryImprovements, {
         interactionRegistry: game.interactions,
         tileImprovementRegistry: game.tileImprovements,
         workedTileRegistry: game.workedTiles,
       }),
       shortStep,
+      sparesStack: sparesStack(game.tileImprovements),
     }
   );
 
   game.rules.register(
     ...action({
       cityGrowthRegistry: game.cityGrowth,
+      cityImprovementRegistry: game.cityImprovements,
       cityNameRegistry: game.cityNames,
       cityRegistry: game.cities,
       engine: game.engine,
       interactionRegistry: game.interactions,
       pathFinderRegistry: game.pathFinders,
+      pendingEffectRegistry: game.pendingEffects,
       playerResearchRegistry: game.playerResearch,
       ruleRegistry: game.rules,
       strategyNoteRegistry: game.strategyNotes,
@@ -183,7 +213,23 @@ export const register = (game: Game): void => {
     ...canJoinCity(game.cityGrowth),
     ...lifecycle.canStow,
     ...lifecycle.created,
+    // Promotion reads both units' strengths before the loser is destroyed (it is `High`, and comes first).
+    ...promotion({
+      randomNumberGenerator: game.rng,
+      ruleRegistry: game.rules,
+      unitImprovementRegistry: game.unitImprovements,
+    }),
     ...lifecycle.defeated,
+    ...defeated({
+      cityGrowthRegistry: game.cityGrowth,
+      cityImprovementRegistry: game.cityImprovements,
+      cityRegistry: game.cities,
+      clientRegistry: game.clients,
+      gameDifficultyRegistry: game.difficulty,
+      playerResearchRegistry: game.playerResearch,
+      requirementRegistry: game.requirements,
+      wonderRegistry: game.wonders,
+    }),
     ...lifecycle.destroyed,
     ...detonatedRules(
       'civ2-unit',
@@ -197,10 +243,33 @@ export const register = (game: Game): void => {
         unitRegistry: game.units,
       },
       {
-        // No SDI Defense in M2a.
+        // SDI Defense stops the missile outright (`vetoes`), rather than sparing a city's units.
         sparesUnits: (): boolean => false,
         Pollution,
         falloutChance: 2 / 3,
+        // Another player's city with SDI Defense within 3 of the target, by `map_distance`, stops a nuclear attack
+        //  and the missile is lost (`unit_nuclear_attack`). The client hears `unit:nuclear-stopped` as well as the
+        //  detonation it is told of either way.
+        vetoes: (() => {
+          const protectedBy = protectedByCityWithin(
+            game.cities,
+            3,
+            (city: City, unit: Unit): boolean =>
+              city.player() !== unit.player() &&
+              cityHasImprovement(city, SdiDefence, game.cityImprovements),
+            distance
+          );
+
+          return (unit: Unit, tile: Tile): boolean => {
+            const stopped = protectedBy(unit, tile);
+
+            if (stopped) {
+              game.engine.emit('unit:nuclear-stopped', unit, tile);
+            }
+
+            return stopped;
+          };
+        })(),
       }
     ),
     ...lifecycle.expectedMovementCost,
@@ -223,7 +292,13 @@ export const register = (game: Game): void => {
         Disembark,
         attacks: [Attack, SneakAttack],
         noVendetta: [SneakMove, SneakPillage],
-        coastBoundLoss: 1 / cosmic.triremeLossChance,
+        coastBoundLoss: triremeLossChance({
+          playerResearchRegistry: game.playerResearch,
+          requirementRegistry: game.requirements,
+          wonderRegistry: game.wonders,
+        }),
+        // Out of sight of land: none of the 9 squares, its own included, is land (`unit_move_dir_trireme_loss`).
+        nearLand: adjacentToLand,
       }
     ),
     ...singleUse(),
@@ -244,9 +319,51 @@ export const register = (game: Game): void => {
       playerResearchRegistry: game.playerResearch,
       requirementRegistry: game.requirements,
       terrainFeatureRegistry: game.terrainFeatures,
+      tileImprovementRegistry: game.tileImprovements,
       unitImprovementRegistry: game.unitImprovements,
       wonderRegistry: game.wonders,
     }),
+    // Battles in rounds, their firepower changes and the choice of defender.
+    ...combat({
+      cityImprovementRegistry: game.cityImprovements,
+      cityRegistry: game.cities,
+      playerResearchRegistry: game.playerResearch,
+      requirementRegistry: game.requirements,
+      ruleRegistry: game.rules,
+      terrainFeatureRegistry: game.terrainFeatures,
+      tileImprovementRegistry: game.tileImprovements,
+      unitImprovementRegistry: game.unitImprovements,
+      unitRegistry: game.units,
+      wonderRegistry: game.wonders,
+    }),
+    // Healing (`High`, before the turn's moves are given out) and damaged movement.
+    ...healing({
+      cityImprovementRegistry: game.cityImprovements,
+      cityRegistry: game.cities,
+      landMassRegistry: game.landMasses,
+      tileImprovementRegistry: game.tileImprovements,
+      unitImprovementRegistry: game.unitImprovements,
+      unitRegistry: game.units,
+    }),
+    ...fuel({
+      cityRegistry: game.cities,
+      engine: game.engine,
+      ruleRegistry: game.rules,
+      tileImprovementRegistry: game.tileImprovements,
+      transportRegistry: game.transports,
+      unitImprovementRegistry: game.unitImprovements,
+      unitRegistry: game.units,
+    }),
+    ...workRate(),
+    ...paradropRules('civ2-unit', {
+      unitImprovementRegistry: game.unitImprovements,
+    }),
+    ...airliftRules('civ2-unit', {
+      pendingEffectRegistry: game.pendingEffects,
+    }),
+    pillageTarget('civ2-unit', pillageable, (unit: Unit) =>
+      unit instanceof Partisan ? partisanPillageOrder : pillageOrder
+    ),
     ...unitYield(game.unitImprovements, game.rules, game.transports),
     ...lifecycle.unsupported,
     ...lifecycle.validateMove

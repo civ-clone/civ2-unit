@@ -1,16 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Unload = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.Automate = exports.Attack = exports.Activate = exports.AbortMove = void 0;
+exports.Unload = exports.TransformTerrain = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.SabotageUnit = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.Paradrop = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.BuildFortress = exports.BuildAirbase = exports.Automate = exports.Attack = exports.Activate = exports.Airlift = exports.AbortMove = void 0;
 // The unit actions Civilization II's table offers (and the ones its rules ask about), from their own packages. The treaty-breaking forms and Set Home
 //  City are defined only in library-unit (no `main`, registers nothing) until they have base homes (#1041).
 var AbortMove_1 = require("@civ-clone/library-unit/Actions/AbortMove");
 Object.defineProperty(exports, "AbortMove", { enumerable: true, get: function () { return AbortMove_1.AbortMove; } });
+var Airlift_1 = require("@civ-clone/base-unit-action-airlift/Airlift");
+Object.defineProperty(exports, "Airlift", { enumerable: true, get: function () { return Airlift_1.Airlift; } });
 var Activate_1 = require("@civ-clone/base-unit-action-activate/Activate");
 Object.defineProperty(exports, "Activate", { enumerable: true, get: function () { return Activate_1.Activate; } });
 var Attack_1 = require("@civ-clone/base-unit-action-attack/Attack");
 Object.defineProperty(exports, "Attack", { enumerable: true, get: function () { return Attack_1.Attack; } });
 var Automate_1 = require("@civ-clone/base-unit-action-automate/Automate");
 Object.defineProperty(exports, "Automate", { enumerable: true, get: function () { return Automate_1.Automate; } });
+var BuildAirbase_1 = require("@civ-clone/base-unit-action-build-airbase/BuildAirbase");
+Object.defineProperty(exports, "BuildAirbase", { enumerable: true, get: function () { return BuildAirbase_1.BuildAirbase; } });
+var BuildFortress_1 = require("@civ-clone/base-unit-action-build-fortress/BuildFortress");
+Object.defineProperty(exports, "BuildFortress", { enumerable: true, get: function () { return BuildFortress_1.BuildFortress; } });
 var BuildIrrigation_1 = require("@civ-clone/base-unit-action-build-irrigation/BuildIrrigation");
 Object.defineProperty(exports, "BuildIrrigation", { enumerable: true, get: function () { return BuildIrrigation_1.BuildIrrigation; } });
 var BuildMine_1 = require("@civ-clone/base-unit-action-build-mine/BuildMine");
@@ -57,6 +63,8 @@ var NoOrders_1 = require("@civ-clone/base-unit-action-no-orders/NoOrders");
 Object.defineProperty(exports, "NoOrders", { enumerable: true, get: function () { return NoOrders_1.NoOrders; } });
 var NuclearAttack_1 = require("@civ-clone/base-unit-action-nuclear-attack/NuclearAttack");
 Object.defineProperty(exports, "NuclearAttack", { enumerable: true, get: function () { return NuclearAttack_1.NuclearAttack; } });
+var Paradrop_1 = require("@civ-clone/base-unit-action-paradrop/Paradrop");
+Object.defineProperty(exports, "Paradrop", { enumerable: true, get: function () { return Paradrop_1.Paradrop; } });
 var Pillage_1 = require("@civ-clone/base-unit-action-pillage/Pillage");
 Object.defineProperty(exports, "Pillage", { enumerable: true, get: function () { return Pillage_1.Pillage; } });
 var PlantForest_1 = require("@civ-clone/base-unit-action-plant-forest/PlantForest");
@@ -65,6 +73,8 @@ var RailroadTo_1 = require("@civ-clone/base-unit-action-build-route/RailroadTo")
 Object.defineProperty(exports, "RailroadTo", { enumerable: true, get: function () { return RailroadTo_1.RailroadTo; } });
 var RoadTo_1 = require("@civ-clone/base-unit-action-build-route/RoadTo");
 Object.defineProperty(exports, "RoadTo", { enumerable: true, get: function () { return RoadTo_1.RoadTo; } });
+var SabotageUnit_1 = require("@civ-clone/base-unit-action-sabotage-unit/SabotageUnit");
+Object.defineProperty(exports, "SabotageUnit", { enumerable: true, get: function () { return SabotageUnit_1.SabotageUnit; } });
 var SetHomeCity_1 = require("@civ-clone/library-unit/Actions/SetHomeCity");
 Object.defineProperty(exports, "SetHomeCity", { enumerable: true, get: function () { return SetHomeCity_1.SetHomeCity; } });
 var Sleep_1 = require("@civ-clone/base-unit-action-sleep/Sleep");
@@ -79,6 +89,8 @@ var SneakNuclearAttack_1 = require("@civ-clone/base-unit-action-nuclear-attack/S
 Object.defineProperty(exports, "SneakNuclearAttack", { enumerable: true, get: function () { return SneakNuclearAttack_1.SneakNuclearAttack; } });
 var SneakPillage_1 = require("@civ-clone/library-unit/Actions/SneakPillage");
 Object.defineProperty(exports, "SneakPillage", { enumerable: true, get: function () { return SneakPillage_1.SneakPillage; } });
+var TransformTerrain_1 = require("@civ-clone/base-unit-action-transform-terrain/TransformTerrain");
+Object.defineProperty(exports, "TransformTerrain", { enumerable: true, get: function () { return TransformTerrain_1.TransformTerrain; } });
 var Unload_1 = require("@civ-clone/base-unit-action-unload/Unload");
 Object.defineProperty(exports, "Unload", { enumerable: true, get: function () { return Unload_1.Unload; } });
 //# sourceMappingURL=Actions.js.map

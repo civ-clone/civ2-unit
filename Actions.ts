@@ -1,9 +1,12 @@
 // The unit actions Civilization II's table offers (and the ones its rules ask about), from their own packages. The treaty-breaking forms and Set Home
 //  City are defined only in library-unit (no `main`, registers nothing) until they have base homes (#1041).
 export { AbortMove } from '@civ-clone/library-unit/Actions/AbortMove';
+export { Airlift } from '@civ-clone/base-unit-action-airlift/Airlift';
 export { Activate } from '@civ-clone/base-unit-action-activate/Activate';
 export { Attack } from '@civ-clone/base-unit-action-attack/Attack';
 export { Automate } from '@civ-clone/base-unit-action-automate/Automate';
+export { BuildAirbase } from '@civ-clone/base-unit-action-build-airbase/BuildAirbase';
+export { BuildFortress } from '@civ-clone/base-unit-action-build-fortress/BuildFortress';
 export { BuildIrrigation } from '@civ-clone/base-unit-action-build-irrigation/BuildIrrigation';
 export { BuildMine } from '@civ-clone/base-unit-action-build-mine/BuildMine';
 export { BuildRailroad } from '@civ-clone/base-unit-action-build-railroad/BuildRailroad';
@@ -27,10 +30,12 @@ export { LandAircraft } from '@civ-clone/base-unit-action-land-aircraft/LandAirc
 export { Move } from '@civ-clone/base-unit-action-move/Move';
 export { NoOrders } from '@civ-clone/base-unit-action-no-orders/NoOrders';
 export { NuclearAttack } from '@civ-clone/base-unit-action-nuclear-attack/NuclearAttack';
+export { Paradrop } from '@civ-clone/base-unit-action-paradrop/Paradrop';
 export { Pillage } from '@civ-clone/base-unit-action-pillage/Pillage';
 export { PlantForest } from '@civ-clone/base-unit-action-plant-forest/PlantForest';
 export { RailroadTo } from '@civ-clone/base-unit-action-build-route/RailroadTo';
 export { RoadTo } from '@civ-clone/base-unit-action-build-route/RoadTo';
+export { SabotageUnit } from '@civ-clone/base-unit-action-sabotage-unit/SabotageUnit';
 export { SetHomeCity } from '@civ-clone/library-unit/Actions/SetHomeCity';
 export { Sleep } from '@civ-clone/base-unit-action-sleep/Sleep';
 export { SneakAttack } from '@civ-clone/library-unit/Actions/SneakAttack';
@@ -38,4 +43,5 @@ export { SneakCaptureCity } from '@civ-clone/library-unit/Actions/SneakCaptureCi
 export { SneakMove } from '@civ-clone/library-unit/Actions/SneakMove';
 export { SneakNuclearAttack } from '@civ-clone/base-unit-action-nuclear-attack/SneakNuclearAttack';
 export { SneakPillage } from '@civ-clone/library-unit/Actions/SneakPillage';
+export { TransformTerrain } from '@civ-clone/base-unit-action-transform-terrain/TransformTerrain';
 export { Unload } from '@civ-clone/base-unit-action-unload/Unload';

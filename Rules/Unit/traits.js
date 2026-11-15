@@ -21,6 +21,7 @@ const IgnoresZoneOfControl_1 = require("@civ-clone/base-unit-trait-ignores-zone-
 const Interceptor_1 = require("@civ-clone/base-unit-trait-interceptor/Interceptor");
 const Land_1 = require("@civ-clone/base-unit-type-land/Land");
 const NonCombatant_1 = require("@civ-clone/base-unit-trait-non-combatant/NonCombatant");
+const AttackEndsTurn_1 = require("@civ-clone/base-unit-trait-attack-ends-turn/AttackEndsTurn");
 const Paradrop_1 = require("@civ-clone/base-unit-trait-paradrop/Paradrop");
 const SingleUse_1 = require("@civ-clone/base-unit-trait-single-use/SingleUse");
 const Units_1 = require("../../Units");
@@ -39,7 +40,7 @@ exports.TRAIT_RULE_PREFIX = 'civ2-unit:unit/trait';
  *  `unit_move_dir_step_cost`, `unit_defense_strength`).
  */
 const traitsOf = (row) => {
-    const [, domain, , , attack, , , , , hold, role, , flags] = row, has = (flag) => (flags & flag) !== 0;
+    const [, domain, , range, attack, , , , , hold, role, , flags] = row, has = (flag) => (flags & flag) !== 0;
     return [
         // Every land unit but Settlers and Engineers, whose fortify key builds a fortress instead. Diplomats, Caravans and
         //  Explorers fortify too, as civ1-unit's do: not checked against OpenCiv2.
@@ -71,7 +72,12 @@ const traitsOf = (row) => {
         ...(has(units_1.DEFENCE_BONUS_VS_AIR) ? [new DefenceBonusVsAir_1.default(3, 5)] : []),
         ...(has(units_1.DETECTS_SUBMARINES) ? [DetectsSubmerged_1.default] : []),
         ...(attack >= units_1.NUCLEAR_ATTACK ? [Detonates_1.default] : []),
+        // An aircraft with a range other than 1 (Bombers, Helicopters) has its moves used up by a win
+        //  (`unit_resolve_attack_after_win`); fighters, at 1, keep theirs, and a missile is gone.
+        ...(domain === units_1.AIR && range !== 1 ? [AttackEndsTurn_1.default] : []),
         ...(has(units_1.CARRIES_AIR) ? [new Carries_1.default(Air_1.default)] : []),
+        // A submarine carries missiles (`unit_gather_cargo`; `@UNITS` gives it no hold).
+        ...(domain === units_1.SEA && has(units_1.SUBMARINE) ? [new Carries_1.default(SingleUse_1.default)] : []),
         ...(domain === units_1.SEA && hold > 0 && !has(units_1.CARRIES_AIR)
             ? [new Carries_1.default(Land_1.default)]
             : []),

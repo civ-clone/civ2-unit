@@ -14,7 +14,9 @@ export declare const rowsApart: (from: Tile, to: Tile) => boolean;
 /**
  * How many turns each terrain job takes in Civilization II (`unit_terrain_work_turns`): irrigating and mining from
  *  `@TERRAIN`, a road twice the terrain's movement cost and a railroad four times it, pollution 4. A conversion (Clear
- *  Forest, Plant Forest...) is the irrigate or mine order on that terrain, so it takes that order's time.
+ *  Forest, Plant Forest...) is the irrigate or mine order on that terrain, so it takes that order's time. A fortress
+ *  takes half the terrain's movement cost (rounded down) and 3, an airbase 4, and a transform the movement cost times
+ *  @COSMIC's transform time. Engineers do each in half the turns (`Rules/Unit/workRate`).
  */
 export declare const civ2TerrainJobTurns: TerrainJob<typeof UnitAction>[];
 /**

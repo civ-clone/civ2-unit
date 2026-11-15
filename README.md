@@ -23,8 +23,10 @@ the lifecycle rules and the action table.
   Airbase; a city that loses a defender shrinks, unless it has City Walls (or its owner the Great Wall), the attacker
   fought from the sea, or it is a human's city on Chieftain. Aircraft with a range other than 1 (bombers, helicopters)
   end their turn after a win (`AttackEndsTurn`).
-- **Limits:** outside a city or airbase, a stack with a bomber can only be attacked by fighters, unless a carrier is
-  with it; a land unit or a helicopter takes an empty city, a ship or other aircraft doesn't.
+- **Limits:** whatever reaches a square may attack it (a land unit on land, a submarine only at sea), except that
+  outside a city or airbase a stack with a bomber can only be attacked by fighters, unless a carrier is with it; a
+  land unit or a helicopter takes an empty city, a ship or other aircraft doesn't.
+- **A city that loses a defender** loses one citizen, by this package's rule alone (civ2-city has none of its own).
 - **Nuclear attack:** another player's city with SDI Defense within 3 (`map_distance`) of the target stops it
   (`unit:nuclear-stopped` tells the client).
 
@@ -48,16 +50,17 @@ the lifecycle rules and the action table.
 
 Transform (Engineers, `TransformTerrain`, @TERRAIN's results through civ2-world), Build Fortress and Build Airbase
 (Settlers and Engineers, not in a city), Paradrop (Paratroopers, from a city or airbase with no moves used, to land
-within @COSMIC's 10), Airlift (a land unit between two cities with Airports, once a city a turn), Sabotage Unit (Spies),
+within @COSMIC's 10), Airlift (a land unit between two cities with Airports, once a city a turn; shot down one time in 6 for each enemy
+air-superiority unit within its moves of either city, a veteran counting twice, `Rules/Unit/airlift`), Sabotage Unit (Spies),
 and pillage in Civ2's order (farmland, a mine or irrigation, a fortress or airbase, the railroad, the road; Partisans
 the railroad and road first). Submarines carry up to 8 missiles, as carriers hold 8 aircraft (decision 16).
 
 ## Not here
 
-- The original's barbarian odds, the treaty-breaking "sneak attack" ×2, the airlift's risk with enemy fighters near,
-  an allied city's immediate heal, and an AI attacker's extra fuel count after a win.
-- A land unit can attack aircraft in the open only as base-unit-action-rules' criteria allow (Civ1's), not as the
-  original does.
+- The original's barbarian odds, the treaty-breaking "sneak attack" ×2, an allied city's immediate heal, and an AI
+  attacker's extra fuel count after a win.
+- An airlift's risk counts players not at peace, where the original asks for war, and a human isn't asked to confirm a
+  risky airlift first.
 
 City Walls triple a land unit's defence against a land attacker that doesn't ignore them; so does its owner's Great
 Wall, while it stands and isn't obsolete (civ2-wonder registers when), in every one of the owner's cities. The two are

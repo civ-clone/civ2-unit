@@ -411,6 +411,14 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
                         .some((improvement) => improvement instanceof TileImprovements_1.Irrigation) &&
                         !(0, domain_1.tileHasCity)(tile, cityRegistry))))),
             ],
+            // The irrigation order on an irrigated square (`unit_cmd_terraform` order 6): civ2-world's `Available` rule
+            //  holds the rest (Refrigeration, water, no city, not farmland already). Irrigation is offered only where
+            //  there is none, so a unit is never offered both; a client puts this under the irrigation key.
+            [
+                TileImprovements_1.Farmland,
+                Actions_1.BuildFarmland,
+                (0, worker_1.requiresImprovement)({ tileImprovementRegistry }, TileImprovements_1.Irrigation),
+            ],
             [TileImprovements_1.Mine, Actions_1.BuildMine],
             [TileImprovements_1.Road, Actions_1.BuildRoad],
             [

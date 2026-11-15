@@ -8,7 +8,9 @@ import Veteran from '@civ-clone/base-unit-improvement-veteran/UnitImprovements/V
 import {
   Airlift,
   BuildAirbase,
+  BuildFarmland,
   BuildFortress,
+  BuildIrrigation,
   Pillage,
   TransformTerrain,
 } from '../Actions';
@@ -27,6 +29,7 @@ import {
   Trireme,
 } from '../Units';
 import {
+  Farmland,
   Fortress,
   Irrigation,
   Railroad,
@@ -34,7 +37,7 @@ import {
 } from '@civ-clone/civ2-world/TileImprovements';
 import { Grassland, Hills, Mountains } from '@civ-clone/civ2-world/Terrains';
 import { addCity, setUp } from './lib/game';
-import { Construction } from '@civ-clone/civ2-world/Advances';
+import { Construction, Refrigeration } from '@civ-clone/civ2-world/Advances';
 import Airport from '@civ-clone/base-city-improvement-airport/Airport';
 import Detonated from '@civ-clone/base-unit-action-nuclear-attack/Rules/Detonated';
 import Lighthouse from '@civ-clone/base-wonder-lighthouse/Lighthouse';
@@ -119,6 +122,56 @@ describe('terrain work', function (): void {
     addCity(game, player, at(1, 1), 'Home');
 
     expect(actionNames(settlers, at(1, 1))).to.not.include('BuildFortress');
+  });
+});
+
+describe('farmland (`unit_cmd_terraform` order 6)', function (): void {
+  this.timeout(20000);
+
+  it('offers Engineers on an irrigated square with Refrigeration farmland, not irrigation, for the same turns, and builds it', async (): Promise<void> => {
+    const { game, player, at } = await setUp(),
+      // Beside the ocean (column 8), so it has water.
+      tile = at(7, 1),
+      engineer = new Engineer(null, player, tile, game.rules),
+      has = (Improvement: typeof TileImprovement): boolean =>
+        game.tileImprovements
+          .getByTile(tile)
+          .some((improvement) => improvement instanceof Improvement),
+      turns = (action: UnitAction): number =>
+        Math.max(...game.rules.process(MovementCost, engineer, action));
+
+    engineer.moves().set(1);
+
+    expect(actionNames(engineer, tile)).to.include('BuildIrrigation');
+    expect(actionNames(engineer, tile)).to.not.include('BuildFarmland');
+
+    const irrigationTurns = turns(
+      new BuildIrrigation(tile, tile, engineer, game.rules)
+    );
+
+    game.tileImprovements.register(new Irrigation(tile, game.rules));
+
+    // Irrigated, without Refrigeration: neither.
+    expect(actionNames(engineer, tile)).to.not.include('BuildIrrigation');
+    expect(actionNames(engineer, tile)).to.not.include('BuildFarmland');
+
+    game.playerResearch.getByPlayer(player).addAdvance(Refrigeration);
+
+    expect(actionNames(engineer, tile)).to.include('BuildFarmland');
+    expect(actionNames(engineer, tile)).to.not.include('BuildIrrigation');
+
+    const action = engineer
+      .actions(tile)
+      .find((offer) => offer instanceof BuildFarmland) as BuildFarmland;
+
+    // `unit_terrain_work_turns` order 6: the irrigation order's turns.
+    expect(turns(action)).to.equal(irrigationTurns);
+
+    BuildFarmland.complete(action, game.tileImprovements);
+
+    expect(has(Farmland)).to.true;
+    expect(has(Irrigation)).to.true;
+    expect(actionNames(engineer, tile)).to.not.include('BuildFarmland');
   });
 });
 

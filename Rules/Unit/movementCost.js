@@ -40,6 +40,8 @@ const roadMove = 1 / cosmic_1.cosmic.roadMoveMultiplier;
  */
 exports.civ2TerrainJobTurns = [
     [Actions_1.BuildIrrigation, irrigating],
+    // `unit_terrain_work_turns` order 6: farmland takes the irrigation order's turns.
+    [Actions_1.BuildFarmland, irrigating],
     [Actions_1.BuildMine, mining],
     [Actions_1.BuildRoad, (0, jobTurns_1.multipleOf)(exports.terrainCost, 2)],
     [Actions_1.BuildRailroad, (0, jobTurns_1.multipleOf)(exports.terrainCost, 4)],

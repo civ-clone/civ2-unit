@@ -4,6 +4,7 @@ export { Activate } from '@civ-clone/base-unit-action-activate/Activate';
 export { Attack } from '@civ-clone/base-unit-action-attack/Attack';
 export { Automate } from '@civ-clone/base-unit-action-automate/Automate';
 export { BuildAirbase } from '@civ-clone/base-unit-action-build-airbase/BuildAirbase';
+export { BuildFarmland } from '@civ-clone/base-unit-action-build-farmland/BuildFarmland';
 export { BuildFortress } from '@civ-clone/base-unit-action-build-fortress/BuildFortress';
 export { BuildIrrigation } from '@civ-clone/base-unit-action-build-irrigation/BuildIrrigation';
 export { BuildMine } from '@civ-clone/base-unit-action-build-mine/BuildMine';

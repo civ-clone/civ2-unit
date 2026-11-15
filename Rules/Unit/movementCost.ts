@@ -1,5 +1,6 @@
 import {
   BuildAirbase,
+  BuildFarmland,
   BuildFortress,
   BuildIrrigation,
   BuildMine,
@@ -93,6 +94,8 @@ const roadMove = 1 / cosmic.roadMoveMultiplier;
  */
 export const civ2TerrainJobTurns: TerrainJob<typeof UnitAction>[] = [
   [BuildIrrigation, irrigating],
+  // `unit_terrain_work_turns` order 6: farmland takes the irrigation order's turns.
+  [BuildFarmland, irrigating],
   [BuildMine, mining],
   [BuildRoad, multipleOf(terrainCost, 2)],
   [BuildRailroad, multipleOf(terrainCost, 4)],

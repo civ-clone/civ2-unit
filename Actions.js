@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Unload = exports.TransformTerrain = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.SabotageUnit = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.Paradrop = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.BuildFortress = exports.BuildAirbase = exports.Automate = exports.Attack = exports.Activate = exports.Airlift = exports.AbortMove = void 0;
+exports.Unload = exports.TransformTerrain = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.SabotageUnit = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.Paradrop = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.BuildFortress = exports.BuildFarmland = exports.BuildAirbase = exports.Automate = exports.Attack = exports.Activate = exports.Airlift = exports.AbortMove = void 0;
 // The unit actions Civilization II's table offers (and the ones its rules ask about), from their own packages. The treaty-breaking forms and Set Home
 //  City are defined only in library-unit (no `main`, registers nothing) until they have base homes (#1041).
 var AbortMove_1 = require("@civ-clone/library-unit/Actions/AbortMove");
@@ -15,6 +15,8 @@ var Automate_1 = require("@civ-clone/base-unit-action-automate/Automate");
 Object.defineProperty(exports, "Automate", { enumerable: true, get: function () { return Automate_1.Automate; } });
 var BuildAirbase_1 = require("@civ-clone/base-unit-action-build-airbase/BuildAirbase");
 Object.defineProperty(exports, "BuildAirbase", { enumerable: true, get: function () { return BuildAirbase_1.BuildAirbase; } });
+var BuildFarmland_1 = require("@civ-clone/base-unit-action-build-farmland/BuildFarmland");
+Object.defineProperty(exports, "BuildFarmland", { enumerable: true, get: function () { return BuildFarmland_1.BuildFarmland; } });
 var BuildFortress_1 = require("@civ-clone/base-unit-action-build-fortress/BuildFortress");
 Object.defineProperty(exports, "BuildFortress", { enumerable: true, get: function () { return BuildFortress_1.BuildFortress; } });
 var BuildIrrigation_1 = require("@civ-clone/base-unit-action-build-irrigation/BuildIrrigation");

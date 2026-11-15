@@ -32,6 +32,7 @@ const workRate_1 = require("./Rules/Unit/workRate");
 const build_1 = require("./Rules/City/build");
 const buildCost_1 = require("./Rules/City/buildCost");
 const canJoinCity_1 = require("./Rules/Unit/canJoinCity");
+const created_1 = require("./Rules/Unit/created");
 const cityUnitRules_1 = require("@civ-clone/base-unit-build/lib/cityUnitRules");
 const diplomatRules_1 = require("@civ-clone/base-unit-lifecycle/lib/diplomatRules");
 const detonatedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/detonatedRules");
@@ -148,7 +149,11 @@ const register = (game) => {
         ruleRegistry: game.rules,
         turn: game.turn,
     });
-    game.rules.register(...(0, buildCost_1.default)(), ...cityUnits.buildingComplete, ...cityUnits.created, ...(0, canJoinCity_1.default)(game.cityGrowth), ...lifecycle.canStow, ...lifecycle.created, 
+    game.rules.register(...(0, buildCost_1.default)(), ...cityUnits.buildingComplete, ...cityUnits.created, ...(0, created_1.default)({
+        playerGovernmentRegistry: game.playerGovernments,
+        ruleRegistry: game.rules,
+        unitImprovementRegistry: game.unitImprovements,
+    }), ...(0, canJoinCity_1.default)(game.cityGrowth), ...lifecycle.canStow, ...lifecycle.created, 
     // Promotion reads both units' strengths before the loser is destroyed (it is `High`, and comes first).
     ...(0, promotion_1.default)({
         randomNumberGenerator: game.rng,

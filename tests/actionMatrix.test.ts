@@ -42,6 +42,7 @@ const actionRuleIds = [
   'found-city',
   'join-city',
   'improvement/Irrigation',
+  'improvement/Farmland',
   'improvement/Mine',
   'improvement/Road',
   'improvement/Railroad',
@@ -74,7 +75,7 @@ const fixturePath = join(
 describe('unit actions', function (): void {
   this.timeout(300000);
 
-  it('registers the 45 action rules in their order, with no overruled forms', (): void => {
+  it('registers the 46 action rules in their order, with no overruled forms', (): void => {
     const game = new Game({ rng: createRng(1008) });
 
     register(game);
@@ -191,6 +192,6 @@ describe('unit actions', function (): void {
     }
 
     expect(cells).length(51 * 21);
-    expect(count).to.equal(270584);
+    expect(count).to.equal(272311);
   });
 });

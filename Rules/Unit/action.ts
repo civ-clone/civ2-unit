@@ -6,6 +6,7 @@ import {
   Automate,
   BuildAirbase,
   BuildFortress,
+  BuildFarmland,
   BuildIrrigation,
   BuildMine,
   BuildRailroad,
@@ -923,6 +924,14 @@ export const getRules = ({
                     )
               )
             ),
+          ],
+          // The irrigation order on an irrigated square (`unit_cmd_terraform` order 6): civ2-world's `Available` rule
+          //  holds the rest (Refrigeration, water, no city, not farmland already). Irrigation is offered only where
+          //  there is none, so a unit is never offered both; a client puts this under the irrigation key.
+          [
+            Farmland,
+            BuildFarmland,
+            requiresImprovement({ tileImprovementRegistry }, Irrigation),
           ],
           [Mine, BuildMine],
           [Road, BuildRoad],

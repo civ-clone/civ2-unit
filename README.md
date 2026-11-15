@@ -55,6 +55,16 @@ air-superiority unit within its moves of either city, a veteran counting twice, 
 and pillage in Civ2's order (farmland, a mine or irrigation, a fortress or airbase, the railroad, the road; Partisans
 the railroad and road first). Submarines carry up to 8 missiles, as carriers hold 8 aircraft (decision 16).
 
+## Built veteran, and upgrades (M2c)
+
+- **Communism:** a Diplomat or Spy (the diplomacy role) built in a city under Communism is a veteran
+  (`Rules/Unit/created`, `city_process_production_unit`). Survey Q23 follows the code, which tests the role, so Spies
+  are built veteran too. Barracks, Port Facility, Airport and their wonders are civ2-city-improvement's.
+- **Upgrades** (`lib/upgrade`): `upgradeOptions(registries)` gives base-unit-upgrade's `upgradeUnits` this table's
+  obsoleting advance, prerequisite, hold and role per type, in `@UNITS` order, and defensive units weaker than
+  Musketeers upgrading with Gunpowder (`civ_leonardo_upgrade`). Pass the game's `transportRegistry` and rules, which a
+  unit that becomes a transport needs. Leonardo's Workshop (civ2-wonder) decides when.
+
 ## Not here
 
 - The original's barbarian odds, the treaty-breaking "sneak attack" ×2, an allied city's immediate heal, and an AI

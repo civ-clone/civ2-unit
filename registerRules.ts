@@ -40,6 +40,7 @@ import workRate from './Rules/Unit/workRate';
 import build from './Rules/City/build';
 import buildCost from './Rules/City/buildCost';
 import canJoinCity from './Rules/Unit/canJoinCity';
+import created from './Rules/Unit/created';
 import cityUnitRules from '@civ-clone/base-unit-build/lib/cityUnitRules';
 import diplomatRules from '@civ-clone/base-unit-lifecycle/lib/diplomatRules';
 import detonatedRules, {
@@ -210,6 +211,11 @@ export const register = (game: Game): void => {
     ...buildCost(),
     ...cityUnits.buildingComplete,
     ...cityUnits.created,
+    ...created({
+      playerGovernmentRegistry: game.playerGovernments,
+      ruleRegistry: game.rules,
+      unitImprovementRegistry: game.unitImprovements,
+    }),
     ...canJoinCity(game.cityGrowth),
     ...lifecycle.canStow,
     ...lifecycle.created,

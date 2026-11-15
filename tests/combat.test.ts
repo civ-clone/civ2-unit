@@ -24,6 +24,14 @@ import { Firepower, HitPoints } from '@civ-clone/core-unit/Yields';
 import { Hills } from '@civ-clone/civ2-world/Terrains';
 import { applyCombatModifiers } from '@civ-clone/base-combat-rounds/lib/CombatModifiers';
 import Attack from '@civ-clone/base-unit-action-attack/Attack';
+import { Promoted } from '@civ-clone/base-unit-veteran-promotion/lib/Rules';
+import CityGrowth from '@civ-clone/core-city-growth/CityGrowth';
+import Criterion from '@civ-clone/core-rule/Criterion';
+import Effect from '@civ-clone/core-rule/Effect';
+import Shrink from '@civ-clone/core-city-growth/Rules/Shrink';
+import { Chieftain } from '@civ-clone/civ2-difficulty/Difficulties';
+import Client from '@civ-clone/core-client/Client';
+import CruiseMissile from '@civ-clone/base-unit-cruisemissile/CruiseMissile';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
 import Fortified from '@civ-clone/base-unit-improvement-fortified/UnitImprovements/Fortified';
 import Fuel from '@civ-clone/base-unit-fuel/lib/Fuel';
@@ -436,5 +444,105 @@ describe('combat: losing a defender', function (): void {
     );
     expect(growth.size()).to.equal(2);
     expect(names(game.units.getByTile(at(7, 1)))).to.deep.equal([]);
+  });
+
+  it('destroys a city of size 1 that loses its defender, with the units in it', async (): Promise<void> => {
+    const setting = await setUp(),
+      { game, player, enemy, at } = setting,
+      city = addCity(game, enemy, at(3, 3), 'Small');
+
+    // civ2-city's `civ2-city:city/shrink/destroy-empty-city`, which civ2-unit doesn't load: a city shrunk to nothing is
+    //  destroyed.
+    game.rules.register(
+      new Shrink(
+        new Criterion(
+          (cityGrowth: CityGrowth): boolean => cityGrowth.size() <= 0
+        ),
+        new Effect((cityGrowth: CityGrowth): void =>
+          cityGrowth.city().destroy()
+        )
+      )
+    );
+
+    new Phalanx(null, enemy, at(3, 3), game.rules);
+    new Phalanx(null, enemy, at(3, 3), game.rules);
+    fight(
+      setting,
+      new Armor(null, player, at(2, 3), game.rules),
+      at(3, 3),
+      true
+    );
+
+    expect(city.destroyed()).to.true;
+    expect(game.cityGrowth.getByCity(city).size()).to.equal(0);
+  });
+
+  it("doesn't shrink a human player's city on Chieftain", async (): Promise<void> => {
+    const setting = await setUp(),
+      { game, player, enemy, at } = setting,
+      city = addCity(game, enemy, at(3, 3), 'Human'),
+      growth = game.cityGrowth.getByCity(city);
+
+    game.clients.register(new Client(enemy));
+    game.difficulty.set(Chieftain);
+    growth.grow();
+
+    new Phalanx(null, enemy, at(3, 3), game.rules);
+    fight(
+      setting,
+      new Armor(null, player, at(2, 3), game.rules),
+      at(3, 3),
+      true
+    );
+
+    expect(growth.size()).to.equal(2);
+  });
+
+  it('promotes some winners, and never a missile', async (): Promise<void> => {
+    const setting = await setUp(),
+      { game, player, enemy, at } = setting;
+    let promoted = 0;
+
+    for (let i = 0; i < 40; i++) {
+      const armor = new Armor(null, player, at(2, 3), game.rules);
+
+      new Phalanx(null, enemy, at(3, 3), game.rules);
+      fight(setting, armor, at(3, 3), true);
+
+      if (
+        game.unitImprovements
+          .getByUnit(armor)
+          .some((improvement) => improvement instanceof Veteran)
+      ) {
+        promoted++;
+      }
+
+      armor.destroy();
+    }
+
+    // Armor 80 beating Phalanx 16: (16 + 1) / 96, about 7 in 40.
+    expect(promoted).to.be.within(1, 20);
+
+    // A missile is gone after its attack, so count what is promoted as it happens.
+    const missiles: Unit[] = [];
+
+    game.rules.register(
+      new Promoted(
+        new Effect((unit: Unit): void => {
+          if (unit instanceof CruiseMissile) {
+            missiles.push(unit);
+          }
+        })
+      )
+    );
+
+    for (let i = 0; i < 40; i++) {
+      const missile = new CruiseMissile(null, player, at(2, 3), game.rules);
+
+      new Phalanx(null, enemy, at(3, 3), game.rules);
+      fight(setting, missile, at(3, 3), true);
+    }
+
+    expect(missiles).to.be.empty;
   });
 });

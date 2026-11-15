@@ -28,6 +28,7 @@ import {
 } from '@civ-clone/civ2-world/TileImprovements';
 import { Grassland, Hills, Mountains } from '@civ-clone/civ2-world/Terrains';
 import { addCity, setUp } from './lib/game';
+import { Construction } from '@civ-clone/civ2-world/Advances';
 import Airport from '@civ-clone/base-city-improvement-airport/Airport';
 import Detonated from '@civ-clone/base-unit-action-nuclear-attack/Rules/Detonated';
 import Lighthouse from '@civ-clone/base-wonder-lighthouse/Lighthouse';
@@ -105,12 +106,7 @@ describe('terrain work', function (): void {
     expect(actionNames(settlers, at(1, 1))).to.not.include('TransformTerrain');
     expect(actionNames(settlers, at(1, 1))).to.not.include('BuildFortress');
 
-    game.playerResearch
-      .getByPlayer(player)
-      .addAdvance(
-        require('@civ-clone/base-science-advance-construction/Construction')
-          .default
-      );
+    game.playerResearch.getByPlayer(player).addAdvance(Construction);
 
     expect(actionNames(settlers, at(1, 1))).to.include('BuildFortress');
 

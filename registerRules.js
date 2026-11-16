@@ -19,6 +19,7 @@ const RuleSet_1 = require("@civ-clone/core-rule/RuleSet");
 const Actions_1 = require("./Actions");
 const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
 const action_1 = require("./Rules/Unit/action");
+const forcedWar_1 = require("./Rules/Unit/forcedWar");
 const defeated_1 = require("./Rules/Unit/defeated");
 const Units_1 = require("./Units");
 const airliftRules_1 = require("@civ-clone/base-unit-action-airlift/lib/airliftRules");
@@ -50,7 +51,6 @@ const roles_1 = require("./Rules/Unit/roles");
 const singleUse_1 = require("./Rules/Unit/singleUse");
 const strength_1 = require("./Rules/Unit/strength");
 const traits_1 = require("./Rules/Unit/traits");
-const treatyPartner_1 = require("@civ-clone/base-unit-lifecycle/lib/treatyPartner");
 const yield_1 = require("./Rules/Unit/yield");
 const unitTable_1 = require("./lib/unitTable");
 /**
@@ -91,7 +91,7 @@ const register = (game) => {
         removedOnActivate: [Fortified_1.default],
         // Missiles go aboard a submarine as a `SingleUse` unit.
         stowable: [Land_1.default, Air_1.default, SingleUse_1.default],
-        partnerOf: (0, treatyPartner_1.default)(action_1.territoryImprovements, {
+        partnerOf: (0, action_1.treatyPartnerOf)({
             interactionRegistry: game.interactions,
             tileImprovementRegistry: game.tileImprovements,
             workedTileRegistry: game.workedTiles,
@@ -109,6 +109,7 @@ const register = (game) => {
         pathFinderRegistry: game.pathFinders,
         pendingEffectRegistry: game.pendingEffects,
         playerResearchRegistry: game.playerResearch,
+        requirementRegistry: game.requirements,
         ruleRegistry: game.rules,
         strategyNoteRegistry: game.strategyNotes,
         strategyRegistry: game.strategies,
@@ -118,6 +119,7 @@ const register = (game) => {
         turn: game.turn,
         unitImprovementRegistry: game.unitImprovements,
         unitRegistry: game.units,
+        wonderRegistry: game.wonders,
         workedTileRegistry: game.workedTiles,
     }), ...lifecycle.activate, (0, buildRules_1.navalNeedsCoastRule)('civ2-unit'), ...(0, build_1.default)({
         clientRegistry: game.clients,
@@ -195,7 +197,9 @@ const register = (game) => {
                 return stopped;
             };
         })(),
-    }), ...lifecycle.expectedMovementCost, ...lifecycle.impassable, ...lifecycle.halted, ...lifecycle.lostAtSea, ...(0, movedRules_1.default)('civ2-unit', {
+    }), ...lifecycle.expectedMovementCost, ...lifecycle.impassable, ...lifecycle.halted, ...lifecycle.lostAtSea, 
+    // base-unit-lifecycle's moved rules but its `break-peace-treaty`, which `forcedWar` replaces.
+    ...(0, movedRules_1.default)('civ2-unit', {
         cityRegistry: game.cities,
         engine: game.engine,
         interactionRegistry: game.interactions,
@@ -215,7 +219,12 @@ const register = (game) => {
         }),
         // Out of sight of land: none of the 9 squares, its own included, is land (`unit_move_dir_trireme_loss`).
         nearLand: movedRules_1.adjacentToLand,
-    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...lifecycle.transferred, ...(0, strength_1.default)({
+    }).filter((rule) => rule.id() !== forcedWar_1.LIFECYCLE_BREAK_TREATY_RULE), ...(0, forcedWar_1.default)({
+        clientRegistry: game.clients,
+        interactionRegistry: game.interactions,
+        ruleRegistry: game.rules,
+        turn: game.turn,
+    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...missions.leaderMet, ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,
         playerResearchRegistry: game.playerResearch,

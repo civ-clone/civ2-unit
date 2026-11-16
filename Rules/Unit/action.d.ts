@@ -19,7 +19,13 @@ import { UnitImprovementRegistry } from '@civ-clone/core-unit-improvement/UnitIm
 import { UnitRegistry } from '@civ-clone/core-unit/UnitRegistry';
 import { WorkedTileRegistry } from '@civ-clone/core-city/WorkedTileRegistry';
 import Criterion from '@civ-clone/core-rule/Criterion';
+import { RequirementRegistry } from '@civ-clone/core-requirement/RequirementRegistry';
+import { WonderRegistry } from '@civ-clone/core-wonder/WonderRegistry';
+import Player from '@civ-clone/core-player/Player';
+import Tile from '@civ-clone/core-world/Tile';
 import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
+import Unit from '@civ-clone/core-unit/Unit';
+import { TreatyPartnerDependencies } from '@civ-clone/base-unit-lifecycle/lib/treatyPartner';
 /** The tile improvements that make a worked square a treaty partner's land. */
 export declare const territoryImprovements: (typeof TileImprovement)[];
 /**
@@ -33,6 +39,15 @@ export declare const partisanPillageOrder: (typeof TileImprovement)[];
 export declare const pillageable: (improvement: TileImprovement) => boolean;
 /** `criteria` less its last, which must be base-unit-action-rules' by-domain `Or`. */
 export declare const withoutDomainTest: (criteria: Criterion[]) => Criterion[];
+/**
+ * Whose land a square is among a unit's treaty partners (base-unit-lifecycle's `treatyPartner`, on
+ *  `territoryImprovements`), but never an ally's: moving onto or pillaging an ally's land breaks no treaty.
+ */
+export declare const treatyPartnerOf: (
+  dependencies: TreatyPartnerDependencies & {
+    interactionRegistry: InteractionRegistry;
+  }
+) => (unit: Unit, tile: Tile) => Player | null;
 export interface ActionDependencies {
   cityGrowthRegistry?: CityGrowthRegistry;
   cityImprovementRegistry?: CityImprovementRegistry;
@@ -43,6 +58,7 @@ export interface ActionDependencies {
   pathFinderRegistry?: PathFinderRegistry;
   pendingEffectRegistry?: PendingEffectRegistry;
   playerResearchRegistry?: PlayerResearchRegistry;
+  requirementRegistry?: RequirementRegistry;
   ruleRegistry?: RuleRegistry;
   strategyNoteRegistry?: StrategyNoteRegistry;
   strategyRegistry?: StrategyRegistry;
@@ -52,15 +68,17 @@ export interface ActionDependencies {
   turn?: Turn;
   unitImprovementRegistry?: UnitImprovementRegistry;
   unitRegistry?: UnitRegistry;
+  wonderRegistry?: WonderRegistry;
   workedTileRegistry?: WorkedTileRegistry;
 }
 /**
  * Civilization II's unit actions, as base-unit-action-rules' `actionRules('civ2-unit', table)` with civ1-unit's
- *  criteria and Civ2's terrain, in the order a unit is offered them (the AI takes the first). There is no Senate, so no
- *  row is gated and no `overruled/` form is made: a treaty-breaking row is offered as it is. Of the Diplomat's and Spy's
- *  missions, only an embassy and an investigation are offered (Civ2's mission menu, `spy_city_mission_menu`, has no
- *  meeting outside network games); theft, sabotage, revolt and bribery, and the
- *  Caravan's and Freight's trade routes and help with a wonder, are M2a deviations.
+ *  criteria and Civ2's terrain, in the order a unit is offered them (the AI takes the first). A row that breaks a
+ *  treaty (a ceasefire, a peace or an alliance) is gated by the player's Senate (`SenateIntervenes`, which
+ *  civ2-diplomacy answers): when it intervenes, the row's `overruled/` form is offered instead (`diplo_confirm_attack`).
+ *  An ally is never attacked, its units exert no zone of control, and a unit moving onto its city is repaired there
+ *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy, an investigation and a meeting with the leader
+ *  are offered; theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder is civ2-wonder's.
  */
 export declare const getRules: ({
   cityGrowthRegistry,
@@ -72,6 +90,7 @@ export declare const getRules: ({
   pathFinderRegistry,
   pendingEffectRegistry,
   playerResearchRegistry,
+  requirementRegistry,
   ruleRegistry,
   strategyNoteRegistry,
   strategyRegistry,
@@ -81,6 +100,7 @@ export declare const getRules: ({
   turn,
   unitImprovementRegistry,
   unitRegistry,
+  wonderRegistry,
   workedTileRegistry,
 }?: ActionDependencies) => Action[];
 export default getRules;

@@ -72,10 +72,39 @@ offered on an irrigated square, so a unit is offered one or the other; a client 
   Musketeers upgrading with Gunpowder (`civ_leonardo_upgrade`). Pass the game's `transportRegistry` and rules, which a
   unit that becomes a transport needs. Leonardo's Workshop (civ2-wonder) decides when.
 
+## Treaties and missions (M2d)
+
+From OpenCiv2 `diplo_confirm_attack`, `diplo_force_war` (`diplomacy.cpp:6861-6920`), `tile_zoc_unit_adjacent` and
+`unit_move_dir` (`unit_move.cpp:803-830`):
+
+- **Allies:** a unit is never offered an attack, a capture or a nuclear attack on an ally's square, an ally's units
+  exert no zone of control, and an ally's land is no treaty partner's (moving onto it or pillaging it breaks nothing).
+  Moving onto an ally's city is `allied-repair` (`AlliedRepair`): the unit stays where it is, is repaired a tenth of its
+  hit points (a fifth if the city has Barracks, never more than its damage), its turn ends, and it counts as having
+  rested when units next heal.
+- **The Senate:** every treaty-breaking row (`sneak-move`, `sneak-attack`, `sneak-nuclear-attack`,
+  `sneak-capture-city`, `sneak-pillage`) asks base-government-senate's `senateIntervenes(player, partner,
+  { reason: 'break-treaty' })`, where the partner is the owner of the city or units on the target square, or of the land
+  there. When it intervenes, the row's `overruled/` form is offered instead (a blocked move spends its cost). civ2-unit
+  registers no `SenateIntervenes` rule: civ2-diplomacy's answers.
+- **An attack across a treaty** (a ceasefire, a peace) is war (`Rules/Unit/forcedWar`, replacing base-unit-lifecycle's
+  `break-peace-treaty`): when a person is either side, the attacker is made to declare it (civ2-diplomacy's
+  `madeToDeclareWar`, so its `DeclaredWar` rule counts it against the attacker's reputation); between two computer
+  players the treaty ends and a war starts with no declaration, and both attitudes are set to 100. No vendetta is left.
+  Moving onto or pillaging a partner's land (civ-clone's own sneak actions, which the original doesn't have) ends the
+  peace only.
+- **Diplomats and Spies:** Establish Embassy, Investigate City and Meet with Leader (`leaderMet`: the unit's turn ends
+  and the client hears `player:meet-with-leader`), in that order. The embassy isn't offered to a player that has an
+  `Embassy` there or owns a standing United Nations (`unit_spy.cpp:171-172`); Marco Polo's doesn't hide it.
+
 ## Not here
 
-- The original's barbarian odds, the treaty-breaking "sneak attack" ×2, an allied city's immediate heal, and an AI
-  attacker's extra fuel count after a win.
+- The original's barbarian odds, the treaty-breaking "sneak attack" ×2, and an AI attacker's extra fuel count after a
+  win.
+- The Senate standing in the way of an attack on a player with no treaty and no war (the original asks it whenever the
+  pair aren't at war; here an attack with no treaty is an ordinary one), and the war that attack starts.
+- A computer player's units attacking across a treaty: the original's computer units never do (they stop, and the AI
+  breaks treaties through its own rolls); here the rows are offered to anyone, and the AI client decides.
 - An airlift's risk counts players not at peace, where the original asks for war, and a human isn't asked to confirm a
   risky airlift first.
 

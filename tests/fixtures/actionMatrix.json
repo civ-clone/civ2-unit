@@ -4587,12 +4587,14 @@
     "foreign unit": [],
     "foreign city": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "MeetWithLeader"
     ],
     "foreign unit, at peace": [],
     "foreign city, at peace": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "MeetWithLeader"
     ],
     "own city": [
       "Move"
@@ -4691,12 +4693,14 @@
     ],
     "foreign city": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "MeetWithLeader"
     ],
     "foreign unit, at peace": [],
     "foreign city, at peace": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "MeetWithLeader"
     ],
     "own city": [
       "Move"

@@ -1,5 +1,10 @@
 import { Attack, CaptureCity, NuclearAttack, Pillage } from '../../Actions';
 import nearestCity from '../../lib/nearestCity';
+import { alliesJoinWar } from '@civ-clone/civ2-diplomacy/lib/alliances';
+import {
+  PlayerRegistry,
+  instance as playerRegistryInstance,
+} from '@civ-clone/core-player/PlayerRegistry';
 import Ceasefire from '@civ-clone/base-diplomacy-declaration-ceasefire/Ceasefire';
 import {
   CityRegistry,
@@ -81,6 +86,7 @@ export interface ForcedWarDependencies {
   cityRegistry?: CityRegistry;
   clientRegistry?: ClientRegistry;
   interactionRegistry?: InteractionRegistry;
+  playerRegistry?: PlayerRegistry;
   ruleRegistry?: RuleRegistry;
   turn?: Turn;
   unitRegistry?: UnitRegistry;
@@ -104,7 +110,8 @@ const enemyOf = (action: Action): Player | null =>
  * - any peace ends;
  * - once they've met: a war is in force (a `War`, made with no declaration when there isn't one), any ceasefire left
  *   between two computer players ends with it, both attitudes are set to 100, even mid-war, and the attacker is
- *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is. (The
+ *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is; when
+ *   it is, the victim's allies join the war (civ2-diplomacy's `alliesJoinWar`, `unit_combat.cpp:1593`). (The
  *   original keeps the ceasefire bit there, but its war bit rules; here the treaty level would read the ceasefire.)
  *
  * There is no vendetta. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
@@ -118,6 +125,7 @@ export const getRules = ({
   cityRegistry = cityRegistryInstance,
   clientRegistry = clientRegistryInstance,
   interactionRegistry = interactionRegistryInstance,
+  playerRegistry = playerRegistryInstance,
   ruleRegistry = ruleRegistryInstance,
   turn = turnInstance,
   unitRegistry = unitRegistryInstance,
@@ -198,6 +206,20 @@ export const getRules = ({
         !hasFlag(flags, player, enemy, SNEAK_ATTACK)
       ) {
         setFlag(flags, player, enemy, SNEAK_ATTACK);
+
+        // The first attack of a war not declared: the victim's allies join it (`diplo_allies_join_war`, called when
+        //  `diplo_force_war` returns 1, `unit_combat.cpp:1593`).
+        alliesJoinWar(
+          {
+            clientRegistry,
+            interactionRegistry,
+            playerRegistry,
+            ruleRegistry,
+            turn,
+          },
+          enemy,
+          player
+        );
       }
     };
 

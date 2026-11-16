@@ -102,7 +102,8 @@ From OpenCiv2 `diplo_confirm_attack`, `diplo_force_war` (`diplomacy.cpp:6861-692
   the attacker is made to declare war (civ2-diplomacy's `madeToDeclareWar`, which counts it against its reputation);
   any peace ends; and once they've met a war is in force (with no declaration when there wasn't one, ending any
   ceasefire left between two computer players), both attitudes are set to 100, even mid-war, and the attacker is
-  marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either side already is. No
+  marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either side already is;
+  when it is, the victim's allies join the war (civ2-diplomacy's `alliesJoinWar`, `unit_combat.cpp:1593`). No
   vendetta is left. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
   distance, unless it is the person's own or they're at war, treaty or not (`unit.cpp:2985-2998`,
   `madeToDeclareWar`); a computer player's pillage changes no treaty. Moving onto a partner's land (civ-clone's own

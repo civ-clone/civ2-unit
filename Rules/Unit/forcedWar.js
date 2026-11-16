@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRules = exports.recordTargets = exports.forcingWar = exports.BREAK_TREATY_RULE = exports.LIFECYCLE_BREAK_TREATY_RULE = void 0;
 const Actions_1 = require("../../Actions");
 const nearestCity_1 = require("../../lib/nearestCity");
+const alliances_1 = require("@civ-clone/civ2-diplomacy/lib/alliances");
+const PlayerRegistry_1 = require("@civ-clone/core-player/PlayerRegistry");
 const Ceasefire_1 = require("@civ-clone/base-diplomacy-declaration-ceasefire/Ceasefire");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
 const ClientRegistry_1 = require("@civ-clone/core-client/ClientRegistry");
@@ -52,7 +54,8 @@ const enemyOf = (action) => typeof action.enemy === 'function'
  * - any peace ends;
  * - once they've met: a war is in force (a `War`, made with no declaration when there isn't one), any ceasefire left
  *   between two computer players ends with it, both attitudes are set to 100, even mid-war, and the attacker is
- *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is. (The
+ *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is; when
+ *   it is, the victim's allies join the war (civ2-diplomacy's `alliesJoinWar`, `unit_combat.cpp:1593`). (The
  *   original keeps the ceasefire bit there, but its war bit rules; here the treaty level would read the ceasefire.)
  *
  * There is no vendetta. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
@@ -62,7 +65,7 @@ const enemyOf = (action) => typeof action.enemy === 'function'
  *  (civ-clone's own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule
  *  did.
  */
-const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, interactionRegistry = InteractionRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, turn = Turn_1.instance, unitRegistry = UnitRegistry_1.instance, } = {}) => {
+const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, interactionRegistry = InteractionRegistry_1.instance, playerRegistry = PlayerRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, turn = Turn_1.instance, unitRegistry = UnitRegistry_1.instance, } = {}) => {
     const flags = { interactionRegistry, ruleRegistry, turn }, 
     // The declarations of `DeclarationType` in force between the two.
     active = (DeclarationType, player, other) => interactionRegistry
@@ -105,6 +108,15 @@ const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = Cli
         if (!(0, flags_1.hasFlag)(flags, enemy, player, flags_1.SNEAK_ATTACK) &&
             !(0, flags_1.hasFlag)(flags, player, enemy, flags_1.SNEAK_ATTACK)) {
             (0, flags_1.setFlag)(flags, player, enemy, flags_1.SNEAK_ATTACK);
+            // The first attack of a war not declared: the victim's allies join it (`diplo_allies_join_war`, called when
+            //  `diplo_force_war` returns 1, `unit_combat.cpp:1593`).
+            (0, alliances_1.alliesJoinWar)({
+                clientRegistry,
+                interactionRegistry,
+                playerRegistry,
+                ruleRegistry,
+                turn,
+            }, enemy, player);
         }
     };
     return [

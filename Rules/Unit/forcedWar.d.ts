@@ -1,4 +1,5 @@
 import { Attack, CaptureCity, NuclearAttack } from '../../Actions';
+import { PlayerRegistry } from '@civ-clone/core-player/PlayerRegistry';
 import { CityRegistry } from '@civ-clone/core-city/CityRegistry';
 import { ClientRegistry } from '@civ-clone/core-client/ClientRegistry';
 import { InteractionRegistry } from '@civ-clone/core-diplomacy/InteractionRegistry';
@@ -28,6 +29,7 @@ export interface ForcedWarDependencies {
   cityRegistry?: CityRegistry;
   clientRegistry?: ClientRegistry;
   interactionRegistry?: InteractionRegistry;
+  playerRegistry?: PlayerRegistry;
   ruleRegistry?: RuleRegistry;
   turn?: Turn;
   unitRegistry?: UnitRegistry;
@@ -45,7 +47,8 @@ export interface ForcedWarDependencies {
  * - any peace ends;
  * - once they've met: a war is in force (a `War`, made with no declaration when there isn't one), any ceasefire left
  *   between two computer players ends with it, both attitudes are set to 100, even mid-war, and the attacker is
- *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is. (The
+ *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is; when
+ *   it is, the victim's allies join the war (civ2-diplomacy's `alliesJoinWar`, `unit_combat.cpp:1593`). (The
  *   original keeps the ceasefire bit there, but its war bit rules; here the treaty level would read the ceasefire.)
  *
  * There is no vendetta. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
@@ -59,6 +62,7 @@ export declare const getRules: ({
   cityRegistry,
   clientRegistry,
   interactionRegistry,
+  playerRegistry,
   ruleRegistry,
   turn,
   unitRegistry,

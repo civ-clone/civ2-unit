@@ -224,6 +224,7 @@ const register = (game) => {
         cityRegistry: game.cities,
         clientRegistry: game.clients,
         interactionRegistry: game.interactions,
+        playerRegistry: game.players,
         ruleRegistry: game.rules,
         turn: game.turn,
         unitRegistry: game.units,

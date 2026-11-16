@@ -648,6 +648,48 @@ describe('treaties', function (): void {
       expect(result.sneak).to.false;
     });
 
+    it("brings a person's allies into a computer player's first undeclared attack, but not once the attack was marked", async (): Promise<void> => {
+      const joins = async (marked: boolean) => {
+        let ally: Player | undefined;
+
+        const result = await attack(null, {
+          human: ['enemy'],
+          extra: ({ game, player, enemy }) => {
+            ally = addPlayer(game);
+            computer(game, ally);
+            game.players.register(player, enemy, ally);
+            sign(game, enemy, ally, Alliance);
+            game.interactions.register(
+              new Contact(enemy, ally, game.rules),
+              new Contact(player, ally, game.rules)
+            );
+
+            if (marked) {
+              setFlag(
+                {
+                  interactionRegistry: game.interactions,
+                  ruleRegistry: game.rules,
+                  turn: game.turn,
+                },
+                player,
+                enemy,
+                SNEAK_ATTACK
+              );
+            }
+          },
+        });
+
+        return treatyLevel(
+          { interactionRegistry: result.game.interactions },
+          ally!,
+          result.player
+        );
+      };
+
+      expect(await joins(false)).equal(TreatyLevel.War);
+      expect(await joins(true)).equal(TreatyLevel.Contact);
+    });
+
     it('starts no war with a nuclear attack on an empty city, which is no battle', async (): Promise<void> => {
       const result = await attack(null, { Action: 'nuclear', what: 'city' });
 

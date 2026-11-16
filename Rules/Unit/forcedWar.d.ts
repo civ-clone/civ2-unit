@@ -48,10 +48,12 @@ export interface ForcedWarDependencies {
  *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is. (The
  *   original keeps the ceasefire bit there, but its war bit rules; here the treaty level would read the ceasefire.)
  *
- * There is no vendetta. Pillaging a treaty partner's land: a person not at war with it is made to declare war (the
- *  pillage command's `diplo_declare_war(civ, civ2, -1)`, `unit.cpp:2993-2998`, through `madeToDeclareWar`, which
- *  counts against its reputation); a computer player ends the peace only. Moving onto a partner's land (civ-clone's
- *  own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule did.
+ * There is no vendetta. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
+ *  distance, unless it's the person's own or they're at war (the pillage command's `city_find_nearest` and
+ *  `diplo_declare_war(civ, civ2, -1)`, `unit.cpp:2985-2998`, through `madeToDeclareWar`, which counts against its
+ *  reputation), treaty or not; a computer player's pillage changes no treaty. Moving onto a partner's land
+ *  (civ-clone's own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule
+ *  did.
  */
 export declare const getRules: ({
   cityRegistry,

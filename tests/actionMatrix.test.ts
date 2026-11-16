@@ -40,6 +40,7 @@ const actionRuleIds = [
   'paradrop',
   'airlift',
   'pillage',
+  'overruled/pillage',
   'sneak-pillage',
   'overruled/sneak-pillage',
   'fortify',
@@ -83,7 +84,7 @@ const fixturePath = join(
 describe('unit actions', function (): void {
   this.timeout(300000);
 
-  it('registers the 53 action rules in their order, each attack and treaty-breaking one followed by its overruled form', (): void => {
+  it('registers the 54 action rules in their order, each attack and treaty-breaking one followed by its overruled form', (): void => {
     const game = new Game({ rng: createRng(1008) });
 
     register(game);
@@ -200,6 +201,6 @@ describe('unit actions', function (): void {
     }
 
     expect(cells).length(51 * 21);
-    expect(count).to.equal(335056);
+    expect(count).to.equal(338354);
   });
 });

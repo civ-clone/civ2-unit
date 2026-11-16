@@ -47,6 +47,7 @@ const Detonates_1 = require("@civ-clone/base-unit-trait-detonates/Detonates");
 const isHuman_1 = require("@civ-clone/civ2-difficulty/isHuman");
 const treatyLevel_2 = require("@civ-clone/base-diplomacy/lib/treatyLevel");
 const forcedWar_1 = require("./forcedWar");
+const nearestCity_1 = require("../../lib/nearestCity");
 const TerrainFeatures_1 = require("@civ-clone/civ2-world/TerrainFeatures");
 const RoutePlanner_1 = require("@civ-clone/base-unit-action-rules/lib/RoutePlanner");
 const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
@@ -163,6 +164,16 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
         ...row,
         breaksTreaty: { blocked, cost },
     }), 
+    // What a blocked attack costs: a move, spent before the Senate is asked (`unit_combat.cpp:1521-1523`).
+    attackCost = () => 1, 
+    // The owner of the city nearest a pillaged square (the pillage command's `city_find_nearest`), or, for any other
+    //  square, the treaty partner whose land it is.
+    pillagedOrPartner = (unit, to) => {
+        var _a, _b;
+        return to === unit.tile()
+            ? (_b = (_a = (0, nearestCity_1.default)(cityRegistry, to)) === null || _a === void 0 ? void 0 : _a.player()) !== null && _b !== void 0 ? _b : null
+            : partnerOf(unit, to);
+    }, 
     // The other players with units on `to`.
     ownersOn = (unit, to) => Array.from(new Set(unitRegistry
         .getByTile(to)
@@ -373,7 +384,7 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
         // A person attacking a player it has met and isn't at war with: the Senate may stop it (`diplo_confirm_attack`,
         //  `unit_combat.cpp:1525`), which is offered as a blocked `UndeclaredAttack`, so a client can tell it from
         //  breaking a treaty.
-        undefined, (unit, to, from) => new Actions_1.UndeclaredAttack(from, to, unit, ownersOn(unit, to)[0], ruleRegistry, unitRegistry)),
+        attackCost, (unit, to, from) => new Actions_1.UndeclaredAttack(from, to, unit, ownersOn(unit, to)[0], ruleRegistry, unitRegistry)),
         // Across a treaty: never against an ally (`diplo_confirm_attack`), and the player's Senate may overrule it.
         breaksTreaty({
             name: 'sneak-attack',
@@ -386,7 +397,7 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
                     .filter((player) => atPeace(unit.player(), player));
                 return (0, forcedWar_1.recordTargets)(new Actions_1.SneakAttack(from, to, unit, enemy, ruleRegistry, unitRegistry), ownersOn(unit, to));
             },
-        }),
+        }, attackCost),
         breaksTreaty({
             name: 'nuclear-attack',
             criteria: [...nuclearAttackCriteria, noNuclearTargetAtPeace],
@@ -394,7 +405,7 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
             // Only the owners of the units there are attacked: one on an empty city is no battle, and starts no war
             //  (`unit_move.cpp:1086` goes straight to `unit_nuclear_attack`).
             (0, forcedWar_1.recordTargets)(new Actions_1.NuclearAttack(from, to, unit, ruleRegistry), ownersOn(unit, to)),
-        }, undefined, (unit, to, from) => new Actions_1.UndeclaredNuclearAttack(from, to, unit, ownersOn(unit, to)[0], ruleRegistry)),
+        }, attackCost, (unit, to, from) => new Actions_1.UndeclaredNuclearAttack(from, to, unit, ownersOn(unit, to)[0], ruleRegistry)),
         breaksTreaty({
             name: 'sneak-nuclear-attack',
             criteria: [
@@ -406,7 +417,7 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
                 const [enemy] = nuclearTargets(unit, to).filter((player) => atPeace(unit.player(), player));
                 return (0, forcedWar_1.recordTargets)(new Actions_1.SneakNuclearAttack(from, to, unit, enemy, ruleRegistry), ownersOn(unit, to));
             },
-        }),
+        }, attackCost),
         // With no treaty, the Senate isn't asked: entering a city asks only across a ceasefire, a peace or an alliance
         //  (`diplo_confirm_attack`'s mask 0xe, `unit_move.cpp:1099-1106`).
         {
@@ -429,8 +440,9 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
             },
         }),
         // Paratroopers from a city or an airbase, with no moves used, onto land within @COSMIC's range by `map_distance`
-        //  with no other player's unit on it, and not into the city of a player at peace (`unit_cmd_paradrop`,
-        //  `unit_paradrop`; the original asks a human to confirm that, and has a computer player give up).
+        //  with no other player's unit on it, and not into the city of a player with a treaty (`unit_cmd_paradrop`,
+        //  `unit_paradrop`). The original lets a person drop there, asking it to confirm and its Senate
+        //  (`unit.cpp:2305-2316`), and has a computer player give up; here no one may (a deviation).
         {
             name: 'paradrop',
             criteria: [
@@ -463,11 +475,16 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
             }),
             effect: (unit, to, from = unit.tile()) => new Actions_1.Airlift(from, to, unit, ruleRegistry, cityRegistry, pendingEffectRegistry, turn),
         },
-        {
+        // A person's Senate is asked when the nearest city's owner has a treaty with it (`unit.cpp:2985-2998`, mask 0xe).
+        breaksTreaty({
             name: 'pillage',
-            criteria: [...pillageCriteria, notPillagingPartnersLand, notAlliesLand],
+            criteria: [
+                ...pillageCriteria,
+                notPillagingPartnersLand,
+                notAlliesLand,
+            ],
             effect: (unit, to, from = unit.tile()) => new Actions_1.Pillage(from, to, unit, ruleRegistry, tileImprovementRegistry, turn),
-        },
+        }, undefined, (unit, to, from) => new Actions_1.SneakPillage(from, to, unit, (0, nearestCity_1.default)(cityRegistry, to).player(), ruleRegistry, tileImprovementRegistry, turn)),
         breaksTreaty({
             name: 'sneak-pillage',
             criteria: [...pillageCriteria, pillagingPartnersLand],
@@ -630,12 +647,18 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
         ruleRegistry,
         // The treaty partner is the owner of the city or units on the target square, or else the player whose worked
         //  land it is. Civ2's Senate (civ2-diplomacy's `SenateIntervenes` rule) reads who it is.
-        //  Across a ceasefire, a peace or an alliance it is always asked (mask 0xe: a capture, a paradrop, a pillage, a
-        //  move). In a battle it is also asked of a person attacking a player it has met and isn't at war with
-        //  (`diplo_confirm_attack`'s mask 0xd, asked for persons only, `unit_combat.cpp:1524-1525`); at war, never.
+        //  Only a person's is asked. Across a ceasefire, a peace or an alliance it is always asked (mask 0xe: a capture, a
+        //  pillage, a move); a pillage asks about the owner of the nearest city. In a battle it is also asked when
+        //  attacking a player the person has met and isn't at war with (`diplo_confirm_attack`'s mask 0xd,
+        //  `unit_combat.cpp:1524-1525`); at war, never.
         hasSenate: (player, other, unit, to) => {
-            const partner = other !== null && other !== void 0 ? other : partnerOf(unit, to);
-            if (partner === null) {
+            // Only a person's Senate is asked: the original asks at each of these only for a person
+            //  (`unit_combat.cpp:1524`, `unit_move.cpp:1100`, `unit.cpp:1895`, `unit.cpp:2305`).
+            if (!(0, isHuman_1.default)(player, clientRegistry)) {
+                return false;
+            }
+            const partner = other !== null && other !== void 0 ? other : pillagedOrPartner(unit, to);
+            if (partner === null || partner === player) {
                 return false;
             }
             const level = (0, treatyLevel_2.treatyLevel)({ interactionRegistry }, player, partner), 
@@ -648,7 +671,6 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
             if (level < treatyLevel_1.TreatyLevel.Ceasefire &&
                 (!battle ||
                     level === treatyLevel_1.TreatyLevel.War ||
-                    !(0, isHuman_1.default)(player, clientRegistry) ||
                     !interactionRegistry
                         .getByPlayers(player, partner)
                         .some((interaction) => interaction instanceof Contact_1.default))) {

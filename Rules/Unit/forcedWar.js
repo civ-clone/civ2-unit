@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRules = exports.recordTargets = exports.forcingWar = exports.BREAK_TREATY_RULE = exports.LIFECYCLE_BREAK_TREATY_RULE = void 0;
 const Actions_1 = require("../../Actions");
+const nearestCity_1 = require("../../lib/nearestCity");
 const Ceasefire_1 = require("@civ-clone/base-diplomacy-declaration-ceasefire/Ceasefire");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
 const ClientRegistry_1 = require("@civ-clone/core-client/ClientRegistry");
@@ -54,10 +55,12 @@ const enemyOf = (action) => typeof action.enemy === 'function'
  *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is. (The
  *   original keeps the ceasefire bit there, but its war bit rules; here the treaty level would read the ceasefire.)
  *
- * There is no vendetta. Pillaging a treaty partner's land: a person not at war with it is made to declare war (the
- *  pillage command's `diplo_declare_war(civ, civ2, -1)`, `unit.cpp:2993-2998`, through `madeToDeclareWar`, which
- *  counts against its reputation); a computer player ends the peace only. Moving onto a partner's land (civ-clone's
- *  own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule did.
+ * There is no vendetta. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
+ *  distance, unless it's the person's own or they're at war (the pillage command's `city_find_nearest` and
+ *  `diplo_declare_war(civ, civ2, -1)`, `unit.cpp:2985-2998`, through `madeToDeclareWar`, which counts against its
+ *  reputation), treaty or not; a computer player's pillage changes no treaty. Moving onto a partner's land
+ *  (civ-clone's own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule
+ *  did.
  */
 const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, interactionRegistry = InteractionRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, turn = Turn_1.instance, unitRegistry = UnitRegistry_1.instance, } = {}) => {
     const flags = { interactionRegistry, ruleRegistry, turn }, 
@@ -105,18 +108,25 @@ const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = Cli
         }
     };
     return [
-        new Moved_1.default(exports.BREAK_TREATY_RULE, new Criterion_1.default((unit, action) => exports.forcingWar.some((ActionType) => action instanceof ActionType) || enemyOf(action) !== null), new Effect_1.default((unit, action) => {
+        new Moved_1.default(exports.BREAK_TREATY_RULE, new Criterion_1.default((unit, action) => exports.forcingWar.some((ActionType) => action instanceof ActionType) ||
+            action instanceof Actions_1.Pillage ||
+            enemyOf(action) !== null), new Effect_1.default((unit, action) => {
+            var _a, _b;
             const player = unit.player();
             if (!exports.forcingWar.some((ActionType) => action instanceof ActionType)) {
-                const enemy = enemyOf(action);
-                if (enemy === player) {
+                if (action instanceof Actions_1.Pillage) {
+                    const owner = (_b = (_a = (0, nearestCity_1.default)(cityRegistry, action.to())) === null || _a === void 0 ? void 0 : _a.player()) !== null && _b !== void 0 ? _b : null;
+                    if (owner !== null &&
+                        owner !== player &&
+                        (0, isHuman_1.default)(player, clientRegistry) &&
+                        (0, treatyLevel_1.treatyLevel)({ interactionRegistry }, player, owner) !==
+                            treatyLevel_1.TreatyLevel.War) {
+                        (0, relations_1.madeToDeclareWar)({ interactionRegistry, ruleRegistry }, player, owner);
+                    }
                     return;
                 }
-                if (action instanceof Actions_1.SneakPillage &&
-                    (0, isHuman_1.default)(player, clientRegistry) &&
-                    (0, treatyLevel_1.treatyLevel)({ interactionRegistry }, player, enemy) !==
-                        treatyLevel_1.TreatyLevel.War) {
-                    (0, relations_1.madeToDeclareWar)({ interactionRegistry, ruleRegistry }, player, enemy);
+                const enemy = enemyOf(action);
+                if (enemy === player) {
                     return;
                 }
                 active(Peace_1.default, player, enemy).forEach((peace) => peace.expire(player));

@@ -1,9 +1,5 @@
-import {
-  Attack,
-  CaptureCity,
-  NuclearAttack,
-  SneakPillage,
-} from '../../Actions';
+import { Attack, CaptureCity, NuclearAttack, Pillage } from '../../Actions';
+import nearestCity from '../../lib/nearestCity';
 import Ceasefire from '@civ-clone/base-diplomacy-declaration-ceasefire/Ceasefire';
 import {
   CityRegistry,
@@ -111,10 +107,12 @@ const enemyOf = (action: Action): Player | null =>
  *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is. (The
  *   original keeps the ceasefire bit there, but its war bit rules; here the treaty level would read the ceasefire.)
  *
- * There is no vendetta. Pillaging a treaty partner's land: a person not at war with it is made to declare war (the
- *  pillage command's `diplo_declare_war(civ, civ2, -1)`, `unit.cpp:2993-2998`, through `madeToDeclareWar`, which
- *  counts against its reputation); a computer player ends the peace only. Moving onto a partner's land (civ-clone's
- *  own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule did.
+ * There is no vendetta. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
+ *  distance, unless it's the person's own or they're at war (the pillage command's `city_find_nearest` and
+ *  `diplo_declare_war(civ, civ2, -1)`, `unit.cpp:2985-2998`, through `madeToDeclareWar`, which counts against its
+ *  reputation), treaty or not; a computer player's pillage changes no treaty. Moving onto a partner's land
+ *  (civ-clone's own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule
+ *  did.
  */
 export const getRules = ({
   cityRegistry = cityRegistryInstance,
@@ -210,7 +208,9 @@ export const getRules = ({
         (unit: Unit, action: Action): boolean =>
           forcingWar.some(
             (ActionType): boolean => action instanceof ActionType
-          ) || enemyOf(action) !== null
+          ) ||
+          action instanceof Pillage ||
+          enemyOf(action) !== null
       ),
       new Effect((unit: Unit, action: Action): void => {
         const player = unit.player();
@@ -220,24 +220,30 @@ export const getRules = ({
             (ActionType): boolean => action instanceof ActionType
           )
         ) {
-          const enemy = enemyOf(action)!;
+          if (action instanceof Pillage) {
+            const owner =
+              nearestCity(cityRegistry, action.to())?.player() ?? null;
 
-          if (enemy === player) {
+            if (
+              owner !== null &&
+              owner !== player &&
+              isHuman(player, clientRegistry) &&
+              treatyLevel({ interactionRegistry }, player, owner) !==
+                TreatyLevel.War
+            ) {
+              madeToDeclareWar(
+                { interactionRegistry, ruleRegistry },
+                player,
+                owner
+              );
+            }
+
             return;
           }
 
-          if (
-            action instanceof SneakPillage &&
-            isHuman(player, clientRegistry) &&
-            treatyLevel({ interactionRegistry }, player, enemy) !==
-              TreatyLevel.War
-          ) {
-            madeToDeclareWar(
-              { interactionRegistry, ruleRegistry },
-              player,
-              enemy
-            );
+          const enemy = enemyOf(action)!;
 
+          if (enemy === player) {
             return;
           }
 

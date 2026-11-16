@@ -1,6 +1,8 @@
 import {
+  Pillage,
   SneakPillage,
   UndeclaredAttack,
+  UndeclaredNuclearAttack,
   AlliedRepair,
   Attack,
   CaptureCity,
@@ -324,7 +326,10 @@ describe('treaties', function (): void {
 
     it('is asked about the treaty partner, and when it intervenes the overruled form is offered instead', async (): Promise<void> => {
       const asked: [Player, Player | null, SenateContext][] = [],
-        scenario = other('unit', Peace, { extra: asking(true, asked) }),
+        scenario = other('unit', Peace, {
+          human: ['player'],
+          extra: asking(true, asked),
+        }),
         actions = offered(await setUp(scenario, Warrior));
 
       expect(actions).to.include('Overruled');
@@ -385,7 +390,10 @@ describe('treaties', function (): void {
       expect(empty).not.to.include('Overruled');
 
       const nuke = offered(
-        await setUp(other('unit', Peace, { extra: asking(true, []) }), Nuclear)
+        await setUp(
+          other('unit', Peace, { human: ['player'], extra: asking(true, []) }),
+          Nuclear
+        )
       );
 
       expect(nuke).to.include('Overruled');
@@ -403,6 +411,7 @@ describe('treaties', function (): void {
           game.workedTiles.register(new WorkedTile(square, city));
           game.tileImprovements.register(new Irrigation(square, game.rules));
           sign(game, player, partner, Peace);
+          person(game, player);
           asking(true, [])({ game, player, enemy: partner });
         },
       });
@@ -442,17 +451,37 @@ describe('treaties', function (): void {
 
       expect(overruled.action()).instanceOf(UndeclaredAttack);
       expect(overruled.partner()).equal(scenario.enemy);
+
+      // A blocked attack costs a move, spent before the Senate is asked.
+      const moves = unit.moves().value();
+
+      unit.action(overruled as never);
+
+      expect(unit.moves().value()).equal(moves - 1);
+
+      // A nuclear attack on a unit, as an `UndeclaredNuclearAttack`.
+      const nuclear = other('unit', null, {
+          human: ['player'],
+          extra: asking(true, []),
+        }),
+        nuke = await setUp(nuclear, Nuclear),
+        blockedNuke = nuke.unit
+          .actions(nuke.to, nuke.from)
+          .find((action) => action instanceof Overruled) as Overruled;
+
+      expect(blockedNuke.action()).instanceOf(UndeclaredNuclearAttack);
+      expect(blockedNuke.partner()).equal(nuclear.enemy);
       expect(await attack({})).to.include('Attack');
       expect(await attack({ human: ['player'] }, War)).to.include('Attack');
       expect(await attack({ human: ['player'], met: false })).to.include(
         'Attack'
       );
 
-      // A computer player attacking a person across a treaty is asked as a person is.
+      // Only a person's Senate is asked: not a computer player's attacking a person across a treaty.
       const across = await attack({ human: ['enemy'] }, Peace);
 
-      expect(across).to.include('Overruled');
-      expect(across).not.to.include('SneakAttack');
+      expect(across).to.include('SneakAttack');
+      expect(across).not.to.include('Overruled');
     });
   });
 
@@ -672,10 +701,15 @@ describe('treaties', function (): void {
     });
   });
 
-  describe("pillaging a partner's land", (): void => {
-    const pillage = async (human: boolean) => {
+  describe('pillaging', (): void => {
+    // The unit pillages its own square, (7, 7); the other player's city is the nearest, at (6, 7).
+    const pillage = async (
+      treaty: Treaty | null,
+      human: boolean,
+      Action: typeof Pillage | typeof SneakPillage = Pillage
+    ) => {
       const declared: [Player, Player, boolean, TreatyLevel][] = [],
-        scenario = other('unit', Peace, {
+        scenario = other('city', treaty, {
           human: human ? ['player'] : [],
           extra: ({ game }) =>
             game.rules.register(
@@ -691,21 +725,30 @@ describe('treaties', function (): void {
               )
             ),
         }),
-        { game, unit, to, from } = await setUp(scenario, Warrior),
+        { game, unit, from } = await setUp(scenario, Warrior),
         enemy = scenario.enemy!;
 
       game.rules.process(
         Moved,
         unit,
-        new SneakPillage(
-          from,
-          to,
-          unit,
-          enemy,
-          game.rules,
-          game.tileImprovements,
-          game.turn
-        ) as unknown as UnitAction
+        (Action === SneakPillage
+          ? new SneakPillage(
+              from,
+              from,
+              unit,
+              enemy,
+              game.rules,
+              game.tileImprovements,
+              game.turn
+            )
+          : new Pillage(
+              from,
+              from,
+              unit,
+              game.rules,
+              game.tileImprovements,
+              game.turn
+            )) as unknown as UnitAction
       );
 
       return {
@@ -720,20 +763,60 @@ describe('treaties', function (): void {
       };
     };
 
-    it('makes a person declare war, through base-diplomacy, as the pillage command does', async (): Promise<void> => {
-      const result = await pillage(true);
+    it("makes a person declare war on the nearest city's owner, through base-diplomacy, treaty or not", async (): Promise<void> => {
+      for (const [treaty, level, Action] of [
+        [Peace, TreatyLevel.Peace, SneakPillage],
+        [Ceasefire, TreatyLevel.Ceasefire, Pillage],
+        [null, TreatyLevel.Contact, Pillage],
+      ] as const) {
+        const result = await pillage(treaty, true, Action);
 
-      expect(result.declared).eql([
-        [result.player, result.enemy, true, TreatyLevel.Peace],
-      ]);
-      expect(result.level).equal(TreatyLevel.War);
+        expect(result.declared, String(level)).eql([
+          [result.player, result.enemy, true, level],
+        ]);
+        expect(result.level, String(level)).equal(TreatyLevel.War);
+      }
     });
 
-    it('ends only the peace for a computer player', async (): Promise<void> => {
-      const result = await pillage(false);
+    it('declares nothing at war', async (): Promise<void> => {
+      const result = await pillage(War, true);
 
       expect(result.declared).eql([]);
-      expect(result.level).equal(TreatyLevel.Contact);
+    });
+
+    it("changes no treaty for a computer player's", async (): Promise<void> => {
+      const result = await pillage(Peace, false, SneakPillage);
+
+      expect(result.declared).eql([]);
+      expect(result.level).equal(TreatyLevel.Peace);
+    });
+
+    it("asks a person's Senate across a ceasefire with the nearest city's owner", async (): Promise<void> => {
+      const asked: unknown[] = [],
+        scenario = other('city', Ceasefire, {
+          human: ['player'],
+          extra: ({ game }) =>
+            game.rules.register(
+              new SenateIntervenes(
+                new Effect((player: Player, other: Player | null) => {
+                  asked.push(other);
+
+                  return true;
+                })
+              )
+            ),
+        }),
+        { game, unit, from } = await setUp(scenario, Warrior);
+
+      game.tileImprovements.register(new Irrigation(from, game.rules));
+
+      const actions = unit
+        .actions(from, from)
+        .map((action) => action.constructor.name);
+
+      expect(actions).to.include('Overruled');
+      expect(actions).not.to.include('Pillage');
+      expect(asked).to.include(scenario.enemy);
     });
   });
 

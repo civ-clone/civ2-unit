@@ -204,6 +204,7 @@ import Detonates from '@civ-clone/base-unit-trait-detonates/Detonates';
 import isHuman from '@civ-clone/civ2-difficulty/isHuman';
 import { treatyLevel } from '@civ-clone/base-diplomacy/lib/treatyLevel';
 import { recordTargets } from './forcedWar';
+import nearestCity from '../../lib/nearestCity';
 import Player from '@civ-clone/core-player/Player';
 import { River } from '@civ-clone/civ2-world/TerrainFeatures';
 import RoutePlanner from '@civ-clone/base-unit-action-rules/lib/RoutePlanner';
@@ -425,6 +426,14 @@ export const getRules = ({
       ...row,
       breaksTreaty: { blocked, cost },
     }),
+    // What a blocked attack costs: a move, spent before the Senate is asked (`unit_combat.cpp:1521-1523`).
+    attackCost = (): number => 1,
+    // The owner of the city nearest a pillaged square (the pillage command's `city_find_nearest`), or, for any other
+    //  square, the treaty partner whose land it is.
+    pillagedOrPartner = (unit: Unit, to: Tile): Player | null =>
+      to === unit.tile()
+        ? nearestCity(cityRegistry, to)?.player() ?? null
+        : partnerOf(unit, to),
     // The other players with units on `to`.
     ownersOn = (unit: Unit, to: Tile): Player[] =>
       Array.from(
@@ -836,7 +845,7 @@ export const getRules = ({
         // A person attacking a player it has met and isn't at war with: the Senate may stop it (`diplo_confirm_attack`,
         //  `unit_combat.cpp:1525`), which is offered as a blocked `UndeclaredAttack`, so a client can tell it from
         //  breaking a treaty.
-        undefined,
+        attackCost,
         (unit: Unit, to: Tile, from: Tile): UnitAction =>
           new UndeclaredAttack(
             from,
@@ -849,28 +858,38 @@ export const getRules = ({
       ),
 
       // Across a treaty: never against an ally (`diplo_confirm_attack`), and the player's Senate may overrule it.
-      breaksTreaty({
-        name: 'sneak-attack',
-        criteria: [...attackCriteria, allAtPeace, noAllyOnTile],
-        effect: (
-          unit: Unit,
-          to: Tile,
-          from: Tile = unit.tile()
-        ): UnitAction => {
-          // The treaty partner the attack breaks with: a ceasefire counts, as a peace does (`atPeace`).
-          const [enemy] = unitRegistry
-            .getByTile(to)
-            .map((tileUnit: Unit): Player => tileUnit.player())
-            .filter((player: Player): boolean =>
-              atPeace(unit.player(), player)
-            );
+      breaksTreaty(
+        {
+          name: 'sneak-attack',
+          criteria: [...attackCriteria, allAtPeace, noAllyOnTile],
+          effect: (
+            unit: Unit,
+            to: Tile,
+            from: Tile = unit.tile()
+          ): UnitAction => {
+            // The treaty partner the attack breaks with: a ceasefire counts, as a peace does (`atPeace`).
+            const [enemy] = unitRegistry
+              .getByTile(to)
+              .map((tileUnit: Unit): Player => tileUnit.player())
+              .filter((player: Player): boolean =>
+                atPeace(unit.player(), player)
+              );
 
-          return recordTargets(
-            new SneakAttack(from, to, unit, enemy, ruleRegistry, unitRegistry),
-            ownersOn(unit, to)
-          ) as UnitAction;
+            return recordTargets(
+              new SneakAttack(
+                from,
+                to,
+                unit,
+                enemy,
+                ruleRegistry,
+                unitRegistry
+              ),
+              ownersOn(unit, to)
+            ) as UnitAction;
+          },
         },
-      }),
+        attackCost
+      ),
 
       breaksTreaty(
         {
@@ -888,7 +907,7 @@ export const getRules = ({
               ownersOn(unit, to)
             ) as UnitAction,
         },
-        undefined,
+        attackCost,
         (unit: Unit, to: Tile, from: Tile): UnitAction =>
           new UndeclaredNuclearAttack(
             from,
@@ -899,32 +918,35 @@ export const getRules = ({
           ) as UnitAction
       ),
 
-      breaksTreaty({
-        name: 'sneak-nuclear-attack',
-        criteria: [
-          ...nuclearAttackCriteria,
-          anyNuclearTargetAtPeace,
-          new Criterion((unit: Unit, to: Tile): boolean =>
-            nuclearTargets(unit, to).every(
-              (player: Player): boolean => !allied(unit.player(), player)
-            )
-          ),
-        ],
-        effect: (
-          unit: Unit,
-          to: Tile,
-          from: Tile = unit.tile()
-        ): UnitAction => {
-          const [enemy] = nuclearTargets(unit, to).filter(
-            (player: Player): boolean => atPeace(unit.player(), player)
-          );
+      breaksTreaty(
+        {
+          name: 'sneak-nuclear-attack',
+          criteria: [
+            ...nuclearAttackCriteria,
+            anyNuclearTargetAtPeace,
+            new Criterion((unit: Unit, to: Tile): boolean =>
+              nuclearTargets(unit, to).every(
+                (player: Player): boolean => !allied(unit.player(), player)
+              )
+            ),
+          ],
+          effect: (
+            unit: Unit,
+            to: Tile,
+            from: Tile = unit.tile()
+          ): UnitAction => {
+            const [enemy] = nuclearTargets(unit, to).filter(
+              (player: Player): boolean => atPeace(unit.player(), player)
+            );
 
-          return recordTargets(
-            new SneakNuclearAttack(from, to, unit, enemy, ruleRegistry),
-            ownersOn(unit, to)
-          ) as UnitAction;
+            return recordTargets(
+              new SneakNuclearAttack(from, to, unit, enemy, ruleRegistry),
+              ownersOn(unit, to)
+            ) as UnitAction;
+          },
         },
-      }),
+        attackCost
+      ),
 
       // With no treaty, the Senate isn't asked: entering a city asks only across a ceasefire, a peace or an alliance
       //  (`diplo_confirm_attack`'s mask 0xe, `unit_move.cpp:1099-1106`).
@@ -971,8 +993,9 @@ export const getRules = ({
       }),
 
       // Paratroopers from a city or an airbase, with no moves used, onto land within @COSMIC's range by `map_distance`
-      //  with no other player's unit on it, and not into the city of a player at peace (`unit_cmd_paradrop`,
-      //  `unit_paradrop`; the original asks a human to confirm that, and has a computer player give up).
+      //  with no other player's unit on it, and not into the city of a player with a treaty (`unit_cmd_paradrop`,
+      //  `unit_paradrop`). The original lets a person drop there, asking it to confirm and its Senate
+      //  (`unit.cpp:2305-2316`), and has a computer player give up; here no one may (a deviation).
       {
         name: 'paradrop',
         criteria: [
@@ -1040,19 +1063,41 @@ export const getRules = ({
           ) as UnitAction,
       },
 
-      {
-        name: 'pillage',
-        criteria: [...pillageCriteria, notPillagingPartnersLand, notAlliesLand],
-        effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
-          new Pillage(
+      // A person's Senate is asked when the nearest city's owner has a treaty with it (`unit.cpp:2985-2998`, mask 0xe).
+      breaksTreaty(
+        {
+          name: 'pillage',
+          criteria: [
+            ...pillageCriteria,
+            notPillagingPartnersLand,
+            notAlliesLand,
+          ],
+          effect: (
+            unit: Unit,
+            to: Tile,
+            from: Tile = unit.tile()
+          ): UnitAction =>
+            new Pillage(
+              from,
+              to,
+              unit,
+              ruleRegistry,
+              tileImprovementRegistry,
+              turn
+            ),
+        },
+        undefined,
+        (unit: Unit, to: Tile, from: Tile): UnitAction =>
+          new SneakPillage(
             from,
             to,
             unit,
+            nearestCity(cityRegistry, to)!.player(),
             ruleRegistry,
             tileImprovementRegistry,
             turn
-          ),
-      },
+          ) as UnitAction
+      ),
 
       breaksTreaty({
         name: 'sneak-pillage',
@@ -1383,18 +1428,25 @@ export const getRules = ({
       ruleRegistry,
       // The treaty partner is the owner of the city or units on the target square, or else the player whose worked
       //  land it is. Civ2's Senate (civ2-diplomacy's `SenateIntervenes` rule) reads who it is.
-      //  Across a ceasefire, a peace or an alliance it is always asked (mask 0xe: a capture, a paradrop, a pillage, a
-      //  move). In a battle it is also asked of a person attacking a player it has met and isn't at war with
-      //  (`diplo_confirm_attack`'s mask 0xd, asked for persons only, `unit_combat.cpp:1524-1525`); at war, never.
+      //  Only a person's is asked. Across a ceasefire, a peace or an alliance it is always asked (mask 0xe: a capture, a
+      //  pillage, a move); a pillage asks about the owner of the nearest city. In a battle it is also asked when
+      //  attacking a player the person has met and isn't at war with (`diplo_confirm_attack`'s mask 0xd,
+      //  `unit_combat.cpp:1524-1525`); at war, never.
       hasSenate: (
         player: Player,
         other: Player | null,
         unit: Unit,
         to: Tile
       ): boolean => {
-        const partner = other ?? partnerOf(unit, to);
+        // Only a person's Senate is asked: the original asks at each of these only for a person
+        //  (`unit_combat.cpp:1524`, `unit_move.cpp:1100`, `unit.cpp:1895`, `unit.cpp:2305`).
+        if (!isHuman(player, clientRegistry)) {
+          return false;
+        }
 
-        if (partner === null) {
+        const partner = other ?? pillagedOrPartner(unit, to);
+
+        if (partner === null || partner === player) {
           return false;
         }
 
@@ -1411,7 +1463,6 @@ export const getRules = ({
           level < TreatyLevel.Ceasefire &&
           (!battle ||
             level === TreatyLevel.War ||
-            !isHuman(player, clientRegistry) ||
             !interactionRegistry
               .getByPlayers(player, partner)
               .some((interaction) => interaction instanceof Contact))

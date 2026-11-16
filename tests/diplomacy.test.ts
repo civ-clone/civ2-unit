@@ -1,4 +1,6 @@
 import {
+  SneakPillage,
+  UndeclaredAttack,
   AlliedRepair,
   Attack,
   CaptureCity,
@@ -39,7 +41,6 @@ import { Irrigation } from '@civ-clone/civ2-world/TileImprovements';
 import MarcoPolosEmbassy from '@civ-clone/base-wonder-marcopolosembassy/MarcoPolosEmbassy';
 import Moved from '@civ-clone/core-unit/Rules/Moved';
 import MovedThisTurn from '@civ-clone/base-unit-healing/lib/MovedThisTurn';
-import Palace from '@civ-clone/base-city-improvement-palace/Palace';
 import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
 import Player from '@civ-clone/core-player/Player';
 import SenateIntervenes, {
@@ -50,6 +51,7 @@ import Unit from '@civ-clone/core-unit/Unit';
 import UnitAction from '@civ-clone/core-unit/Action';
 import UnitedNations from '@civ-clone/base-wonder-unitednations/UnitedNations';
 import War from '@civ-clone/base-diplomacy-declaration-war/War';
+import Overruled from '@civ-clone/library-unit/Actions/Overruled';
 import WorkedTile from '@civ-clone/core-city/WorkedTile';
 import { attitude } from '@civ-clone/civ2-diplomacy/lib/relations';
 import { expect } from 'chai';
@@ -88,7 +90,7 @@ const sign = (game: Game, player: Player, enemy: Player, treaty: Treaty) => {
 };
 
 const other = (
-  what: 'unit' | 'city' | 'palace',
+  what: 'unit' | 'city',
   treaty: Treaty | null,
   { met = true, human = [], extra = () => {} }: Options = {},
   target: [number, number] = [6, 7],
@@ -107,11 +109,7 @@ const other = (
       if (what === 'unit') {
         new Warrior(null, enemy, tile, game.rules);
       } else {
-        const city = addCity(game, enemy, tile, 'Other');
-
-        if (what === 'palace') {
-          game.cityImprovements.register(new Palace(city, game.rules));
-        }
+        addCity(game, enemy, tile, 'Other');
       }
 
       (human.includes('player') ? person : computer)(game, player);
@@ -347,11 +345,44 @@ describe('treaties', function (): void {
 
     it('gates a capture, a nuclear attack and a move or pillage onto a partner’s land across a treaty', async (): Promise<void> => {
       const capture = offered(
-        await setUp(other('city', Peace, { extra: asking(true, []) }), Warrior)
+        await setUp(
+          other('city', Peace, { human: ['player'], extra: asking(true, []) }),
+          Warrior
+        )
       );
 
       expect(capture).to.include('Overruled');
       expect(capture).not.to.include('SneakCaptureCity');
+
+      // A computer player isn't offered a capture across a treaty at all.
+      const computers = offered(
+        await setUp(other('city', Peace, { extra: asking(false, []) }), Warrior)
+      );
+
+      expect(computers).not.to.include('SneakCaptureCity');
+      expect(computers).not.to.include('Overruled');
+
+      // Nor is a person's Senate asked about a capture with no treaty (mask 0xe).
+      const plain = offered(
+        await setUp(
+          other('city', null, { human: ['player'], extra: asking(true, []) }),
+          Warrior
+        )
+      );
+
+      expect(plain).to.include('CaptureCity');
+      expect(plain).not.to.include('Overruled');
+
+      // Nor about a nuclear attack on an empty city, which is no battle.
+      const empty = offered(
+        await setUp(
+          other('city', Peace, { human: ['player'], extra: asking(true, []) }),
+          Nuclear
+        )
+      );
+
+      expect(empty).to.include('SneakNuclearAttack');
+      expect(empty).not.to.include('Overruled');
 
       const nuke = offered(
         await setUp(other('unit', Peace, { extra: asking(true, []) }), Nuclear)
@@ -398,6 +429,19 @@ describe('treaties', function (): void {
 
       expect(personal).to.include('Overruled');
       expect(personal).not.to.include('Attack');
+
+      // Worded apart from breaking a treaty: the blocked action is an `UndeclaredAttack`, with the player attacked.
+      const scenario = other('unit', null, {
+          human: ['player'],
+          extra: asking(true, []),
+        }),
+        { unit, to, from } = await setUp(scenario, Warrior),
+        overruled = unit
+          .actions(to, from)
+          .find((action) => action instanceof Overruled) as Overruled;
+
+      expect(overruled.action()).instanceOf(UndeclaredAttack);
+      expect(overruled.partner()).equal(scenario.enemy);
       expect(await attack({})).to.include('Attack');
       expect(await attack({ human: ['player'] }, War)).to.include('Attack');
       expect(await attack({ human: ['player'], met: false })).to.include(
@@ -530,11 +574,11 @@ describe('treaties', function (): void {
       expect(result.sneak).to.true;
     });
 
-    it('between two computer players leaves a ceasefire in force, as the original clears only the peace', async (): Promise<void> => {
+    it('between two computer players ends a ceasefire with the war it starts, so the treaty level reads war', async (): Promise<void> => {
       const result = await attack(Ceasefire);
 
       expect(result.declared).eql([]);
-      expect(result.level).equal(TreatyLevel.Ceasefire);
+      expect(result.level).equal(TreatyLevel.War);
       expect(result.wars).equal(1);
       expect(result.attitudes).eql([100, 100]);
     });
@@ -572,6 +616,14 @@ describe('treaties', function (): void {
 
       expect(result.wars).equal(1);
       expect(result.attitudes).eql([100, 100]);
+      expect(result.sneak).to.false;
+    });
+
+    it('starts no war with a nuclear attack on an empty city, which is no battle', async (): Promise<void> => {
+      const result = await attack(null, { Action: 'nuclear', what: 'city' });
+
+      expect(result.wars).equal(0);
+      expect(result.attitudes).eql([30, 40]);
       expect(result.sneak).to.false;
     });
 
@@ -620,6 +672,71 @@ describe('treaties', function (): void {
     });
   });
 
+  describe("pillaging a partner's land", (): void => {
+    const pillage = async (human: boolean) => {
+      const declared: [Player, Player, boolean, TreatyLevel][] = [],
+        scenario = other('unit', Peace, {
+          human: human ? ['player'] : [],
+          extra: ({ game }) =>
+            game.rules.register(
+              new DeclaredWar(
+                new Effect(
+                  (
+                    by: Player,
+                    against: Player,
+                    forced: boolean,
+                    broken: TreatyLevel
+                  ) => declared.push([by, against, forced, broken])
+                )
+              )
+            ),
+        }),
+        { game, unit, to, from } = await setUp(scenario, Warrior),
+        enemy = scenario.enemy!;
+
+      game.rules.process(
+        Moved,
+        unit,
+        new SneakPillage(
+          from,
+          to,
+          unit,
+          enemy,
+          game.rules,
+          game.tileImprovements,
+          game.turn
+        ) as unknown as UnitAction
+      );
+
+      return {
+        declared,
+        player: unit.player(),
+        enemy,
+        level: treatyLevel(
+          { interactionRegistry: game.interactions },
+          unit.player(),
+          enemy
+        ),
+      };
+    };
+
+    it('makes a person declare war, through base-diplomacy, as the pillage command does', async (): Promise<void> => {
+      const result = await pillage(true);
+
+      expect(result.declared).eql([
+        [result.player, result.enemy, true, TreatyLevel.Peace],
+      ]);
+      expect(result.level).equal(TreatyLevel.War);
+    });
+
+    it('ends only the peace for a computer player', async (): Promise<void> => {
+      const result = await pillage(false);
+
+      expect(result.declared).eql([]);
+      expect(result.level).equal(TreatyLevel.Contact);
+    });
+  });
+
   describe("the Diplomat's and Spy's missions", (): void => {
     const owning =
       (Wonder: typeof UnitedNations | typeof MarcoPolosEmbassy) =>
@@ -631,21 +748,17 @@ describe('treaties', function (): void {
         game.wonders.register(new Wonder(home, game.rules));
       };
 
-    it("offer an embassy and an investigation, and a meeting with the leader only at a person's city with a Palace", async (): Promise<void> => {
+    it('offer an embassy and an investigation, and no meeting with the leader', async (): Promise<void> => {
       for (const UnitType of [Diplomat, Spy]) {
-        expect(
-          offered(
-            await setUp(other('palace', null, { human: ['enemy'] }), UnitType)
-          ).slice(0, 3)
-        ).eql(['EstablishEmbassy', 'InvestigateCity', 'MeetWithLeader']);
-        expect(
-          offered(await setUp(other('palace', null), UnitType))
-        ).not.to.include('MeetWithLeader');
-        expect(
-          offered(
-            await setUp(other('city', null, { human: ['enemy'] }), UnitType)
-          )
-        ).not.to.include('MeetWithLeader');
+        const actions = offered(
+          await setUp(other('city', null, { human: ['enemy'] }), UnitType)
+        );
+
+        expect(actions.slice(0, 2)).eql([
+          'EstablishEmbassy',
+          'InvestigateCity',
+        ]);
+        expect(actions).not.to.include('MeetWithLeader');
       }
     });
 
@@ -666,27 +779,6 @@ describe('treaties', function (): void {
           )
         )
       ).to.include('EstablishEmbassy');
-    });
-
-    it('meeting the leader ends the unit’s turn and tells the client', async (): Promise<void> => {
-      const { game, unit, to, from } = await setUp(
-          other('palace', null, { human: ['enemy'] }),
-          Diplomat
-        ),
-        met: unknown[] = [];
-
-      game.engine.on('player:meet-with-leader', (...args: unknown[]) =>
-        met.push(args)
-      );
-
-      const meet = unit
-        .actions(to, from)
-        .find((action) => action.constructor.name === 'MeetWithLeader')!;
-
-      unit.action(meet as never);
-
-      expect(unit.moves().value()).equal(0);
-      expect(met).length(1);
     });
   });
 });

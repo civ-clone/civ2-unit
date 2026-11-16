@@ -227,7 +227,7 @@ const register = (game) => {
         ruleRegistry: game.rules,
         turn: game.turn,
         unitRegistry: game.units,
-    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...missions.leaderMet, ...lifecycle.transferred, ...(0, strength_1.default)({
+    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,
         playerResearchRegistry: game.playerResearch,

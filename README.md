@@ -75,32 +75,40 @@ offered on an irrigated square, so a unit is offered one or the other; a client 
 ## Treaties and missions (M2d)
 
 From OpenCiv2 `diplo_confirm_attack`, `diplo_force_war` (`diplomacy.cpp:6861-6920`), `tile_zoc_unit_adjacent`,
-`unit_move_dir` (`unit_move.cpp:778-830`) and `spy_city_mission_menu` (`unit_spy.cpp:171-218`):
+`unit_move_dir` (`unit_move.cpp:778-830`, `:1086-1106`), the pillage command (`unit.cpp:2985-2998`) and
+`spy_city_mission_menu` (`unit_spy.cpp:171-218`):
 
 - **Allies:** a unit is never offered an attack, a capture or a nuclear attack on an ally's square, an ally's units
   exert no zone of control, and an ally's land may be walked onto but not pillaged. A land unit (not a Diplomat, Spy,
   Caravan or Freight) moving onto an ally's city is `allied-repair` (`AlliedRepair`): it stays where it is, is
   repaired a tenth of its hit points (a fifth if the city has Barracks, never more than its damage), its turn ends,
   and it counts as having rested when units next heal.
-- **The Senate:** every treaty-breaking row (`sneak-move`, `sneak-attack`, `sneak-nuclear-attack`,
-  `sneak-capture-city`, `sneak-pillage`), and a person's attack, nuclear attack or capture on a player it has met and
-  isn't at war with (`attack`, `nuclear-attack`, `capture-city`), asks base-government-senate's
-  `senateIntervenes(player, partner, { reason: 'break-treaty' })`, where the partner is the owner of the city or units
-  on the target square, or of the land there. When it intervenes, the row's `overruled/` form is offered instead (a
-  blocked move spends its cost). civ2-unit registers no `SenateIntervenes` rule: civ2-diplomacy's answers.
-- **Every attack, nuclear attack and capture forces war** (`Rules/Unit/forcedWar`, replacing base-unit-lifecycle's
-  `break-peace-treaty`), for each player attacked: either side's intent to break their treaty is forgotten; under a
-  ceasefire or a peace with a person on either side, the attacker is made to declare war (civ2-diplomacy's
-  `madeToDeclareWar`, which counts it against its reputation); any peace ends (between two computer players a
-  ceasefire stays, as the original clears only the peace); and once they've met a war is in force (with no
-  declaration when there wasn't one), both attitudes are set to 100, even mid-war, and the attacker is marked as having
-  attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either side already is. No vendetta is left.
-  Moving onto or pillaging a partner's land (civ-clone's own sneak actions, which the original doesn't have) ends the
-  peace only.
-- **Diplomats and Spies:** Establish Embassy, Investigate City and Meet with Leader, in that order. The embassy isn't
-  offered to a player that has an `Embassy` there or owns a standing United Nations; Marco Polo's doesn't hide it. Meet
-  with Leader is offered only at a city with a Palace whose owner is a person (the original offers it in multiplayer
-  games only); the unit's turn ends and the client hears `player:meet-with-leader`.
+- **The Senate** (base-government-senate's `senateIntervenes(player, partner, { reason: 'break-treaty' })`, which
+  civ2-diplomacy answers; civ2-unit registers no rule). The partner is the owner of the units or city on the target
+  square, or of the land there. When it intervenes, the row's `overruled/` form is offered instead (a blocked move
+  spends its cost). It is asked:
+  - across a ceasefire, a peace or an alliance (mask 0xe): every treaty-breaking row (`sneak-move`, `sneak-attack`,
+    `sneak-nuclear-attack`, `sneak-capture-city`, `sneak-pillage`);
+  - in a battle (another player's units on the square), by a person attacking a player it has met and isn't at war
+    with (mask 0xd, asked of persons only): `attack` and `nuclear-attack`, whose `overruled/` forms wrap an
+    `UndeclaredAttack` or `UndeclaredNuclearAttack` (with `enemy()`), so a client can word them apart from breaking a
+    treaty;
+  - never at war, nor for a capture with no treaty, nor for a nuclear attack on an empty city (no battle).
+- **A computer player's units don't capture a city across a treaty** (`sneak-capture-city` is a person's only).
+- **Forcing war** (`Rules/Unit/forcedWar`, replacing base-unit-lifecycle's `break-peace-treaty`). Every attack, capture
+  and nuclear attack in battle, for each player attacked (a nuclear attack's are the owners of the units there):
+  either side's intent to break their treaty is forgotten; under a ceasefire or a peace with a person on either side,
+  the attacker is made to declare war (civ2-diplomacy's `madeToDeclareWar`, which counts it against its reputation);
+  any peace ends; and once they've met a war is in force (with no declaration when there wasn't one, ending any
+  ceasefire left between two computer players), both attitudes are set to 100, even mid-war, and the attacker is
+  marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either side already is. No
+  vendetta is left. Pillaging a partner's land makes a person not at war with it declare war (`madeToDeclareWar`); a
+  computer player only ends the peace. Moving onto a partner's land (civ-clone's own sneak move, which the original
+  doesn't have) ends the peace only.
+- **Diplomats and Spies:** Establish Embassy and Investigate City, in that order. The embassy isn't offered to a
+  player that has an `Embassy` there or owns a standing United Nations; Marco Polo's doesn't hide it. There is no Meet
+  with Leader: the original's mission menu has none (its option 7 is a multiplayer game's chat spying), and talks open
+  from the client.
 
 ## Not here
 

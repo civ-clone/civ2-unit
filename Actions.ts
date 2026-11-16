@@ -46,6 +46,10 @@ export { SneakNuclearAttack } from '@civ-clone/base-unit-action-nuclear-attack/S
 export { SneakPillage } from '@civ-clone/library-unit/Actions/SneakPillage';
 export { TransformTerrain } from '@civ-clone/base-unit-action-transform-terrain/TransformTerrain';
 export { Unload } from '@civ-clone/base-unit-action-unload/Unload';
-export { MeetWithLeader } from '@civ-clone/base-unit-action-meet-with-leader/MeetWithLeader';
 // Civilization II's own: a unit moving onto an ally's city is repaired there instead (`lib/AlliedRepair`).
 export { AlliedRepair } from './lib/AlliedRepair';
+// What a person's Senate stops when it blocks an attack on a player with no treaty and no war (`lib/UndeclaredAttack`).
+export {
+  UndeclaredAttack,
+  UndeclaredNuclearAttack,
+} from './lib/UndeclaredAttack';

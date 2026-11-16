@@ -44,5 +44,8 @@ export { SneakNuclearAttack } from '@civ-clone/base-unit-action-nuclear-attack/S
 export { SneakPillage } from '@civ-clone/library-unit/Actions/SneakPillage';
 export { TransformTerrain } from '@civ-clone/base-unit-action-transform-terrain/TransformTerrain';
 export { Unload } from '@civ-clone/base-unit-action-unload/Unload';
-export { MeetWithLeader } from '@civ-clone/base-unit-action-meet-with-leader/MeetWithLeader';
 export { AlliedRepair } from './lib/AlliedRepair';
+export {
+  UndeclaredAttack,
+  UndeclaredNuclearAttack,
+} from './lib/UndeclaredAttack';

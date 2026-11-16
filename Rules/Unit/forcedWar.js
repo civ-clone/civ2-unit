@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRules = exports.recordTargets = exports.forcingWar = exports.BREAK_TREATY_RULE = exports.LIFECYCLE_BREAK_TREATY_RULE = void 0;
 const Actions_1 = require("../../Actions");
+const Ceasefire_1 = require("@civ-clone/base-diplomacy-declaration-ceasefire/Ceasefire");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
 const ClientRegistry_1 = require("@civ-clone/core-client/ClientRegistry");
 const flags_1 = require("@civ-clone/civ2-diplomacy/lib/flags");
@@ -40,19 +41,23 @@ const enemyOf = (action) => typeof action.enemy === 'function'
 /**
  * What an attack does to its target's relations, in place of base-unit-lifecycle's `break-peace-treaty` rule: OpenCiv2
  *  `diplo_force_war` (`diplomacy.cpp:6861-6887`), which the original calls after every attack (`unit_combat.cpp:1536`)
- *  and capture of a city (`city.cpp:5405`), and, as it, for every nuclear attack. For each player attacked:
+ *  and capture of a city (`city.cpp:5405`), and for a nuclear attack in battle, on the owners of the units there (one
+ *  on an empty city is no battle: `unit_move.cpp:1086` goes straight to `unit_nuclear_attack`). For each player
+ *  attacked:
  * - any intent of either to break their treaty is forgotten (`TREATY_HOSTILE_INTENT`);
  * - under a ceasefire or a peace with a person on either side, the attacker is made to declare war (civ2-diplomacy's
  *   `madeToDeclareWar`, `diplo_declare_war(civ, civ2, -1)`), and civ2-diplomacy's `DeclaredWar` rules count it against
  *   its reputation;
- * - any peace ends. Between two computer players a ceasefire stays in force, as the original clears only the peace
- *   and alliance bits;
- * - once they've met: a war is in force (a `War`, made with no declaration when there isn't one), both attitudes are
- *   set to 100, even mid-war, and the attacker is marked as having attacked without declaring war
- *   (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is.
+ * - any peace ends;
+ * - once they've met: a war is in force (a `War`, made with no declaration when there isn't one), any ceasefire left
+ *   between two computer players ends with it, both attitudes are set to 100, even mid-war, and the attacker is
+ *   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is. (The
+ *   original keeps the ceasefire bit there, but its war bit rules; here the treaty level would read the ceasefire.)
  *
- * There is no vendetta. Moving onto or pillaging a treaty partner's land (civ-clone's own sneak actions, which the
- *  original doesn't have) ends the peace only, as base-unit-lifecycle's rule did.
+ * There is no vendetta. Pillaging a treaty partner's land: a person not at war with it is made to declare war (the
+ *  pillage command's `diplo_declare_war(civ, civ2, -1)`, `unit.cpp:2993-2998`, through `madeToDeclareWar`, which
+ *  counts against its reputation); a computer player ends the peace only. Moving onto a partner's land (civ-clone's
+ *  own sneak move, which the original doesn't have) ends the peace only, as base-unit-lifecycle's rule did.
  */
 const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, interactionRegistry = InteractionRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, turn = Turn_1.instance, unitRegistry = UnitRegistry_1.instance, } = {}) => {
     const flags = { interactionRegistry, ruleRegistry, turn }, 
@@ -66,11 +71,15 @@ const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = Cli
         var _a, _b, _c;
         const players = (_a = targets.get(action)) !== null && _a !== void 0 ? _a : (action instanceof Actions_1.CaptureCity
             ? [(_c = (_b = cityRegistry.getByTile(action.to())) === null || _b === void 0 ? void 0 : _b.player()) !== null && _c !== void 0 ? _c : null]
-            : enemyOf(action) !== null
-                ? [enemyOf(action)]
-                : unitRegistry
+            : action instanceof Actions_1.NuclearAttack
+                ? unitRegistry
                     .getByTile(action.to())
-                    .map((tileUnit) => tileUnit.player()));
+                    .map((tileUnit) => tileUnit.player())
+                : enemyOf(action) !== null
+                    ? [enemyOf(action)]
+                    : unitRegistry
+                        .getByTile(action.to())
+                        .map((tileUnit) => tileUnit.player()));
         return Array.from(new Set(players)).filter((player) => player !== null && player !== unit.player());
     }, forceWar = (player, enemy) => {
         (0, flags_1.clearBoth)(flags, player, enemy, flags_1.HOSTILE_INTENT);
@@ -86,6 +95,7 @@ const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = Cli
         if (active(War_1.default, player, enemy).length === 0) {
             interactionRegistry.register(new War_1.default(player, enemy, new Expiries_1.Never(), ruleRegistry));
         }
+        active(Ceasefire_1.default, player, enemy).forEach((ceasefire) => ceasefire.expire(player));
         const attitudes = (0, relations_1.attitude)(flags);
         attitudes.set(player, enemy, 100, 'forced-war');
         attitudes.set(enemy, player, 100, 'forced-war');
@@ -99,9 +109,17 @@ const getRules = ({ cityRegistry = CityRegistry_1.instance, clientRegistry = Cli
             const player = unit.player();
             if (!exports.forcingWar.some((ActionType) => action instanceof ActionType)) {
                 const enemy = enemyOf(action);
-                if (enemy !== player) {
-                    active(Peace_1.default, player, enemy).forEach((peace) => peace.expire(player));
+                if (enemy === player) {
+                    return;
                 }
+                if (action instanceof Actions_1.SneakPillage &&
+                    (0, isHuman_1.default)(player, clientRegistry) &&
+                    (0, treatyLevel_1.treatyLevel)({ interactionRegistry }, player, enemy) !==
+                        treatyLevel_1.TreatyLevel.War) {
+                    (0, relations_1.madeToDeclareWar)({ interactionRegistry, ruleRegistry }, player, enemy);
+                    return;
+                }
+                active(Peace_1.default, player, enemy).forEach((peace) => peace.expire(player));
                 return;
             }
             attacked(unit, action).forEach((enemy) => forceWar(player, enemy));

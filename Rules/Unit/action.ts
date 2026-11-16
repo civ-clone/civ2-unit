@@ -27,7 +27,8 @@ import {
   InvestigateCity,
   JoinCity,
   AlliedRepair,
-  MeetWithLeader,
+  UndeclaredAttack,
+  UndeclaredNuclearAttack,
   LandAircraft,
   Move,
   NoOrders,
@@ -199,7 +200,7 @@ import {
   instance as clientRegistryInstance,
 } from '@civ-clone/core-client/ClientRegistry';
 import Contact from '@civ-clone/base-diplomacy-interaction-contact/Contact';
-import Palace from '@civ-clone/base-city-improvement-palace/Palace';
+import Detonates from '@civ-clone/base-unit-trait-detonates/Detonates';
 import isHuman from '@civ-clone/civ2-difficulty/isHuman';
 import { treatyLevel } from '@civ-clone/base-diplomacy/lib/treatyLevel';
 import { recordTargets } from './forcedWar';
@@ -362,8 +363,10 @@ export interface ActionDependencies {
  *  treaty (a ceasefire, a peace or an alliance) is gated by the player's Senate (`SenateIntervenes`, which
  *  civ2-diplomacy answers): when it intervenes, the row's `overruled/` form is offered instead (`diplo_confirm_attack`).
  *  An ally is never attacked, its units exert no zone of control, and a unit moving onto its city is repaired there
- *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy, an investigation and a meeting with the leader
- *  are offered; theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder is civ2-wonder's.
+ *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy and an investigation are offered (Civ2's mission
+ *  menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a multiplayer game's chat
+ *  spying, and talks open from the client); theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder
+ *  is civ2-wonder's.
  */
 export const getRules = ({
   cityGrowthRegistry = cityGrowthRegistryInstance,
@@ -661,41 +664,6 @@ export const getRules = ({
           ) as UnitAction,
       },
 
-      // Talks with the city's owner, offered only at a city with a Palace whose owner is a person
-      //  (`spy_city_mission_menu`, `unit_spy.cpp:211-218`: the original offers it in multiplayer games only, so to
-      //  another person; here any person stands for that). Talks with a computer player open from the client instead.
-      //  The unit stays, with no moves left, and the talks are the client's (base-unit-lifecycle's `leaderMet`). Last
-      //  of the city missions, so a computer player, which takes the first action it's offered, still makes embassies
-      //  and investigates.
-      {
-        name: 'meet-with-leader',
-        criteria: [
-          ...diplomatCriteria,
-          new Criterion((unit: Unit, to: Tile): boolean => {
-            const city = cityRegistry.getByTile(to);
-
-            return (
-              city !== null &&
-              isHuman(city.player(), clientRegistry) &&
-              cityImprovementRegistry
-                .getByCity(city)
-                .some(
-                  (improvement: CityImprovement): boolean =>
-                    improvement instanceof Palace
-                )
-            );
-          }),
-        ],
-        effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
-          new MeetWithLeader(
-            from,
-            to,
-            unit,
-            cityOwner(to)!,
-            ruleRegistry
-          ) as UnitAction,
-      },
-
       // A Spy's mission against another player's lone unit outside a city (`spy_unit_mission`): it loses half its hit
       //  points. A veteran Spy escapes at twice the odds, and an escaped one becomes a veteran (`spy_try_escape`).
       {
@@ -866,10 +834,11 @@ export const getRules = ({
             ),
         },
         // A person attacking a player it has met and isn't at war with: the Senate may stop it (`diplo_confirm_attack`,
-        //  `unit_combat.cpp:1525`), which is offered as a blocked sneak attack.
+        //  `unit_combat.cpp:1525`), which is offered as a blocked `UndeclaredAttack`, so a client can tell it from
+        //  breaking a treaty.
         undefined,
         (unit: Unit, to: Tile, from: Tile): UnitAction =>
-          new SneakAttack(
+          new UndeclaredAttack(
             from,
             to,
             unit,
@@ -912,18 +881,20 @@ export const getRules = ({
             to: Tile,
             from: Tile = unit.tile()
           ): UnitAction =>
+            // Only the owners of the units there are attacked: one on an empty city is no battle, and starts no war
+            //  (`unit_move.cpp:1086` goes straight to `unit_nuclear_attack`).
             recordTargets(
               new NuclearAttack(from, to, unit, ruleRegistry),
-              nuclearTargets(unit, to)
+              ownersOn(unit, to)
             ) as UnitAction,
         },
         undefined,
         (unit: Unit, to: Tile, from: Tile): UnitAction =>
-          new SneakNuclearAttack(
+          new UndeclaredNuclearAttack(
             from,
             to,
             unit,
-            nuclearTargets(unit, to)[0],
+            ownersOn(unit, to)[0],
             ruleRegistry
           ) as UnitAction
       ),
@@ -950,43 +921,37 @@ export const getRules = ({
 
           return recordTargets(
             new SneakNuclearAttack(from, to, unit, enemy, ruleRegistry),
-            nuclearTargets(unit, to)
+            ownersOn(unit, to)
           ) as UnitAction;
         },
       }),
 
-      breaksTreaty(
-        {
-          name: 'capture-city',
-          criteria: [...captureCityCriteria, ownerPeaceExpired],
-          effect: (
-            unit: Unit,
-            to: Tile,
-            from: Tile = unit.tile()
-          ): UnitAction =>
-            new CaptureCity(
-              from,
-              to,
-              unit,
-              cityRegistry.getByTile(to)!,
-              ruleRegistry
-            ) as UnitAction,
-        },
-        undefined,
-        (unit: Unit, to: Tile, from: Tile): UnitAction =>
-          new SneakCaptureCity(
+      // With no treaty, the Senate isn't asked: entering a city asks only across a ceasefire, a peace or an alliance
+      //  (`diplo_confirm_attack`'s mask 0xe, `unit_move.cpp:1099-1106`).
+      {
+        name: 'capture-city',
+        criteria: [...captureCityCriteria, ownerPeaceExpired],
+        effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
+          new CaptureCity(
             from,
             to,
             unit,
             cityRegistry.getByTile(to)!,
-            cityOwner(to)!,
             ruleRegistry
-          ) as UnitAction
-      ),
+          ) as UnitAction,
+      },
 
+      // Across a treaty, a person only: a computer player's unit stops short (`unit_move.cpp:1099-1103`).
       breaksTreaty({
         name: 'sneak-capture-city',
-        criteria: [...captureCityCriteria, peaceWithOwner, noAllyOnTile],
+        criteria: [
+          ...captureCityCriteria,
+          peaceWithOwner,
+          noAllyOnTile,
+          new Criterion((unit: Unit): boolean =>
+            isHuman(unit.player(), clientRegistry)
+          ),
+        ],
         effect: (
           unit: Unit,
           to: Tile,
@@ -1418,9 +1383,9 @@ export const getRules = ({
       ruleRegistry,
       // The treaty partner is the owner of the city or units on the target square, or else the player whose worked
       //  land it is. Civ2's Senate (civ2-diplomacy's `SenateIntervenes` rule) reads who it is.
-      //  Across a ceasefire, a peace or an alliance it is always asked. Otherwise only a person's is, attacking a player
-      //  it has met and isn't at war with (`diplo_confirm_attack`'s mask 0xd, asked for persons only,
-      //  `unit_combat.cpp:1524-1525`); at war, never.
+      //  Across a ceasefire, a peace or an alliance it is always asked (mask 0xe: a capture, a paradrop, a pillage, a
+      //  move). In a battle it is also asked of a person attacking a player it has met and isn't at war with
+      //  (`diplo_confirm_attack`'s mask 0xd, asked for persons only, `unit_combat.cpp:1524-1525`); at war, never.
       hasSenate: (
         player: Player,
         other: Player | null,
@@ -1433,11 +1398,19 @@ export const getRules = ({
           return false;
         }
 
-        const level = treatyLevel({ interactionRegistry }, player, partner);
+        const level = treatyLevel({ interactionRegistry }, player, partner),
+          // A battle: another player's units on the square. A nuclear attack on an empty city is none, and isn't
+          //  asked about (`unit_move.cpp:1086` → `unit_nuclear_attack`).
+          battle = ownersOn(unit, to).length > 0;
+
+        if (unit.hasTrait(Detonates) && !battle) {
+          return false;
+        }
 
         if (
           level < TreatyLevel.Ceasefire &&
-          (level === TreatyLevel.War ||
+          (!battle ||
+            level === TreatyLevel.War ||
             !isHuman(player, clientRegistry) ||
             !interactionRegistry
               .getByPlayers(player, partner)

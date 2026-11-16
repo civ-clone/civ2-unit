@@ -79,8 +79,10 @@ export interface ActionDependencies {
  *  treaty (a ceasefire, a peace or an alliance) is gated by the player's Senate (`SenateIntervenes`, which
  *  civ2-diplomacy answers): when it intervenes, the row's `overruled/` form is offered instead (`diplo_confirm_attack`).
  *  An ally is never attacked, its units exert no zone of control, and a unit moving onto its city is repaired there
- *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy, an investigation and a meeting with the leader
- *  are offered; theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder is civ2-wonder's.
+ *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy and an investigation are offered (Civ2's mission
+ *  menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a multiplayer game's chat
+ *  spying, and talks open from the client); theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder
+ *  is civ2-wonder's.
  */
 export declare const getRules: ({
   cityGrowthRegistry,

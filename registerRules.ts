@@ -334,7 +334,6 @@ export const register = (game: Game): void => {
     ...lifecycle.stowed,
     ...missions.embassyEstablished,
     ...missions.cityInvestigated,
-    ...missions.leaderMet,
     ...lifecycle.transferred,
     ...strength({
       cityImprovementRegistry: game.cityImprovements,

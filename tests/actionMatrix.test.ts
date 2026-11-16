@@ -19,7 +19,6 @@ import { unitTypes } from '../lib/unitTable';
 const actionRuleIds = [
   'establish-embassy',
   'investigate-city',
-  'meet-with-leader',
   'sabotage-unit',
   'land-aircraft',
   'allied-repair',
@@ -36,7 +35,6 @@ const actionRuleIds = [
   'sneak-nuclear-attack',
   'overruled/sneak-nuclear-attack',
   'capture-city',
-  'overruled/capture-city',
   'sneak-capture-city',
   'overruled/sneak-capture-city',
   'paradrop',
@@ -85,7 +83,7 @@ const fixturePath = join(
 describe('unit actions', function (): void {
   this.timeout(300000);
 
-  it('registers the 56 action rules in their order, each attack and treaty-breaking one followed by its overruled form', (): void => {
+  it('registers the 53 action rules in their order, each attack and treaty-breaking one followed by its overruled form', (): void => {
     const game = new Game({ rng: createRng(1008) });
 
     register(game);
@@ -202,6 +200,6 @@ describe('unit actions', function (): void {
     }
 
     expect(cells).length(51 * 21);
-    expect(count).to.equal(340360);
+    expect(count).to.equal(335056);
   });
 });

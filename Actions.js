@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AlliedRepair = exports.MeetWithLeader = exports.Unload = exports.TransformTerrain = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.SabotageUnit = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.Paradrop = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.BuildFortress = exports.BuildFarmland = exports.BuildAirbase = exports.Automate = exports.Attack = exports.Activate = exports.Airlift = exports.AbortMove = void 0;
+exports.UndeclaredNuclearAttack = exports.UndeclaredAttack = exports.AlliedRepair = exports.Unload = exports.TransformTerrain = exports.SneakPillage = exports.SneakNuclearAttack = exports.SneakMove = exports.SneakCaptureCity = exports.SneakAttack = exports.Sleep = exports.SetHomeCity = exports.SabotageUnit = exports.RoadTo = exports.RailroadTo = exports.PlantForest = exports.Pillage = exports.Paradrop = exports.NuclearAttack = exports.NoOrders = exports.Move = exports.LandAircraft = exports.JoinCity = exports.InvestigateCity = exports.GoTo = exports.FoundCity = exports.Fortify = exports.Explore = exports.EstablishEmbassy = exports.Embark = exports.Disembark = exports.Disband = exports.ClearSwamp = exports.ClearJungle = exports.ClearForest = exports.CleanPollution = exports.CaptureCity = exports.BuildRoad = exports.BuildRailroad = exports.BuildMine = exports.BuildIrrigation = exports.BuildFortress = exports.BuildFarmland = exports.BuildAirbase = exports.Automate = exports.Attack = exports.Activate = exports.Airlift = exports.AbortMove = void 0;
 // The unit actions Civilization II's table offers (and the ones its rules ask about), from their own packages. The treaty-breaking forms and Set Home
 //  City are defined only in library-unit (no `main`, registers nothing) until they have base homes (#1041).
 var AbortMove_1 = require("@civ-clone/library-unit/Actions/AbortMove");
@@ -95,9 +95,11 @@ var TransformTerrain_1 = require("@civ-clone/base-unit-action-transform-terrain/
 Object.defineProperty(exports, "TransformTerrain", { enumerable: true, get: function () { return TransformTerrain_1.TransformTerrain; } });
 var Unload_1 = require("@civ-clone/base-unit-action-unload/Unload");
 Object.defineProperty(exports, "Unload", { enumerable: true, get: function () { return Unload_1.Unload; } });
-var MeetWithLeader_1 = require("@civ-clone/base-unit-action-meet-with-leader/MeetWithLeader");
-Object.defineProperty(exports, "MeetWithLeader", { enumerable: true, get: function () { return MeetWithLeader_1.MeetWithLeader; } });
 // Civilization II's own: a unit moving onto an ally's city is repaired there instead (`lib/AlliedRepair`).
 var AlliedRepair_1 = require("./lib/AlliedRepair");
 Object.defineProperty(exports, "AlliedRepair", { enumerable: true, get: function () { return AlliedRepair_1.AlliedRepair; } });
+// What a person's Senate stops when it blocks an attack on a player with no treaty and no war (`lib/UndeclaredAttack`).
+var UndeclaredAttack_1 = require("./lib/UndeclaredAttack");
+Object.defineProperty(exports, "UndeclaredAttack", { enumerable: true, get: function () { return UndeclaredAttack_1.UndeclaredAttack; } });
+Object.defineProperty(exports, "UndeclaredNuclearAttack", { enumerable: true, get: function () { return UndeclaredAttack_1.UndeclaredNuclearAttack; } });
 //# sourceMappingURL=Actions.js.map

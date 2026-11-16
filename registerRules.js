@@ -101,6 +101,7 @@ const register = (game) => {
     });
     game.rules.register(...(0, action_1.default)({
         cityGrowthRegistry: game.cityGrowth,
+        clientRegistry: game.clients,
         cityImprovementRegistry: game.cityImprovements,
         cityNameRegistry: game.cityNames,
         cityRegistry: game.cities,
@@ -220,10 +221,12 @@ const register = (game) => {
         // Out of sight of land: none of the 9 squares, its own included, is land (`unit_move_dir_trireme_loss`).
         nearLand: movedRules_1.adjacentToLand,
     }).filter((rule) => rule.id() !== forcedWar_1.LIFECYCLE_BREAK_TREATY_RULE), ...(0, forcedWar_1.default)({
+        cityRegistry: game.cities,
         clientRegistry: game.clients,
         interactionRegistry: game.interactions,
         ruleRegistry: game.rules,
         turn: game.turn,
+        unitRegistry: game.units,
     }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...missions.leaderMet, ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,

@@ -1,7 +1,19 @@
+import { Attack, CaptureCity, NuclearAttack } from '../../Actions';
+import {
+  CityRegistry,
+  instance as cityRegistryInstance,
+} from '@civ-clone/core-city/CityRegistry';
 import {
   ClientRegistry,
   instance as clientRegistryInstance,
 } from '@civ-clone/core-client/ClientRegistry';
+import {
+  HOSTILE_INTENT,
+  SNEAK_ATTACK,
+  clearBoth,
+  hasFlag,
+  setFlag,
+} from '@civ-clone/civ2-diplomacy/lib/flags';
 import {
   InteractionRegistry,
   instance as interactionRegistryInstance,
@@ -11,11 +23,6 @@ import {
   instance as ruleRegistryInstance,
 } from '@civ-clone/core-rule/RuleRegistry';
 import {
-  SneakAttack,
-  SneakCaptureCity,
-  SneakNuclearAttack,
-} from '../../Actions';
-import {
   TreatyLevel,
   treatyLevel,
 } from '@civ-clone/base-diplomacy/lib/treatyLevel';
@@ -24,12 +31,17 @@ import {
   instance as turnInstance,
 } from '@civ-clone/core-turn-based-game/Turn';
 import {
+  UnitRegistry,
+  instance as unitRegistryInstance,
+} from '@civ-clone/core-unit/UnitRegistry';
+import {
   attitude,
   madeToDeclareWar,
 } from '@civ-clone/civ2-diplomacy/lib/relations';
 import Action from '@civ-clone/core-unit/Action';
-import Ceasefire from '@civ-clone/base-diplomacy-declaration-ceasefire/Ceasefire';
+import Contact from '@civ-clone/base-diplomacy-interaction-contact/Contact';
 import Criterion from '@civ-clone/core-rule/Criterion';
+import Declaration from '@civ-clone/core-diplomacy/Declaration';
 import Effect from '@civ-clone/core-rule/Effect';
 import Moved from '@civ-clone/core-unit/Rules/Moved';
 import { Never } from '@civ-clone/core-diplomacy/Expiries';
@@ -37,7 +49,6 @@ import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
 import Player from '@civ-clone/core-player/Player';
 import Unit from '@civ-clone/core-unit/Unit';
 import War from '@civ-clone/base-diplomacy-declaration-war/War';
-import Declaration from '@civ-clone/core-diplomacy/Declaration';
 import isHuman from '@civ-clone/civ2-difficulty/isHuman';
 
 /** The rule base-unit-lifecycle's `movedRules` makes for any action with an enemy, which this package's replaces. */
@@ -47,18 +58,30 @@ export const LIFECYCLE_BREAK_TREATY_RULE =
 /** The rule that replaces it. */
 export const BREAK_TREATY_RULE = 'civ2-unit:unit/moved/break-treaty';
 
-/** The actions that attack across a treaty, which the original makes war of (`diplo_force_war`). */
-export const treatyAttacks = [
-  SneakAttack,
-  SneakCaptureCity,
-  SneakNuclearAttack,
-];
+/** The actions the original makes war of (`diplo_force_war`): every attack, nuclear attack and capture of a city. */
+export const forcingWar = [Attack, NuclearAttack, CaptureCity];
+
+// Who an attack or a nuclear attack was made on, noted when the action is made (the defenders may be gone by the time
+//  the action's `Moved` rules run). A capture is the city's owner's, which it still is then.
+const targets = new WeakMap<Action, Player[]>();
+
+/** Notes the players `action` attacks, for the `Moved` rule below. */
+export const recordTargets = <T extends Action>(
+  action: T,
+  players: Player[]
+): T => {
+  targets.set(action, players);
+
+  return action;
+};
 
 export interface ForcedWarDependencies {
+  cityRegistry?: CityRegistry;
   clientRegistry?: ClientRegistry;
   interactionRegistry?: InteractionRegistry;
   ruleRegistry?: RuleRegistry;
   turn?: Turn;
+  unitRegistry?: UnitRegistry;
 }
 
 const enemyOf = (action: Action): Player | null =>
@@ -67,94 +90,132 @@ const enemyOf = (action: Action): Player | null =>
     : null;
 
 /**
- * What an action across a treaty does to it, in place of base-unit-lifecycle's `break-peace-treaty` rule:
- * - an attack, a capture or a nuclear attack on a player under a ceasefire or a peace (OpenCiv2 `diplo_force_war`,
- *   `diplomacy.cpp:6861-6887`): when either player is a person, the attacker is made to declare war
- *   (civ2-diplomacy's `madeToDeclareWar`, `diplo_declare_war(civ, civ2, -1)`), and civ2-diplomacy's `DeclaredWar` rule
- *   counts it against its reputation and sets both attitudes to 100. Between two computer players the treaties end
- *   and the war starts with no declaration (no reputation), and both attitudes are set to 100. There is no vendetta.
- * - moving onto or pillaging a treaty partner's land (civ-clone's own; the original has neither) ends the peace, as
- *   base-unit-lifecycle's rule did, with no war and no vendetta.
+ * What an attack does to its target's relations, in place of base-unit-lifecycle's `break-peace-treaty` rule: OpenCiv2
+ *  `diplo_force_war` (`diplomacy.cpp:6861-6887`), which the original calls after every attack (`unit_combat.cpp:1536`)
+ *  and capture of a city (`city.cpp:5405`), and, as it, for every nuclear attack. For each player attacked:
+ * - any intent of either to break their treaty is forgotten (`TREATY_HOSTILE_INTENT`);
+ * - under a ceasefire or a peace with a person on either side, the attacker is made to declare war (civ2-diplomacy's
+ *   `madeToDeclareWar`, `diplo_declare_war(civ, civ2, -1)`), and civ2-diplomacy's `DeclaredWar` rules count it against
+ *   its reputation;
+ * - any peace ends. Between two computer players a ceasefire stays in force, as the original clears only the peace
+ *   and alliance bits;
+ * - once they've met: a war is in force (a `War`, made with no declaration when there isn't one), both attitudes are
+ *   set to 100, even mid-war, and the attacker is marked as having attacked without declaring war
+ *   (civ2-diplomacy's `SNEAK_ATTACK`) unless either already is.
+ *
+ * There is no vendetta. Moving onto or pillaging a treaty partner's land (civ-clone's own sneak actions, which the
+ *  original doesn't have) ends the peace only, as base-unit-lifecycle's rule did.
  */
 export const getRules = ({
+  cityRegistry = cityRegistryInstance,
   clientRegistry = clientRegistryInstance,
   interactionRegistry = interactionRegistryInstance,
   ruleRegistry = ruleRegistryInstance,
   turn = turnInstance,
+  unitRegistry = unitRegistryInstance,
 }: ForcedWarDependencies = {}): Moved[] => {
-  // The declarations of `DeclarationType` in force between the two.
-  const active = (
-    DeclarationType: new (...args: any[]) => Declaration,
-    player: Player,
-    other: Player
-  ): Declaration[] =>
-    interactionRegistry
-      .getByPlayers(player, other)
-      .filter(
-        (interaction): interaction is Declaration =>
-          interaction instanceof DeclarationType &&
-          (interaction as Declaration).active()
+  const flags = { interactionRegistry, ruleRegistry, turn },
+    // The declarations of `DeclarationType` in force between the two.
+    active = (
+      DeclarationType: new (...args: any[]) => Declaration,
+      player: Player,
+      other: Player
+    ): Declaration[] =>
+      interactionRegistry
+        .getByPlayers(player, other)
+        .filter(
+          (interaction): interaction is Declaration =>
+            interaction instanceof DeclarationType &&
+            (interaction as Declaration).active()
+        ),
+    inContact = (player: Player, other: Player): boolean =>
+      interactionRegistry
+        .getByPlayers(player, other)
+        .some((interaction) => interaction instanceof Contact),
+    attacked = (unit: Unit, action: Action): Player[] => {
+      const players =
+        targets.get(action) ??
+        (action instanceof CaptureCity
+          ? [cityRegistry.getByTile(action.to())?.player() ?? null]
+          : enemyOf(action) !== null
+          ? [enemyOf(action)]
+          : unitRegistry
+              .getByTile(action.to())
+              .map((tileUnit: Unit): Player => tileUnit.player()));
+
+      return Array.from(new Set(players)).filter(
+        (player: Player | null): player is Player =>
+          player !== null && player !== unit.player()
       );
+    },
+    forceWar = (player: Player, enemy: Player): void => {
+      clearBoth(flags, player, enemy, HOSTILE_INTENT);
+
+      const level = treatyLevel({ interactionRegistry }, player, enemy);
+
+      if (
+        (level === TreatyLevel.Ceasefire || level === TreatyLevel.Peace) &&
+        (isHuman(player, clientRegistry) || isHuman(enemy, clientRegistry))
+      ) {
+        madeToDeclareWar({ interactionRegistry, ruleRegistry }, player, enemy);
+      }
+
+      active(Peace, player, enemy).forEach((peace) => peace.expire(player));
+
+      if (!inContact(player, enemy)) {
+        return;
+      }
+
+      if (active(War, player, enemy).length === 0) {
+        interactionRegistry.register(
+          new War(player, enemy, new Never(), ruleRegistry)
+        );
+      }
+
+      const attitudes = attitude(flags);
+
+      attitudes.set(player, enemy, 100, 'forced-war');
+      attitudes.set(enemy, player, 100, 'forced-war');
+
+      if (
+        !hasFlag(flags, enemy, player, SNEAK_ATTACK) &&
+        !hasFlag(flags, player, enemy, SNEAK_ATTACK)
+      ) {
+        setFlag(flags, player, enemy, SNEAK_ATTACK);
+      }
+    };
 
   return [
     new Moved(
       BREAK_TREATY_RULE,
-      new Criterion((unit: Unit, action: Action): boolean => {
-        const enemy = enemyOf(action);
-
-        return enemy !== null && enemy !== unit.player();
-      }),
+      new Criterion(
+        (unit: Unit, action: Action): boolean =>
+          forcingWar.some(
+            (ActionType): boolean => action instanceof ActionType
+          ) || enemyOf(action) !== null
+      ),
       new Effect((unit: Unit, action: Action): void => {
-        const player = unit.player(),
-          enemy = enemyOf(action)!;
+        const player = unit.player();
 
         if (
-          !treatyAttacks.some(
+          !forcingWar.some(
             (ActionType): boolean => action instanceof ActionType
           )
         ) {
-          active(Peace, player, enemy).forEach((peace) => peace.expire(player));
+          const enemy = enemyOf(action)!;
 
-          return;
-        }
-
-        if (
-          treatyLevel({ interactionRegistry }, player, enemy) <
-          TreatyLevel.Ceasefire
-        ) {
-          return;
-        }
-
-        if (isHuman(player, clientRegistry) || isHuman(enemy, clientRegistry)) {
-          madeToDeclareWar(
-            { interactionRegistry, ruleRegistry },
-            player,
-            enemy
-          );
-
-          return;
-        }
-
-        [Peace, Ceasefire].forEach((DeclarationType) =>
-          active(DeclarationType, player, enemy).forEach((declaration) =>
-            declaration.expire(player)
-          )
-        );
-
-        interactionRegistry.register(
-          new War(player, enemy, new Never(), ruleRegistry)
-        );
-
-        const attitudes = attitude({ interactionRegistry, ruleRegistry, turn });
-
-        [
-          [player, enemy],
-          [enemy, player],
-        ].forEach(([holder, toward]) => {
-          if (attitudes.get(holder, toward) !== undefined) {
-            attitudes.set(holder, toward, 100, 'forced-war');
+          if (enemy !== player) {
+            active(Peace, player, enemy).forEach((peace) =>
+              peace.expire(player)
+            );
           }
-        });
+
+          return;
+        }
+
+        attacked(unit, action).forEach((enemy: Player): void =>
+          forceWar(player, enemy)
+        );
       })
     ),
   ];

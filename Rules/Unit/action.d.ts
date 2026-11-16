@@ -21,6 +21,7 @@ import { WorkedTileRegistry } from '@civ-clone/core-city/WorkedTileRegistry';
 import Criterion from '@civ-clone/core-rule/Criterion';
 import { RequirementRegistry } from '@civ-clone/core-requirement/RequirementRegistry';
 import { WonderRegistry } from '@civ-clone/core-wonder/WonderRegistry';
+import { ClientRegistry } from '@civ-clone/core-client/ClientRegistry';
 import Player from '@civ-clone/core-player/Player';
 import Tile from '@civ-clone/core-world/Tile';
 import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
@@ -50,6 +51,7 @@ export declare const treatyPartnerOf: (
 ) => (unit: Unit, tile: Tile) => Player | null;
 export interface ActionDependencies {
   cityGrowthRegistry?: CityGrowthRegistry;
+  clientRegistry?: ClientRegistry;
   cityImprovementRegistry?: CityImprovementRegistry;
   cityNameRegistry?: CityNameRegistry;
   cityRegistry?: CityRegistry;
@@ -82,6 +84,7 @@ export interface ActionDependencies {
  */
 export declare const getRules: ({
   cityGrowthRegistry,
+  clientRegistry,
   cityImprovementRegistry,
   cityNameRegistry,
   cityRegistry,

@@ -133,6 +133,7 @@ export const register = (game: Game): void => {
   game.rules.register(
     ...action({
       cityGrowthRegistry: game.cityGrowth,
+      clientRegistry: game.clients,
       cityImprovementRegistry: game.cityImprovements,
       cityNameRegistry: game.cityNames,
       cityRegistry: game.cities,
@@ -315,10 +316,12 @@ export const register = (game: Game): void => {
         rule.id() !== LIFECYCLE_BREAK_TREATY_RULE
     ),
     ...forcedWar({
+      cityRegistry: game.cities,
       clientRegistry: game.clients,
       interactionRegistry: game.interactions,
       ruleRegistry: game.rules,
       turn: game.turn,
+      unitRegistry: game.units,
     }),
     ...singleUse(),
     ...movementCost(

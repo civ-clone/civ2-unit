@@ -41,6 +41,12 @@ const RequirementRegistry_1 = require("@civ-clone/core-requirement/RequirementRe
 const WonderRegistry_1 = require("@civ-clone/core-wonder/WonderRegistry");
 const hasWonder_1 = require("@civ-clone/base-wonder/lib/hasWonder");
 const senate_1 = require("@civ-clone/base-government-senate/lib/senate");
+const ClientRegistry_1 = require("@civ-clone/core-client/ClientRegistry");
+const Contact_1 = require("@civ-clone/base-diplomacy-interaction-contact/Contact");
+const Palace_1 = require("@civ-clone/base-city-improvement-palace/Palace");
+const isHuman_1 = require("@civ-clone/civ2-difficulty/isHuman");
+const treatyLevel_2 = require("@civ-clone/base-diplomacy/lib/treatyLevel");
+const forcedWar_1 = require("./forcedWar");
 const TerrainFeatures_1 = require("@civ-clone/civ2-world/TerrainFeatures");
 const RoutePlanner_1 = require("@civ-clone/base-unit-action-rules/lib/RoutePlanner");
 const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
@@ -138,7 +144,7 @@ const rowOf = (unit) => rows.get(unit.constructor);
  *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy, an investigation and a meeting with the leader
  *  are offered; theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder is civ2-wonder's.
  */
-const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImprovementRegistry = CityImprovementRegistry_1.instance, cityNameRegistry = CityNameRegistry_1.instance, cityRegistry = CityRegistry_1.instance, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pathFinderRegistry = PathFinderRegistry_1.instance, pendingEffectRegistry = PendingEffectRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, requirementRegistry = RequirementRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, strategyNoteRegistry = StrategyNoteRegistry_1.instance, strategyRegistry = StrategyRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, wonderRegistry = WonderRegistry_1.instance, workedTileRegistry = WorkedTileRegistry_1.instance, } = {}) => {
+const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, cityImprovementRegistry = CityImprovementRegistry_1.instance, cityNameRegistry = CityNameRegistry_1.instance, cityRegistry = CityRegistry_1.instance, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pathFinderRegistry = PathFinderRegistry_1.instance, pendingEffectRegistry = PendingEffectRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, requirementRegistry = RequirementRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, strategyNoteRegistry = StrategyNoteRegistry_1.instance, strategyRegistry = StrategyRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, wonderRegistry = WonderRegistry_1.instance, workedTileRegistry = WorkedTileRegistry_1.instance, } = {}) => {
     // Allies (`TREATY_ALLIANCE`): one can't attack the other (`diplo_confirm_attack`), its units exert no zone of control
     //  on the other's (`tile_zoc_unit_adjacent`), and its land is no treaty partner's to trespass on.
     const allied = (player, other) => player !== other &&
@@ -151,10 +157,15 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
     }), 
     // A row that breaks a treaty: a player whose Senate intervenes (`SenateIntervenes`) is offered its `overruled/`
     //  form instead, which performs an `Overruled` spending `cost` (`diplo_confirm_attack`).
-    breaksTreaty = (row, cost) => ({
+    breaksTreaty = (row, cost, blocked = row.effect) => ({
         ...row,
-        breaksTreaty: { blocked: row.effect, cost },
-    });
+        breaksTreaty: { blocked, cost },
+    }), 
+    // The other players with units on `to`.
+    ownersOn = (unit, to) => Array.from(new Set(unitRegistry
+        .getByTile(to)
+        .map((tileUnit) => tileUnit.player())
+        .filter((player) => player !== unit.player())));
     const { landsInCity, landingTransport, canLandAircraft } = (0, landing_1.default)({
         cityRegistry,
         unitRegistry,
@@ -271,12 +282,25 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
             criteria: [...diplomatCriteria],
             effect: (unit, to, from = unit.tile()) => new Actions_1.InvestigateCity(from, to, unit, cityRegistry.getByTile(to), ruleRegistry),
         },
-        // Talks with the city's owner: the unit stays, with no moves left, and the talks are the client's
-        //  (base-unit-lifecycle's `leaderMet`). Last of the city missions, so a computer player, which takes the first
-        //  action it's offered, still makes embassies and investigates.
+        // Talks with the city's owner, offered only at a city with a Palace whose owner is a person
+        //  (`spy_city_mission_menu`, `unit_spy.cpp:211-218`: the original offers it in multiplayer games only, so to
+        //  another person; here any person stands for that). Talks with a computer player open from the client instead.
+        //  The unit stays, with no moves left, and the talks are the client's (base-unit-lifecycle's `leaderMet`). Last
+        //  of the city missions, so a computer player, which takes the first action it's offered, still makes embassies
+        //  and investigates.
         {
             name: 'meet-with-leader',
-            criteria: [...diplomatCriteria],
+            criteria: [
+                ...diplomatCriteria,
+                new Criterion_1.default((unit, to) => {
+                    const city = cityRegistry.getByTile(to);
+                    return (city !== null &&
+                        (0, isHuman_1.default)(city.player(), clientRegistry) &&
+                        cityImprovementRegistry
+                            .getByCity(city)
+                            .some((improvement) => improvement instanceof Palace_1.default));
+                }),
+            ],
             effect: (unit, to, from = unit.tile()) => new Actions_1.MeetWithLeader(from, to, unit, cityOwner(to), ruleRegistry),
         },
         // A Spy's mission against another player's lone unit outside a city (`spy_unit_mission`): it loses half its hit
@@ -315,13 +339,22 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
             ],
             effect: (unit, to, from = unit.tile()) => new Actions_1.LandAircraft(from, to, unit, landsInCity(unit, to) ? null : landingTransport(unit, to), ruleRegistry),
         },
-        // Onto an ally's city: the unit doesn't go in, but is repaired a tenth of its hit points (a fifth if the city has
-        //  Barracks), at most its damage, and its turn ends (`unit_move_dir`, `unit_move.cpp:803-830`).
+        // A land unit onto an ally's city: it doesn't go in, but is repaired a tenth of its hit points (a fifth if the city
+        //  has Barracks), at most its damage, and its turn ends (`unit_move_dir_land_unit_checks`,
+        //  `unit_move.cpp:803-830`). Not a Diplomat, a Spy, a Caravan or Freight, whose own moves into a city come first
+        //  (`unit_move.cpp:778-800`), nor a ship or an aircraft, which don't reach it.
         {
             name: 'allied-repair',
             criteria: [
                 Action_1.isNeighbouringTile,
                 Action_1.hasMovesLeft,
+                new Criterion_1.default((unit) => {
+                    const row = rowOf(unit);
+                    return (row !== undefined &&
+                        row[1] === units_1.LAND &&
+                        row[10] !== units_1.DIPLOMACY &&
+                        row[10] !== units_1.TRADE);
+                }),
                 new Criterion_1.default((unit, to) => {
                     const owner = cityOwner(to);
                     return owner !== null && allied(unit.player(), owner);
@@ -351,11 +384,14 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
             effect: (unit, to, from = unit.tile()) => new Actions_1.AbortMove(from, to, unit, movePartner(unit, to, from), ruleRegistry),
         },
         // Civ1's resolver: base-unit-action-attack's `Attack`, with Civ2's strengths (`strength`).
-        {
+        breaksTreaty({
             name: 'attack',
             criteria: [...attackCriteria, allPeaceExpired],
-            effect: (unit, to, from = unit.tile()) => new Actions_1.Attack(from, to, unit, ruleRegistry, unitRegistry),
-        },
+            effect: (unit, to, from = unit.tile()) => (0, forcedWar_1.recordTargets)(new Actions_1.Attack(from, to, unit, ruleRegistry, unitRegistry), ownersOn(unit, to)),
+        }, 
+        // A person attacking a player it has met and isn't at war with: the Senate may stop it (`diplo_confirm_attack`,
+        //  `unit_combat.cpp:1525`), which is offered as a blocked sneak attack.
+        undefined, (unit, to, from) => new Actions_1.SneakAttack(from, to, unit, ownersOn(unit, to)[0], ruleRegistry, unitRegistry)),
         // Across a treaty: never against an ally (`diplo_confirm_attack`), and the player's Senate may overrule it.
         breaksTreaty({
             name: 'sneak-attack',
@@ -366,14 +402,14 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
                     .getByTile(to)
                     .map((tileUnit) => tileUnit.player())
                     .filter((player) => atPeace(unit.player(), player));
-                return new Actions_1.SneakAttack(from, to, unit, enemy, ruleRegistry, unitRegistry);
+                return (0, forcedWar_1.recordTargets)(new Actions_1.SneakAttack(from, to, unit, enemy, ruleRegistry, unitRegistry), ownersOn(unit, to));
             },
         }),
-        {
+        breaksTreaty({
             name: 'nuclear-attack',
             criteria: [...nuclearAttackCriteria, noNuclearTargetAtPeace],
-            effect: (unit, to, from = unit.tile()) => new Actions_1.NuclearAttack(from, to, unit, ruleRegistry),
-        },
+            effect: (unit, to, from = unit.tile()) => (0, forcedWar_1.recordTargets)(new Actions_1.NuclearAttack(from, to, unit, ruleRegistry), nuclearTargets(unit, to)),
+        }, undefined, (unit, to, from) => new Actions_1.SneakNuclearAttack(from, to, unit, nuclearTargets(unit, to)[0], ruleRegistry)),
         breaksTreaty({
             name: 'sneak-nuclear-attack',
             criteria: [
@@ -383,14 +419,14 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
             ],
             effect: (unit, to, from = unit.tile()) => {
                 const [enemy] = nuclearTargets(unit, to).filter((player) => atPeace(unit.player(), player));
-                return new Actions_1.SneakNuclearAttack(from, to, unit, enemy, ruleRegistry);
+                return (0, forcedWar_1.recordTargets)(new Actions_1.SneakNuclearAttack(from, to, unit, enemy, ruleRegistry), nuclearTargets(unit, to));
             },
         }),
-        {
+        breaksTreaty({
             name: 'capture-city',
             criteria: [...captureCityCriteria, ownerPeaceExpired],
             effect: (unit, to, from = unit.tile()) => new Actions_1.CaptureCity(from, to, unit, cityRegistry.getByTile(to), ruleRegistry),
-        },
+        }, undefined, (unit, to, from) => new Actions_1.SneakCaptureCity(from, to, unit, cityRegistry.getByTile(to), cityOwner(to), ruleRegistry)),
         breaksTreaty({
             name: 'sneak-capture-city',
             criteria: [...captureCityCriteria, peaceWithOwner, noAllyOnTile],
@@ -601,7 +637,25 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
         ruleRegistry,
         // The treaty partner is the owner of the city or units on the target square, or else the player whose worked
         //  land it is. Civ2's Senate (civ2-diplomacy's `SenateIntervenes` rule) reads who it is.
-        hasSenate: (player, other, unit, to) => (0, senate_1.default)(player, other !== null && other !== void 0 ? other : partnerOf(unit, to), { reason: 'break-treaty' }, ruleRegistry),
+        //  Across a ceasefire, a peace or an alliance it is always asked. Otherwise only a person's is, attacking a player
+        //  it has met and isn't at war with (`diplo_confirm_attack`'s mask 0xd, asked for persons only,
+        //  `unit_combat.cpp:1524-1525`); at war, never.
+        hasSenate: (player, other, unit, to) => {
+            const partner = other !== null && other !== void 0 ? other : partnerOf(unit, to);
+            if (partner === null) {
+                return false;
+            }
+            const level = (0, treatyLevel_2.treatyLevel)({ interactionRegistry }, player, partner);
+            if (level < treatyLevel_1.TreatyLevel.Ceasefire &&
+                (level === treatyLevel_1.TreatyLevel.War ||
+                    !(0, isHuman_1.default)(player, clientRegistry) ||
+                    !interactionRegistry
+                        .getByPlayers(player, partner)
+                        .some((interaction) => interaction instanceof Contact_1.default))) {
+                return false;
+            }
+            return (0, senate_1.default)(player, partner, { reason: 'break-treaty' }, ruleRegistry);
+        },
         cityRegistry,
         unitRegistry,
     });

@@ -8,9 +8,7 @@
       "CaptureCity"
     ],
     "foreign unit, at peace": [],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -140,9 +138,7 @@
       "CaptureCity"
     ],
     "foreign unit, at peace": [],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -285,9 +281,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -393,9 +387,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -501,9 +493,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -609,9 +599,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -717,9 +705,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -825,9 +811,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -933,9 +917,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1041,9 +1023,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1149,9 +1129,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1257,9 +1235,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1365,9 +1341,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1473,9 +1447,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1581,9 +1553,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1689,9 +1659,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1797,9 +1765,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -1905,9 +1871,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2013,9 +1977,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2121,9 +2083,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2229,9 +2189,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2337,9 +2295,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2445,9 +2401,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2553,9 +2507,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2661,9 +2613,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2769,9 +2719,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -2877,9 +2825,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "Move"
     ],
@@ -3163,9 +3109,7 @@
     "foreign unit, at peace": [
       "SneakAttack"
     ],
-    "foreign city, at peace": [
-      "SneakCaptureCity"
-    ],
+    "foreign city, at peace": [],
     "own city": [
       "LandAircraft",
       "Move"

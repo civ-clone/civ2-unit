@@ -24,8 +24,10 @@ import action, {
   partisanPillageOrder,
   pillageOrder,
   pillageable,
-  territoryImprovements,
+  treatyPartnerOf,
 } from './Rules/Unit/action';
+import forcedWar, { LIFECYCLE_BREAK_TREATY_RULE } from './Rules/Unit/forcedWar';
+import Rule from '@civ-clone/core-rule/Rule';
 import defeated, { sparesStack } from './Rules/Unit/defeated';
 import { Partisan } from './Units';
 import airliftShotDown from './Rules/Unit/airlift';
@@ -64,7 +66,6 @@ import roles from './Rules/Unit/roles';
 import singleUse from './Rules/Unit/singleUse';
 import strength from './Rules/Unit/strength';
 import traits from './Rules/Unit/traits';
-import treatyPartner from '@civ-clone/base-unit-lifecycle/lib/treatyPartner';
 import unitYield from './Rules/Unit/yield';
 import { unitTypes } from './lib/unitTable';
 
@@ -119,7 +120,7 @@ export const register = (game: Game): void => {
       removedOnActivate: [Fortified],
       // Missiles go aboard a submarine as a `SingleUse` unit.
       stowable: [Land, Air, SingleUse as unknown as typeof Unit],
-      partnerOf: treatyPartner(territoryImprovements, {
+      partnerOf: treatyPartnerOf({
         interactionRegistry: game.interactions,
         tileImprovementRegistry: game.tileImprovements,
         workedTileRegistry: game.workedTiles,
@@ -132,6 +133,7 @@ export const register = (game: Game): void => {
   game.rules.register(
     ...action({
       cityGrowthRegistry: game.cityGrowth,
+      clientRegistry: game.clients,
       cityImprovementRegistry: game.cityImprovements,
       cityNameRegistry: game.cityNames,
       cityRegistry: game.cities,
@@ -140,6 +142,7 @@ export const register = (game: Game): void => {
       pathFinderRegistry: game.pathFinders,
       pendingEffectRegistry: game.pendingEffects,
       playerResearchRegistry: game.playerResearch,
+      requirementRegistry: game.requirements,
       ruleRegistry: game.rules,
       strategyNoteRegistry: game.strategyNotes,
       strategyRegistry: game.strategies,
@@ -149,6 +152,7 @@ export const register = (game: Game): void => {
       turn: game.turn,
       unitImprovementRegistry: game.unitImprovements,
       unitRegistry: game.units,
+      wonderRegistry: game.wonders,
       workedTileRegistry: game.workedTiles,
     }),
     ...lifecycle.activate,
@@ -282,6 +286,7 @@ export const register = (game: Game): void => {
     ...lifecycle.impassable,
     ...lifecycle.halted,
     ...lifecycle.lostAtSea,
+    // base-unit-lifecycle's moved rules but its `break-peace-treaty`, which `forcedWar` replaces.
     ...movedRules(
       'civ2-unit',
       {
@@ -306,7 +311,19 @@ export const register = (game: Game): void => {
         // Out of sight of land: none of the 9 squares, its own included, is land (`unit_move_dir_trireme_loss`).
         nearLand: adjacentToLand,
       }
+    ).filter(
+      (rule: Rule<any, any>): boolean =>
+        rule.id() !== LIFECYCLE_BREAK_TREATY_RULE
     ),
+    ...forcedWar({
+      cityRegistry: game.cities,
+      clientRegistry: game.clients,
+      interactionRegistry: game.interactions,
+      playerRegistry: game.players,
+      ruleRegistry: game.rules,
+      turn: game.turn,
+      unitRegistry: game.units,
+    }),
     ...singleUse(),
     ...movementCost(
       game.tileImprovements,

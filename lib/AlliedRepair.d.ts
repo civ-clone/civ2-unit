@@ -24,6 +24,7 @@ export declare class AlliedRepair extends Action {
     unitImprovementRegistry?: UnitImprovementRegistry,
     ruleRegistry?: RuleRegistry
   );
+  forUnit(unit: Unit): AlliedRepair;
   city(): City;
   /** The hit points the repair restores: `steps` tenths of the maximum, truncated, at most the damage. */
   amount(): number;

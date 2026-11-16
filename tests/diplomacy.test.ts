@@ -26,6 +26,8 @@ import Unit from '@civ-clone/core-unit/Unit';
 import UnitAction from '@civ-clone/core-unit/Action';
 import UnitedNations from '@civ-clone/base-wonder-unitednations/UnitedNations';
 import War from '@civ-clone/base-diplomacy-declaration-war/War';
+import WorkedTile from '@civ-clone/core-city/WorkedTile';
+import { Irrigation } from '@civ-clone/civ2-world/TileImprovements';
 import { attitude } from '@civ-clone/civ2-diplomacy/lib/relations';
 import { expect } from 'chai';
 
@@ -183,6 +185,55 @@ describe('treaties', function (): void {
       expect((await repairs(5, true)).damage).equal(3);
       expect((await repairs(1, true)).damage).equal(0);
       expect((await repairs(0, false)).damage).equal(0);
+    });
+
+    it("land can't be pillaged, but can be walked onto; a peace partner's can be pillaged by breaking the peace", async (): Promise<void> => {
+      const worked = (treaty: Treaty, target: 'from' | 'to'): Scenario => ({
+        name: "partner's worked land",
+        target: ({ world, from }) =>
+          target === 'from' ? from : world.get(6, 7),
+        prepare: ({ game, player, world, from }) => {
+          const partner = addPlayer(game),
+            city = addCity(game, partner, world.get(5, 7), 'Partner'),
+            square = target === 'from' ? from : world.get(6, 7);
+
+          game.workedTiles.register(new WorkedTile(square, city));
+          game.tileImprovements.register(new Irrigation(square, game.rules));
+
+          if (treaty === Alliance) {
+            game.interactions.register(new Peace(player, partner, game.rules));
+          }
+
+          game.interactions.register(new treaty(player, partner, game.rules));
+        },
+      });
+
+      const allied = offered(await setUp(worked(Alliance, 'from'), Warrior));
+
+      expect(allied).not.to.include('Pillage');
+      expect(allied).not.to.include('SneakPillage');
+      expect(offered(await setUp(worked(Peace, 'from'), Warrior))).to.include(
+        'SneakPillage'
+      );
+
+      const onto = offered(await setUp(worked(Alliance, 'to'), Warrior));
+
+      expect(onto).to.include('Move');
+      expect(onto).not.to.include('SneakMove');
+    });
+
+    it('keeps its city and repair when rebuilt for another unit', async (): Promise<void> => {
+      const { unit, to, from, game } = await setUp(
+          other('city', Alliance),
+          Warrior
+        ),
+        [repair] = unit.actions(to, from) as AlliedRepair[],
+        other2 = new Warrior(null, unit.player(), from, game.rules),
+        rebuilt = repair.forUnit(other2);
+
+      expect(rebuilt).instanceOf(AlliedRepair);
+      expect(rebuilt.city()).equal(repair.city());
+      expect(rebuilt.unit()).equal(other2);
     });
 
     it("aren't offered a repair at a peace partner's city", async (): Promise<void> => {

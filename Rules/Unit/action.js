@@ -212,7 +212,17 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
         interactionRegistry,
         tileImprovementRegistry,
         workedTileRegistry,
-    }), { movePartner, onPartnersLand, offPartnersLand, pillagingPartnersLand, notPillagingPartnersLand, } = (0, partners_1.default)({ unitRegistry }, partnerOf), pillageCriteria = (0, pillage_1.pillageCriteria)({ tileImprovementRegistry }, exports.pillageable), 
+    }), 
+    // Not an ally's worked land: pillaging there is refused (`unit_pillage` asks `diplo_confirm_attack`, which refuses
+    //  an ally), where moving onto it is free.
+    notAlliesLand = ((partner = (0, treatyPartner_1.default)(exports.territoryImprovements, {
+        interactionRegistry,
+        tileImprovementRegistry,
+        workedTileRegistry,
+    })) => new Criterion_1.default((unit, to) => {
+        const player = partner(unit, to);
+        return player === null || !allied(unit.player(), player);
+    }))(), { movePartner, onPartnersLand, offPartnersLand, pillagingPartnersLand, notPillagingPartnersLand, } = (0, partners_1.default)({ unitRegistry }, partnerOf), pillageCriteria = (0, pillage_1.pillageCriteria)({ tileImprovementRegistry }, exports.pillageable), 
     // Building a fortress or an airbase: never in a city (`unit_terrain_work_finish` builds neither there).
     noCity = new Criterion_1.default((unit, to, from = unit.tile()) => !(0, domain_1.tileHasCity)(from, cityRegistry)), cityHasAirport = (city) => cityImprovementRegistry
         .getByCity(city)
@@ -426,7 +436,7 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
         },
         {
             name: 'pillage',
-            criteria: [...pillageCriteria, notPillagingPartnersLand],
+            criteria: [...pillageCriteria, notPillagingPartnersLand, notAlliesLand],
             effect: (unit, to, from = unit.tile()) => new Actions_1.Pillage(from, to, unit, ruleRegistry, tileImprovementRegistry, turn),
         },
         breaksTreaty({

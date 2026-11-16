@@ -494,6 +494,20 @@ export const getRules = ({
       tileImprovementRegistry,
       workedTileRegistry,
     }),
+    // Not an ally's worked land: pillaging there is refused (`unit_pillage` asks `diplo_confirm_attack`, which refuses
+    //  an ally), where moving onto it is free.
+    notAlliesLand = ((
+      partner = treatyPartner(territoryImprovements, {
+        interactionRegistry,
+        tileImprovementRegistry,
+        workedTileRegistry,
+      })
+    ) =>
+      new Criterion((unit: Unit, to: Tile): boolean => {
+        const player = partner(unit, to);
+
+        return player === null || !allied(unit.player(), player);
+      }))(),
     {
       movePartner,
       onPartnersLand,
@@ -954,7 +968,7 @@ export const getRules = ({
 
       {
         name: 'pillage',
-        criteria: [...pillageCriteria, notPillagingPartnersLand],
+        criteria: [...pillageCriteria, notPillagingPartnersLand, notAlliesLand],
         effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
           new Pillage(
             from,

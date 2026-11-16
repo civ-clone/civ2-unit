@@ -43,6 +43,20 @@ export class AlliedRepair extends Action {
     this.addKey('city');
   }
 
+  // `Action.forUnit` rebuilds an action from `(from, to, unit, ruleRegistry)`, which would put the `RuleRegistry` where
+  //  the city goes.
+  forUnit(unit: Unit): AlliedRepair {
+    return new AlliedRepair(
+      this.from(),
+      this.to(),
+      unit,
+      this._city,
+      this._steps,
+      this._unitImprovementRegistry,
+      this.ruleRegistry()
+    );
+  }
+
   city(): City {
     return this._city;
   }

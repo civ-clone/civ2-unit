@@ -153,7 +153,7 @@
     "@civ-clone/base-unit-action-steal-technology": "^0.1.1",
     "@civ-clone/base-unit-action-transform-terrain": "^0.1.0",
     "@civ-clone/base-unit-action-unload": "^0.1.2",
-    "@civ-clone/base-unit-agent": "^0.1.1",
+    "@civ-clone/base-unit-agent": "^0.1.2",
     "@civ-clone/base-unit-alpinetrooper": "^0.1.0",
     "@civ-clone/base-unit-archer": "^0.1.0",
     "@civ-clone/base-unit-artillery": "^0.1.0",

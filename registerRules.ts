@@ -25,6 +25,7 @@ import Player from '@civ-clone/core-player/Player';
 import SubvertCity from '@civ-clone/base-unit-action-incite-revolt/SubvertCity';
 import dependenciesOf from '@civ-clone/civ2-diplomacy/lib/dependenciesOf';
 import espionage from './Rules/Unit/espionage';
+import missionChoice from './Rules/Unit/missionChoice';
 import { inciterBecomesFounder } from '@civ-clone/civ2-city/Rules/City/incited';
 import Veteran from '@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran';
 import action, {
@@ -376,6 +377,13 @@ export const register = (game: Game): void => {
           pendingEffectRegistry: game.pendingEffects,
           turn: game.turn,
         }),
+    }),
+    // A computer player's mission at a city, for the AI client to read.
+    ...missionChoice({
+      clientRegistry: game.clients,
+      diplomacy: dependenciesOf(game),
+      pendingEffectRegistry: game.pendingEffects,
+      randomNumberGenerator: game.rng,
     }),
     ...lifecycle.transferred,
     ...strength({

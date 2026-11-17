@@ -57,6 +57,9 @@ import { ITransport } from '@civ-clone/core-unit-transport/Transport';
 import Fortified from '@civ-clone/base-unit-action-fortify/Rules/Fortified';
 import Sleeping from '@civ-clone/base-unit-action-sleep/Rules/Sleeping';
 import computerMission from '../lib/computerMission';
+import missionChoiceRules from '../Rules/Unit/missionChoice';
+import { missionChoice } from '@civ-clone/base-unit-agent/lib/mission';
+import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
 import { Deity } from '@civ-clone/civ2-difficulty/Difficulties';
 import ManhattanProject from '@civ-clone/base-wonder-manhattanproject/ManhattanProject';
 import NuclearFission from '@civ-clone/base-science-advance-nuclearfission/NuclearFission';
@@ -1210,5 +1213,97 @@ describe("a computer player's incite (`spy_city_mission_ai_choice`)", function (
     expect(computerMission(unit, city, dependencies, draws(0.9))).to.equal(
       'steal-technology'
     );
+  });
+});
+
+describe("a computer player's mission, for the AI client (base-unit-agent's `MissionChoice`)", function (): void {
+  this.timeout(20000);
+
+  const choosing = async () => {
+    const { game, player, enemy, at } = await setUp(),
+      city = addCity(game, enemy, at(2, 1), 'Target'),
+      own = addCity(game, player, at(0, 0), 'Home'),
+      ruleRegistry = new RuleRegistry(),
+      drawn = [0];
+
+    ruleRegistry.register(
+      ...missionChoiceRules({
+        clientRegistry: game.clients,
+        diplomacy: dependenciesOf(game),
+        pendingEffectRegistry: game.pendingEffects,
+        randomNumberGenerator: (): number => {
+          drawn[0]++;
+
+          return 0;
+        },
+      })
+    );
+
+    computer(game, player);
+
+    return {
+      game,
+      player,
+      enemy,
+      at,
+      city,
+      own,
+      drawn,
+      choose: (unit: Unit, target: City = city): string | undefined =>
+        missionChoice(unit, target, ruleRegistry),
+      feud: (): void =>
+        game.interactions.register(
+          new Vendetta(player, enemy, new Never(), game.rules) as never
+        ),
+    };
+  };
+
+  it('is registered with the rest of the rules', async (): Promise<void> => {
+    const { game } = await setUp();
+
+    expect(game.rules.getById('civ2-unit:mission-choice/computer')).to.not
+      .undefined;
+  });
+
+  it("answers a computer's Spy with `computerMission`, drawing once only with a vendetta", async (): Promise<void> => {
+    const { at, choose, drawn, feud, game, player } = await choosing(),
+      spy = new Spy(null, player, at(1, 1), game.rules);
+
+    expect(choose(spy)).to.equal('steal-technology');
+    expect(drawn[0]).to.equal(0);
+
+    feud();
+    expect(choose(spy)).to.equal('poison-water');
+    expect(drawn[0]).to.equal(1);
+  });
+
+  it("draws once for a computer's Diplomat with a vendetta: a theft, or above King an incited revolt", async (): Promise<void> => {
+    const { at, choose, drawn, feud, game, player } = await choosing(),
+      diplomat = new Diplomat(null, player, at(1, 1), game.rules);
+
+    feud();
+    expect(choose(diplomat)).to.equal('steal-technology');
+    expect(drawn[0]).to.equal(1);
+
+    game.difficulty.set(Deity);
+    expect(choose(diplomat)).to.equal('incite-revolt');
+    expect(drawn[0]).to.equal(2);
+  });
+
+  it("gives no answer, and draws nothing, for a person's agent, a unit with no missions or its own city", async (): Promise<void> => {
+    const { at, choose, drawn, feud, game, own, player } = await choosing(),
+      human = new Player(),
+      caravan = new Caravan(null, player, at(1, 1), game.rules),
+      warrior = new Warrior(null, player, at(1, 1), game.rules),
+      spy = new Spy(null, player, at(1, 1), game.rules);
+
+    feud();
+    person(game, human);
+
+    expect(choose(new Spy(null, human, at(1, 1), game.rules))).to.undefined;
+    expect(choose(caravan)).to.undefined;
+    expect(choose(warrior)).to.undefined;
+    expect(choose(spy, own)).to.undefined;
+    expect(drawn[0]).to.equal(0);
   });
 });

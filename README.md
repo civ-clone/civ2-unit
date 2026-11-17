@@ -167,7 +167,9 @@ From OpenCiv2 `src/auto/unit_spy.cpp` and `unit_caravan_enter_city` (`unit.cpp:3
 - **Under a treaty** a person is offered theft, sabotage and poisoning only as `SneakStealTechnology`,
   `SneakIndustrialSabotage` and `SneakPoisonWater` (with `enemy()`), which a client confirms first
   (`spy_confirm_treaty_breach`). The treaty breaks only through the incident if the agent is lost.
-- **A computer's choice:** `lib/computerMission` is `spy_city_mission_ai_choice`, for the AI to read.
+- **A computer's choice:** `lib/computerMission` is `spy_city_mission_ai_choice`. `Rules/Unit/missionChoice` answers
+  base-unit-agent's `MissionChoice` with it for a computer player's agent (a person's gets no answer), for the AI client
+  to read once each time its agent is about to enter a city; it draws once, with a vendetta, as the original does.
 - **Trade routes:** a Caravan or Freight is offered `establish-trade-route` into any foreign city, or an own city other
   than its home with no distance or continent test; with no home, its player's nearest city is home for this (a route
   from a city to itself isn't offered), from land or a ship. What the route is worth is civ2-city's

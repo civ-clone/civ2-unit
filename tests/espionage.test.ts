@@ -541,7 +541,7 @@ describe('missions', function (): void {
     ]);
   });
 
-  it('incites a city: paid for, captured with the action as the cause, the Spy escaping elsewhere', async (): Promise<void> => {
+  it('incites a city: paid for, captured with the action as the cause, its units defecting, the Spy escaping elsewhere', async (): Promise<void> => {
     const {
       game,
       city,
@@ -551,10 +551,17 @@ describe('missions', function (): void {
       player,
     } = await mission(Spy, 'person');
 
+    const defender = new Warrior(null, city.player(), at(2, 1), game.rules),
+      beside = new Warrior(null, city.player(), at(3, 1), game.rules);
+
     withRng(game, draws(0.9));
     find(spy, at(2, 1), 'InciteRevolt')!.perform();
 
     expect(city.player()).to.equal(player);
+    // Its units, in it and beside it, go with it (`city_incite_transfer`), homed there.
+    expect(defender.player()).to.equal(player);
+    expect(beside.player()).to.equal(player);
+    expect(defender.city()).to.equal(city);
     expect(
       game.playerTreasuries.getByPlayerAndType(player, Gold).value()
     ).to.be.below(1000);

@@ -163,7 +163,9 @@ const register = (game) => {
         ruleRegistry: game.rules,
         turn: game.turn,
     });
-    game.rules.register(...(0, buildCost_1.default)(), ...cityUnits.buildingComplete, ...cityUnits.created, ...(0, created_1.default)({
+    game.rules.register(...(0, buildCost_1.default)(), ...cityUnits.buildingComplete, ...cityUnits.created, 
+    // The units in or beside a city incited to revolt go with it.
+    ...cityUnits.captured, ...(0, created_1.default)({
         playerGovernmentRegistry: game.playerGovernments,
         ruleRegistry: game.rules,
         unitImprovementRegistry: game.unitImprovements,

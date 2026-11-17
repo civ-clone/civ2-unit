@@ -227,6 +227,8 @@ export const register = (game: Game): void => {
     ...buildCost(),
     ...cityUnits.buildingComplete,
     ...cityUnits.created,
+    // The units in or beside a city incited to revolt go with it.
+    ...cityUnits.captured,
     ...created({
       playerGovernmentRegistry: game.playerGovernments,
       ruleRegistry: game.rules,

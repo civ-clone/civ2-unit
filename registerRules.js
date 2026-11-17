@@ -22,6 +22,7 @@ const InciteRevolt_1 = require("@civ-clone/base-unit-action-incite-revolt/Incite
 const SubvertCity_1 = require("@civ-clone/base-unit-action-incite-revolt/SubvertCity");
 const dependenciesOf_1 = require("@civ-clone/civ2-diplomacy/lib/dependenciesOf");
 const espionage_1 = require("./Rules/Unit/espionage");
+const missionChoice_1 = require("./Rules/Unit/missionChoice");
 const incited_1 = require("@civ-clone/civ2-city/Rules/City/incited");
 const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
 const action_1 = require("./Rules/Unit/action");
@@ -268,6 +269,13 @@ const register = (game) => {
             pendingEffectRegistry: game.pendingEffects,
             turn: game.turn,
         }),
+    }), 
+    // A computer player's mission at a city, for the AI client to read.
+    ...(0, missionChoice_1.default)({
+        clientRegistry: game.clients,
+        diplomacy: (0, dependenciesOf_1.default)(game),
+        pendingEffectRegistry: game.pendingEffects,
+        randomNumberGenerator: game.rng,
     }), ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,

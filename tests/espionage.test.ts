@@ -57,6 +57,9 @@ import { ITransport } from '@civ-clone/core-unit-transport/Transport';
 import Fortified from '@civ-clone/base-unit-action-fortify/Rules/Fortified';
 import Sleeping from '@civ-clone/base-unit-action-sleep/Rules/Sleeping';
 import computerMission from '../lib/computerMission';
+import missionChoiceRules from '../Rules/Unit/missionChoice';
+import { missionChoice } from '@civ-clone/base-unit-agent/lib/mission';
+import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
 import { Deity } from '@civ-clone/civ2-difficulty/Difficulties';
 import ManhattanProject from '@civ-clone/base-wonder-manhattanproject/ManhattanProject';
 import NuclearFission from '@civ-clone/base-science-advance-nuclearfission/NuclearFission';
@@ -1210,5 +1213,54 @@ describe("a computer player's incite (`spy_city_mission_ai_choice`)", function (
     expect(computerMission(unit, city, dependencies, draws(0.9))).to.equal(
       'steal-technology'
     );
+  });
+});
+
+describe("a computer player's mission, for the AI client (base-unit-agent's `MissionChoice`)", function (): void {
+  this.timeout(20000);
+
+  it('answers a computer with `computerMission`, drawing once with a vendetta, and a person with nothing', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      city = addCity(game, enemy, at(2, 1), 'Target'),
+      spy = new Spy(null, player, at(1, 1), game.rules),
+      ruleRegistry = new RuleRegistry();
+    let drawn = 0;
+
+    expect(game.rules.getById('civ2-unit:mission-choice/computer')).to.not
+      .undefined;
+
+    ruleRegistry.register(
+      ...missionChoiceRules({
+        clientRegistry: game.clients,
+        diplomacy: dependenciesOf(game),
+        pendingEffectRegistry: game.pendingEffects,
+        randomNumberGenerator: (): number => {
+          drawn++;
+
+          return 0;
+        },
+      })
+    );
+
+    computer(game, player);
+    expect(missionChoice(spy, city, ruleRegistry)).to.equal('steal-technology');
+    expect(drawn).to.equal(0);
+
+    game.interactions.register(
+      new Vendetta(player, enemy, new Never(), game.rules) as never
+    );
+    expect(missionChoice(spy, city, ruleRegistry)).to.equal('poison-water');
+    expect(drawn).to.equal(1);
+
+    const human = new Player();
+
+    person(game, human);
+    expect(
+      missionChoice(
+        new Spy(null, human, at(1, 1), game.rules),
+        city,
+        ruleRegistry
+      )
+    ).to.undefined;
   });
 });

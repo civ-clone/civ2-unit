@@ -83,7 +83,7 @@ import { cityStatus } from '@civ-clone/base-city-happiness-status/lib/cityStatus
 import { diagonalDistance } from '@civ-clone/civ2-city/lib/capitalLink';
 import { founderOf } from '@civ-clone/civ2-city/lib/founder';
 import isHuman from '@civ-clone/civ2-difficulty/isHuman';
-import { nearestCity as nearestOwnCity } from '@civ-clone/base-unit-agent/lib/escape';
+import { tradeRouteHome as civ2TradeRouteHome } from '@civ-clone/civ2-city/Rules/Unit/trade-route-established';
 import { playerOwnsWonder } from '@civ-clone/base-wonder/lib/hasWonder';
 import { robbed } from './espionage';
 import { stealableAdvances } from '@civ-clone/base-unit-action-steal-technology/lib/stealAdvance';
@@ -310,9 +310,9 @@ export const missionRows = ({
           requirementRegistry
         )
     ),
-    // A Caravan's home for a trade route: its own, or with none, its player's nearest city (`unit.cpp:694-699`).
+    // A Caravan's home for a trade route: civ2-city's, so the row and the delivery agree (`unit.cpp:694-699`).
     tradeRouteHome = (unit: Unit): City | null =>
-      (unit.city() as City | null) ?? nearestOwnCity(unit, cityRegistry);
+      civ2TradeRouteHome(unit, cityRegistry);
 
   return {
     costToIncite,

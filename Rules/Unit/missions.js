@@ -35,7 +35,7 @@ const cityStatus_1 = require("@civ-clone/base-city-happiness-status/lib/cityStat
 const capitalLink_1 = require("@civ-clone/civ2-city/lib/capitalLink");
 const founder_1 = require("@civ-clone/civ2-city/lib/founder");
 const isHuman_1 = require("@civ-clone/civ2-difficulty/isHuman");
-const escape_1 = require("@civ-clone/base-unit-agent/lib/escape");
+const trade_route_established_1 = require("@civ-clone/civ2-city/Rules/Unit/trade-route-established");
 const hasWonder_1 = require("@civ-clone/base-wonder/lib/hasWonder");
 const espionage_2 = require("./espionage");
 const stealAdvance_1 = require("@civ-clone/base-unit-action-steal-technology/lib/stealAdvance");
@@ -137,8 +137,8 @@ const missionRows = ({ cityGrowthRegistry, cityImprovementRegistry, cityRegistry
             settler: (0, espionage_1.isSettlerRole)(target),
         });
     }, hasNoEmbassy = (0, diplomat_1.hasNoEmbassy)({ cityRegistry, interactionRegistry }), noUnitedNations = new Criterion_1.default((unit) => !(0, hasWonder_1.playerOwnsWonder)(unit.player(), UnitedNations_1.default, wonderRegistry, playerResearchRegistry, requirementRegistry)), 
-    // A Caravan's home for a trade route: its own, or with none, its player's nearest city (`unit.cpp:694-699`).
-    tradeRouteHome = (unit) => { var _a; return (_a = unit.city()) !== null && _a !== void 0 ? _a : (0, escape_1.nearestCity)(unit, cityRegistry); };
+    // A Caravan's home for a trade route: civ2-city's, so the row and the delivery agree (`unit.cpp:694-699`).
+    tradeRouteHome = (unit) => (0, trade_route_established_1.tradeRouteHome)(unit, cityRegistry);
     return {
         costToIncite,
         costToBribe,

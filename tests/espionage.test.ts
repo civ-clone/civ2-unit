@@ -50,6 +50,12 @@ import espionage from '../Rules/Unit/espionage';
 import { expect } from 'chai';
 import { investigated } from '../lib/missionRecords';
 import computerMission from '../lib/computerMission';
+import { Deity } from '@civ-clone/civ2-difficulty/Difficulties';
+import ManhattanProject from '@civ-clone/base-wonder-manhattanproject/ManhattanProject';
+import NuclearFission from '@civ-clone/base-science-advance-nuclearfission/NuclearFission';
+import Rocketry from '@civ-clone/base-science-advance-rocketry/Rocketry';
+import War from '@civ-clone/base-diplomacy-declaration-war/War';
+import Writing from '@civ-clone/base-science-advance-writing/Writing';
 import Vendetta from '@civ-clone/library-diplomacy/Declarations/Vendetta';
 
 // The Diplomat's and Spy's missions (OpenCiv2 `src/auto/unit_spy.cpp`, e39fe7b): the numbers at their boundaries, and
@@ -656,7 +662,7 @@ describe("a computer player's mission (`spy_city_mission_ai_choice`)", function 
     ).to.equal('establish-embassy');
   });
 
-  it('poisons one time in three with a vendetta (a Spy), and at war above King incites', async (): Promise<void> => {
+  it('poisons one time in three with a vendetta, a Spy only', async (): Promise<void> => {
     const feud = (game: Game, player: Player, enemy: Player) =>
       game.interactions.register(
         new Vendetta(player, enemy, new Never(), game.rules) as never
@@ -665,5 +671,202 @@ describe("a computer player's mission (`spy_city_mission_ai_choice`)", function 
     expect(await choose(Spy, feud, draws(0.33))).to.equal('poison-water');
     expect(await choose(Spy, feud, draws(0.34))).to.equal('steal-technology');
     expect(await choose(Diplomat, feud, draws(0))).to.equal('steal-technology');
+  });
+});
+
+describe('escape odds, prices and a planted device, through the rules', function (): void {
+  this.timeout(20000);
+
+  const agent = async (
+    UnitType: typeof Unit,
+    who: 'person' | 'computer',
+    veteran = false
+  ) => {
+    const setting = await setUp(),
+      { game, player, enemy, at } = setting,
+      city = addCity(game, enemy, at(2, 1), 'Target'),
+      home = addCity(game, player, at(1, 5), 'Home'),
+      unit = new UnitType(home, player, at(1, 1), game.rules);
+
+    (who === 'person' ? person : computer)(game, player);
+    computer(game, enemy);
+    unit.moves().set(3);
+    treasury(game, player, 1000);
+    treasury(game, enemy, 0);
+
+    if (veteran) {
+      game.unitImprovements.register(new Veteran(unit));
+    }
+
+    return { ...setting, city, home, unit };
+  };
+
+  it('escapes an ordinary mission at odds 2, a veteran at 4 (`spy_try_escape`)', async (): Promise<void> => {
+    // A random sabotage of a city with nothing in it: one draw for the slot walk, then the escape's roll.
+    const escapes = async (veteran: boolean, roll: number) => {
+      const { game, unit, at } = await agent(Spy, 'computer', veteran);
+
+      withRng(game, draws(0, roll));
+      find(unit, at(2, 1), 'IndustrialSabotage')!.perform();
+
+      return !unit.destroyed();
+    };
+
+    expect(await escapes(false, 0.49)).to.false;
+    expect(await escapes(false, 0.5)).to.true;
+    expect(await escapes(true, 0.24)).to.false;
+    expect(await escapes(true, 0.25)).to.true;
+  });
+
+  it('passes a caught check at odds 3, a veteran at 6 (`spy_check_caught`)', async (): Promise<void> => {
+    // A person's Spy choosing an advance: the caught check is the first draw.
+    const passes = async (veteran: boolean, roll: number) => {
+      const { game, enemy, unit, at } = await agent(Spy, 'person', veteran);
+
+      game.playerResearch.getByPlayer(enemy).addAdvance(Alphabet);
+      withRng(game, draws(roll, 0.9));
+      (
+        find(unit, at(2, 1), 'StealTechnology') as unknown as {
+          perform(choice: unknown): void;
+        }
+      ).perform('Alphabet');
+
+      return game.playerResearch.getByPlayer(unit.player()).completed(Alphabet);
+    };
+
+    expect(await passes(false, 0.33)).to.false;
+    expect(await passes(false, 0.34)).to.true;
+    expect(await passes(true, 0.16)).to.false;
+    expect(await passes(true, 0.17)).to.true;
+  });
+
+  it('has a computer incite only with twice the price in hand, and bribe only up to half its gold', async (): Promise<void> => {
+    const {
+        game,
+        city,
+        unit: diplomat,
+        at,
+        player,
+      } = await agent(Diplomat, 'computer'),
+      incite = find(diplomat, at(2, 1), 'InciteRevolt') as unknown as {
+        cost(): number;
+        perform(): void;
+      },
+      gold = game.playerTreasuries.getByPlayerAndType(player, Gold);
+
+    gold.set(incite.cost() * 2 - 1);
+    incite.perform();
+    expect(city.player()).to.not.equal(player);
+
+    gold.set(incite.cost() * 2);
+    (
+      find(diplomat, at(2, 1), 'InciteRevolt') as unknown as {
+        perform(): void;
+      }
+    ).perform();
+    expect(city.player()).to.equal(player);
+
+    const briber = await agent(Diplomat, 'computer'),
+      lone = new Warrior(
+        null,
+        briber.enemy,
+        briber.at(2, 2),
+        briber.game.rules
+      );
+
+    briber.game.playerResearch.getByPlayer(briber.player).addAdvance(Writing);
+
+    const bribe = find(
+        briber.unit,
+        briber.at(2, 2),
+        'BribeUnit'
+      ) as unknown as {
+        cost(): number;
+        perform(): void;
+      },
+      briberGold = briber.game.playerTreasuries.getByPlayerAndType(
+        briber.player,
+        Gold
+      );
+
+    briberGold.set(bribe.cost() * 2 - 2);
+    bribe.perform();
+    expect(lone.player()).to.equal(briber.enemy);
+
+    briberGold.set(bribe.cost() * 2);
+    bribe.perform();
+    expect(lone.player()).to.equal(briber.player);
+  });
+
+  it('plants a nuclear device: three caught checks and one for a Palace, then discovery at ½ (`unit_spy.cpp:680-712`)', async (): Promise<void> => {
+    const {
+        game,
+        city,
+        home,
+        unit: spy,
+        at,
+        player,
+        enemy,
+      } = await agent(Spy, 'person'),
+      discovered: unknown[] = [];
+
+    game.engine.on(
+      'civ2-diplomacy:nuclear-device-discovered',
+      (...args: unknown[]) => discovered.push(args)
+    );
+    game.players.register(player, enemy);
+    [Rocketry, NuclearFission].forEach((Advance) =>
+      game.playerResearch.getByPlayer(player).addAdvance(Advance)
+    );
+    expect(names(spy, at(2, 1))).to.not.include('PlantNuclearDevice');
+
+    game.wonders.register(new ManhattanProject(home, game.rules));
+    build(game, city, Palace);
+    expect(names(spy, at(2, 1))).to.include('PlantNuclearDevice');
+
+    let caught = 0;
+
+    withRng(game, () => (++caught <= 4 ? 0.5 : 0));
+    find(spy, at(2, 1), 'PlantNuclearDevice')!.perform();
+
+    // Four caught checks (3 + the Palace), then the discovery roll.
+    expect(caught).to.equal(5);
+    expect(discovered).length(1);
+    // The Spy stood within the blast.
+    expect(spy.destroyed()).to.true;
+  });
+});
+
+describe("a computer player's incite (`spy_city_mission_ai_choice`)", function (): void {
+  this.timeout(20000);
+
+  it('incites above King at war, never in a Democracy', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      city = addCity(game, enemy, at(2, 1), 'Target'),
+      unit = new Diplomat(null, player, at(1, 1), game.rules),
+      dependencies = {
+        ...dependenciesOf(game),
+        pendingEffectRegistry: game.pendingEffects,
+      };
+
+    game.difficulty.set(Deity);
+    expect(computerMission(unit, city, dependencies, draws(0.9))).to.equal(
+      'steal-technology'
+    );
+
+    game.interactions.register(
+      new War(player, enemy, new Never(), game.rules) as never
+    );
+    expect(computerMission(unit, city, dependencies, draws(0.9))).to.equal(
+      'incite-revolt'
+    );
+
+    const government = new PlayerGovernment(enemy, undefined, game.rules);
+
+    government.set(new Democracy());
+    game.playerGovernments.register(government);
+    expect(computerMission(unit, city, dependencies, draws(0.9))).to.equal(
+      'steal-technology'
+    );
   });
 });

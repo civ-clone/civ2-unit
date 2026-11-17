@@ -1,6 +1,6 @@
 {
   "name": "@civ-clone/civ2-unit",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Civilization II's units: the 51 types, their traits, roles, stats, costs, build requirements, movement, combat and actions, on shared base rules.",
   "main": "index.js",
   "repository": "git@github.com:civ-clone/civ2-unit.git",

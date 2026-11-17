@@ -690,6 +690,35 @@ describe('treaties', function (): void {
       expect(await joins(true)).equal(TreatyLevel.Contact);
     });
 
+    it('brings no ally into a war after a capture, only after a battle (`city.cpp:5405`, `unit_combat.cpp:1593`)', async (): Promise<void> => {
+      let ally: Player | undefined;
+
+      const result = await attack(null, {
+        Action: 'capture',
+        what: 'city',
+        human: ['enemy'],
+        extra: ({ game, player, enemy }) => {
+          ally = addPlayer(game);
+          computer(game, ally);
+          game.players.register(player, enemy, ally);
+          sign(game, enemy, ally, Alliance);
+          game.interactions.register(
+            new Contact(enemy, ally, game.rules),
+            new Contact(player, ally, game.rules)
+          );
+        },
+      });
+
+      expect(result.sneak).to.true;
+      expect(
+        treatyLevel(
+          { interactionRegistry: result.game.interactions },
+          ally!,
+          result.player
+        )
+      ).equal(TreatyLevel.Contact);
+    });
+
     it('starts no war with a nuclear attack on an empty city, which is no battle', async (): Promise<void> => {
       const result = await attack(null, { Action: 'nuclear', what: 'city' });
 

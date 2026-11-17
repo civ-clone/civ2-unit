@@ -19,6 +19,13 @@ import { Requirement } from '@civ-clone/core-requirement/Requirement';
 import RuleSet from '@civ-clone/core-rule/RuleSet';
 import { SneakAttack, SneakMove, SneakPillage } from './Actions';
 import Unit from '@civ-clone/core-unit/Unit';
+import Detonates from '@civ-clone/base-unit-trait-detonates/Detonates';
+import InciteRevolt from '@civ-clone/base-unit-action-incite-revolt/InciteRevolt';
+import Player from '@civ-clone/core-player/Player';
+import SubvertCity from '@civ-clone/base-unit-action-incite-revolt/SubvertCity';
+import dependenciesOf from '@civ-clone/civ2-diplomacy/lib/dependenciesOf';
+import espionage from './Rules/Unit/espionage';
+import { inciterBecomesFounder } from '@civ-clone/civ2-city/Rules/City/incited';
 import Veteran from '@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran';
 import action, {
   partisanPillageOrder,
@@ -141,7 +148,11 @@ export const register = (game: Game): void => {
       interactionRegistry: game.interactions,
       pathFinderRegistry: game.pathFinders,
       pendingEffectRegistry: game.pendingEffects,
+      playerGovernmentRegistry: game.playerGovernments,
+      playerRegistry: game.players,
       playerResearchRegistry: game.playerResearch,
+      playerTreasuryRegistry: game.playerTreasuries,
+      randomNumberGenerator: game.rng,
       requirementRegistry: game.requirements,
       ruleRegistry: game.rules,
       strategyNoteRegistry: game.strategyNotes,
@@ -200,7 +211,8 @@ export const register = (game: Game): void => {
         game.cities
       ),
       lostWithCity: [Veteran],
-      defectingCauses: [],
+      // Units in or beside a city incited to revolt go with it (`city_incite_transfer`, `city.cpp:2252-2275`).
+      defectingCauses: [InciteRevolt, SubvertCity],
     }
   );
 
@@ -270,8 +282,9 @@ export const register = (game: Game): void => {
             distance
           );
 
+          // Only a missile: a Spy's planted device isn't stopped (`unit_nuclear_attack(civ, x, y, 0)`, `unit_spy.cpp:687`).
           return (unit: Unit, tile: Tile): boolean => {
-            const stopped = protectedBy(unit, tile);
+            const stopped = unit.hasTrait(Detonates) && protectedBy(unit, tile);
 
             if (stopped) {
               game.engine.emit('unit:nuclear-stopped', unit, tile);
@@ -317,6 +330,7 @@ export const register = (game: Game): void => {
     ),
     ...forcedWar({
       cityRegistry: game.cities,
+      diplomacy: dependenciesOf(game),
       clientRegistry: game.clients,
       interactionRegistry: game.interactions,
       playerRegistry: game.players,
@@ -335,6 +349,31 @@ export const register = (game: Game): void => {
     ...lifecycle.stowed,
     ...missions.embassyEstablished,
     ...missions.cityInvestigated,
+    // What the Diplomat's and Spy's missions do, and whether the agent survives them.
+    ...espionage({
+      cityBuildRegistry: game.cityBuilds,
+      cityGrowthRegistry: game.cityGrowth,
+      cityImprovementRegistry: game.cityImprovements,
+      cityRegistry: game.cities,
+      clientRegistry: game.clients,
+      diplomacy: dependenciesOf(game),
+      engine: game.engine,
+      interactionRegistry: game.interactions,
+      pendingEffectRegistry: game.pendingEffects,
+      playerGovernmentRegistry: game.playerGovernments,
+      playerResearchRegistry: game.playerResearch,
+      playerTreasuryRegistry: game.playerTreasuries,
+      randomNumberGenerator: game.rng,
+      ruleRegistry: game.rules,
+      turn: game.turn,
+      unitImprovementRegistry: game.unitImprovements,
+      unitRegistry: game.units,
+      inciterBecomesFounder: (city: City, inciter: Player): void =>
+        inciterBecomesFounder(city, inciter, {
+          pendingEffectRegistry: game.pendingEffects,
+          turn: game.turn,
+        }),
+    }),
     ...lifecycle.transferred,
     ...strength({
       cityImprovementRegistry: game.cityImprovements,

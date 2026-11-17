@@ -1,11 +1,16 @@
 import { Attack, CaptureCity, NuclearAttack, Pillage } from '../../Actions';
 import nearestCity from '../../lib/nearestCity';
+import InciteRevolt from '@civ-clone/base-unit-action-incite-revolt/InciteRevolt';
+import IndustrialSabotage from '@civ-clone/base-unit-action-industrial-sabotage/IndustrialSabotage';
+import PoisonWater from '@civ-clone/base-unit-action-poison-water/PoisonWater';
+import StealTechnology from '@civ-clone/base-unit-action-steal-technology/StealTechnology';
 import { alliesJoinWar } from '@civ-clone/civ2-diplomacy/lib/alliances';
+import Dependencies from '@civ-clone/civ2-diplomacy/lib/Dependencies';
+import { forceWar as forceWarOn } from '@civ-clone/civ2-diplomacy/lib/espionage';
 import {
   PlayerRegistry,
   instance as playerRegistryInstance,
 } from '@civ-clone/core-player/PlayerRegistry';
-import Ceasefire from '@civ-clone/base-diplomacy-declaration-ceasefire/Ceasefire';
 import {
   CityRegistry,
   instance as cityRegistryInstance,
@@ -14,13 +19,6 @@ import {
   ClientRegistry,
   instance as clientRegistryInstance,
 } from '@civ-clone/core-client/ClientRegistry';
-import {
-  HOSTILE_INTENT,
-  SNEAK_ATTACK,
-  clearBoth,
-  hasFlag,
-  setFlag,
-} from '@civ-clone/civ2-diplomacy/lib/flags';
 import {
   InteractionRegistry,
   instance as interactionRegistryInstance,
@@ -41,21 +39,15 @@ import {
   UnitRegistry,
   instance as unitRegistryInstance,
 } from '@civ-clone/core-unit/UnitRegistry';
-import {
-  attitude,
-  madeToDeclareWar,
-} from '@civ-clone/civ2-diplomacy/lib/relations';
+import { madeToDeclareWar } from '@civ-clone/civ2-diplomacy/lib/relations';
 import Action from '@civ-clone/core-unit/Action';
-import Contact from '@civ-clone/base-diplomacy-interaction-contact/Contact';
 import Criterion from '@civ-clone/core-rule/Criterion';
 import Declaration from '@civ-clone/core-diplomacy/Declaration';
 import Effect from '@civ-clone/core-rule/Effect';
 import Moved from '@civ-clone/core-unit/Rules/Moved';
-import { Never } from '@civ-clone/core-diplomacy/Expiries';
 import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
 import Player from '@civ-clone/core-player/Player';
 import Unit from '@civ-clone/core-unit/Unit';
-import War from '@civ-clone/base-diplomacy-declaration-war/War';
 import isHuman from '@civ-clone/civ2-difficulty/isHuman';
 
 /** The rule base-unit-lifecycle's `movedRules` makes for any action with an enemy, which this package's replaces. */
@@ -90,9 +82,22 @@ export interface ForcedWarDependencies {
   ruleRegistry?: RuleRegistry;
   turn?: Turn;
   unitRegistry?: UnitRegistry;
+  // civ2-diplomacy's dependencies (`dependenciesOf(game)`); without them, built from the registries above.
+  diplomacy?: Dependencies;
 }
 
+// The Diplomat's and Spy's missions with an enemy (the forms a person is warned about under a treaty) break nothing
+//  themselves: the treaty breaks only through the incident if the agent is lost (civ2-diplomacy's `AgentLost` rule), or
+//  through an incited city's capture.
+const missions = [
+  StealTechnology,
+  IndustrialSabotage,
+  PoisonWater,
+  InciteRevolt,
+];
+
 const enemyOf = (action: Action): Player | null =>
+  !missions.some((Mission): boolean => action instanceof Mission) &&
   typeof (action as unknown as { enemy?: unknown }).enemy === 'function'
     ? (action as unknown as { enemy(): Player }).enemy()
     : null;
@@ -129,9 +134,9 @@ export const getRules = ({
   ruleRegistry = ruleRegistryInstance,
   turn = turnInstance,
   unitRegistry = unitRegistryInstance,
+  diplomacy,
 }: ForcedWarDependencies = {}): Moved[] => {
-  const flags = { interactionRegistry, ruleRegistry, turn },
-    // The declarations of `DeclarationType` in force between the two.
+  const // The declarations of `DeclarationType` in force between the two.
     active = (
       DeclarationType: new (...args: any[]) => Declaration,
       player: Player,
@@ -144,10 +149,6 @@ export const getRules = ({
             interaction instanceof DeclarationType &&
             (interaction as Declaration).active()
         ),
-    inContact = (player: Player, other: Player): boolean =>
-      interactionRegistry
-        .getByPlayers(player, other)
-        .some((interaction) => interaction instanceof Contact),
     attacked = (unit: Unit, action: Action): Player[] => {
       const players =
         targets.get(action) ??
@@ -168,59 +169,36 @@ export const getRules = ({
           player !== null && player !== unit.player()
       );
     },
-    forceWar = (player: Player, enemy: Player): void => {
-      clearBoth(flags, player, enemy, HOSTILE_INTENT);
-
-      const level = treatyLevel({ interactionRegistry }, player, enemy);
-
-      if (
-        (level === TreatyLevel.Ceasefire || level === TreatyLevel.Peace) &&
-        (isHuman(player, clientRegistry) || isHuman(enemy, clientRegistry))
-      ) {
-        madeToDeclareWar({ interactionRegistry, ruleRegistry }, player, enemy);
-      }
-
-      active(Peace, player, enemy).forEach((peace) => peace.expire(player));
-
-      if (!inContact(player, enemy)) {
+    // civ2-diplomacy's dependencies, for its `forceWar` (`diplo_force_war`).
+    diplomacyDependencies =
+      diplomacy ??
+      ({
+        cityRegistry,
+        clientRegistry,
+        interactionRegistry,
+        playerRegistry,
+        ruleRegistry,
+        turn,
+        unitRegistry,
+      } as unknown as Dependencies),
+    // `diplo_force_war`, then, after a battle (not a capture: `city.cpp:5405`), the victim's allies join a war not
+    //  declared (`unit_combat.cpp:1593`).
+    forceWar = (player: Player, enemy: Player, battle: boolean): void => {
+      if (!forceWarOn(diplomacyDependencies, player, enemy) || !battle) {
         return;
       }
 
-      if (active(War, player, enemy).length === 0) {
-        interactionRegistry.register(
-          new War(player, enemy, new Never(), ruleRegistry)
-        );
-      }
-
-      active(Ceasefire, player, enemy).forEach((ceasefire) =>
-        ceasefire.expire(player)
+      alliesJoinWar(
+        {
+          clientRegistry,
+          interactionRegistry,
+          playerRegistry,
+          ruleRegistry,
+          turn,
+        },
+        enemy,
+        player
       );
-
-      const attitudes = attitude(flags);
-
-      attitudes.set(player, enemy, 100, 'forced-war');
-      attitudes.set(enemy, player, 100, 'forced-war');
-
-      if (
-        !hasFlag(flags, enemy, player, SNEAK_ATTACK) &&
-        !hasFlag(flags, player, enemy, SNEAK_ATTACK)
-      ) {
-        setFlag(flags, player, enemy, SNEAK_ATTACK);
-
-        // The first attack of a war not declared: the victim's allies join it (`diplo_allies_join_war`, called when
-        //  `diplo_force_war` returns 1, `unit_combat.cpp:1593`).
-        alliesJoinWar(
-          {
-            clientRegistry,
-            interactionRegistry,
-            playerRegistry,
-            ruleRegistry,
-            turn,
-          },
-          enemy,
-          player
-        );
-      }
     };
 
   return [
@@ -275,7 +253,7 @@ export const getRules = ({
         }
 
         attacked(unit, action).forEach((enemy: Player): void =>
-          forceWar(player, enemy)
+          forceWar(player, enemy, !(action instanceof CaptureCity))
         );
       })
     ),

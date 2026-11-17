@@ -19,12 +19,10 @@ import {
   Disband,
   Disembark,
   Embark,
-  EstablishEmbassy,
   Explore,
   Fortify,
   FoundCity,
   GoTo,
-  InvestigateCity,
   JoinCity,
   AlliedRepair,
   UndeclaredAttack,
@@ -184,7 +182,6 @@ import {
   hasTreatyLevel,
 } from '@civ-clone/base-diplomacy/lib/treatyLevel';
 import Barracks from '@civ-clone/base-city-improvement-barracks/Barracks';
-import UnitedNations from '@civ-clone/base-wonder-unitednations/UnitedNations';
 import {
   RequirementRegistry,
   instance as requirementRegistryInstance,
@@ -193,7 +190,6 @@ import {
   WonderRegistry,
   instance as wonderRegistryInstance,
 } from '@civ-clone/core-wonder/WonderRegistry';
-import { playerOwnsWonder } from '@civ-clone/base-wonder/lib/hasWonder';
 import senateIntervenes from '@civ-clone/base-government-senate/lib/senate';
 import {
   ClientRegistry,
@@ -216,10 +212,6 @@ import Unit from '@civ-clone/core-unit/Unit';
 import UnitAction from '@civ-clone/core-unit/Action';
 import Veteran from '@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran';
 import { Water } from '@civ-clone/core-terrain/Types';
-import {
-  diplomat,
-  hasNoEmbassy as buildHasNoEmbassy,
-} from '@civ-clone/base-unit-action-rules/lib/criteria/diplomat';
 import domainMoveCriteria from '@civ-clone/base-unit-action-rules/lib/criteria/move';
 import { isA } from '@civ-clone/core-unit/traits';
 import { joinableCity } from '@civ-clone/base-unit-action-join-city/joinableCity';
@@ -252,6 +244,24 @@ import { terrainJob } from '@civ-clone/base-unit-action-rules/lib/criteria/worke
 import transformCriteria from '@civ-clone/base-unit-action-transform-terrain/lib/criteria';
 import { unitTypes } from '../../lib/unitTable';
 import { Engineer } from '../../Units';
+
+import {
+  PlayerGovernmentRegistry,
+  instance as playerGovernmentRegistryInstance,
+} from '@civ-clone/core-government/PlayerGovernmentRegistry';
+import {
+  PlayerRegistry,
+  instance as playerRegistryInstance,
+} from '@civ-clone/core-player/PlayerRegistry';
+import {
+  PlayerTreasuryRegistry,
+  instance as playerTreasuryRegistryInstance,
+} from '@civ-clone/core-treasury/PlayerTreasuryRegistry';
+import { EscapeMode, escapeOdds } from '@civ-clone/base-unit-agent/lib/escape';
+import { instance as randomNumberGeneratorInstance } from '@civ-clone/core-random';
+import buildManhattanProjectBuilt from '../../lib/manhattanProject';
+import { isVeteran } from '../../lib/espionage';
+import missionRows from './missions';
 
 /** The tile improvements that make a worked square a treaty partner's land. */
 export const territoryImprovements: (typeof TileImprovement)[] = [
@@ -342,8 +352,13 @@ export interface ActionDependencies {
   engine?: Engine;
   interactionRegistry?: InteractionRegistry;
   pathFinderRegistry?: PathFinderRegistry;
+  manhattanProjectBuilt?: () => boolean;
   pendingEffectRegistry?: PendingEffectRegistry;
+  playerGovernmentRegistry?: PlayerGovernmentRegistry;
+  playerRegistry?: PlayerRegistry;
   playerResearchRegistry?: PlayerResearchRegistry;
+  playerTreasuryRegistry?: PlayerTreasuryRegistry;
+  randomNumberGenerator?: () => number;
   requirementRegistry?: RequirementRegistry;
   ruleRegistry?: RuleRegistry;
   strategyNoteRegistry?: StrategyNoteRegistry;
@@ -364,10 +379,9 @@ export interface ActionDependencies {
  *  treaty (a ceasefire, a peace or an alliance) is gated by the player's Senate (`SenateIntervenes`, which
  *  civ2-diplomacy answers): when it intervenes, the row's `overruled/` form is offered instead (`diplo_confirm_attack`).
  *  An ally is never attacked, its units exert no zone of control, and a unit moving onto its city is repaired there
- *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy and an investigation are offered (Civ2's mission
- *  menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a multiplayer game's chat
- *  spying, and talks open from the client); theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder
- *  is civ2-wonder's.
+ *  (`allied-repair`). The Diplomat's and Spy's missions and the Caravan's trade route come first (`Rules/Unit/missions`;
+ *  Civ2's mission menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a
+ *  multiplayer game's chat spying, and talks open from the client). Help with a wonder is civ2-wonder's.
  */
 export const getRules = ({
   cityGrowthRegistry = cityGrowthRegistryInstance,
@@ -379,7 +393,11 @@ export const getRules = ({
   interactionRegistry = interactionRegistryInstance,
   pathFinderRegistry = pathFinderRegistryInstance,
   pendingEffectRegistry = pendingEffectRegistryInstance,
+  playerGovernmentRegistry = playerGovernmentRegistryInstance,
+  playerRegistry = playerRegistryInstance,
   playerResearchRegistry = playerResearchRegistryInstance,
+  playerTreasuryRegistry = playerTreasuryRegistryInstance,
+  randomNumberGenerator = randomNumberGeneratorInstance,
   requirementRegistry = requirementRegistryInstance,
   ruleRegistry = ruleRegistryInstance,
   strategyNoteRegistry = strategyNoteRegistryInstance,
@@ -392,6 +410,10 @@ export const getRules = ({
   unitRegistry = unitRegistryInstance,
   wonderRegistry = wonderRegistryInstance,
   workedTileRegistry = workedTileRegistryInstance,
+  manhattanProjectBuilt = buildManhattanProjectBuilt(
+    wonderRegistry,
+    cityImprovementRegistry
+  ),
 }: ActionDependencies = {}): Action[] => {
   // Allies (`TREATY_ALLIANCE`): one can't attack the other (`diplo_confirm_attack`), its units exert no zone of control
   //  on the other's (`tile_zoc_unit_adjacent`), and its land is no treaty partner's to trespass on.
@@ -599,22 +621,26 @@ export const getRules = ({
         ],
       })
     ),
-    // A Diplomat's or Spy's missions to a rival's city, next to it with moves left and not from a ship. Theft and
-    //  sabotage wait (M2a deviations). An embassy is once per civilization, and not offered to the owner of the United
-    //  Nations (`spy_city_mission_menu`, `unit_spy.cpp:171-172`): only an `Embassy` of the player's own counts, not
-    //  the embassy Marco Polo's acts as, so its owner may still make one that outlasts the wonder.
-    { diplomatCriteria } = diplomat({ cityRegistry }),
-    hasNoEmbassy = buildHasNoEmbassy({ cityRegistry, interactionRegistry }),
-    noUnitedNations = new Criterion(
-      (unit: Unit): boolean =>
-        !playerOwnsWonder(
-          unit.player(),
-          UnitedNations,
-          wonderRegistry,
-          playerResearchRegistry,
-          requirementRegistry
-        )
-    ),
+    // The Diplomat's and Spy's missions, and the Caravan's trade route.
+    missions = missionRows({
+      cityGrowthRegistry,
+      cityImprovementRegistry,
+      cityRegistry,
+      clientRegistry,
+      interactionRegistry,
+      manhattanProjectBuilt,
+      pendingEffectRegistry,
+      playerGovernmentRegistry,
+      playerRegistry,
+      playerResearchRegistry,
+      playerTreasuryRegistry,
+      requirementRegistry,
+      ruleRegistry,
+      turn,
+      unitImprovementRegistry,
+      unitRegistry,
+      wonderRegistry,
+    }),
     // The owner of the city on `to`.
     cityOwner = (to: Tile): Player | null =>
       cityRegistry.getByTile(to)?.player() ?? null,
@@ -646,35 +672,15 @@ export const getRules = ({
   return actionRules(
     'civ2-unit',
     [
-      // The Diplomat's missions first, as civ1-unit's: a computer player takes the first action it's offered.
-      {
-        name: 'establish-embassy',
-        criteria: [...diplomatCriteria, hasNoEmbassy, noUnitedNations],
-        effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
-          new EstablishEmbassy(
-            from,
-            to,
-            unit,
-            cityRegistry.getByTile(to)!,
-            ruleRegistry
-          ) as UnitAction,
-      },
+      // The Diplomat's and Spy's missions on a city first (`Rules/Unit/missions`): a computer player takes the first
+      //  action it's offered, and the original's computers steal by default (`spy_city_mission_ai_choice`).
+      ...missions.city,
 
-      {
-        name: 'investigate-city',
-        criteria: [...diplomatCriteria],
-        effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
-          new InvestigateCity(
-            from,
-            to,
-            unit,
-            cityRegistry.getByTile(to)!,
-            ruleRegistry
-          ) as UnitAction,
-      },
+      // Against another player's lone unit outside a city (`spy_unit_mission`): a bribe, which any Diplomat or Spy is
+      //  offered, then, for a person's Spy, sabotage: the unit loses half its hit points. A veteran Spy escapes at twice
+      //  the odds, and an escaped one becomes a veteran (`spy_try_escape`).
+      missions.bribe,
 
-      // A Spy's mission against another player's lone unit outside a city (`spy_unit_mission`): it loses half its hit
-      //  points. A veteran Spy escapes at twice the odds, and an escaped one becomes a veteran (`spy_try_escape`).
       {
         name: 'sabotage-unit',
         criteria: [
@@ -682,7 +688,9 @@ export const getRules = ({
             { cityRegistry, unitRegistry },
             (unit: Unit): boolean => unit.hasTrait(Covert)
           ),
-          allPeaceExpired,
+          new Criterion((unit: Unit): boolean =>
+            isHuman(unit.player(), clientRegistry)
+          ),
         ],
         effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
           new SabotageUnit(
@@ -692,26 +700,23 @@ export const getRules = ({
             ruleRegistry,
             unitRegistry,
             cityRegistry,
-            undefined,
+            randomNumberGenerator,
             {
-              escapeOdds: (spy: Unit): number =>
-                unitImprovementRegistry
-                  .getByUnit(spy)
-                  .some((improvement) => improvement instanceof Veteran)
-                  ? 4
-                  : 2,
+              escapeOdds: (spy: Unit, mode: EscapeMode): number =>
+                escapeOdds(mode, isVeteran(spy, unitImprovementRegistry)),
               escaped: (spy: Unit): void => {
-                if (
-                  !unitImprovementRegistry
-                    .getByUnit(spy)
-                    .some((improvement) => improvement instanceof Veteran)
-                ) {
+                if (!isVeteran(spy, unitImprovementRegistry)) {
                   unitImprovementRegistry.register(new Veteran(spy));
                 }
               },
             }
           ) as UnitAction,
       },
+
+      // A Caravan's or Freight's trade route, before `move`, so a computer's sets it up on arrival, as the original's
+      //  does (`unit_caravan_enter_city`); `move` is still offered into its own cities, so a person can keep moving.
+      //  What the route is worth is civ2-city's `TradeRouteEstablished` rule.
+      missions.tradeRoute,
 
       // Before `move`, so it's the first action for a square an aircraft can land on.
       {

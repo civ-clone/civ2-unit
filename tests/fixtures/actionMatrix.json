@@ -4531,12 +4531,15 @@
     "foreign unit": [],
     "foreign city": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "IndustrialSabotage",
+      "InciteRevolt"
     ],
     "foreign unit, at peace": [],
     "foreign city, at peace": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "IndustrialSabotage"
     ],
     "own city": [
       "Move"
@@ -4630,17 +4633,20 @@
     "empty land neighbour": [
       "Move"
     ],
-    "foreign unit": [
-      "SabotageUnit"
-    ],
+    "foreign unit": [],
     "foreign city": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "IndustrialSabotage",
+      "PoisonWater",
+      "InciteRevolt"
     ],
     "foreign unit, at peace": [],
     "foreign city, at peace": [
       "EstablishEmbassy",
-      "InvestigateCity"
+      "InvestigateCity",
+      "IndustrialSabotage",
+      "PoisonWater"
     ],
     "own city": [
       "Move"
@@ -4735,10 +4741,15 @@
       "Move"
     ],
     "foreign unit": [],
-    "foreign city": [],
+    "foreign city": [
+      "EstablishTradeRoute"
+    ],
     "foreign unit, at peace": [],
-    "foreign city, at peace": [],
+    "foreign city, at peace": [
+      "EstablishTradeRoute"
+    ],
     "own city": [
+      "EstablishTradeRoute",
       "Move"
     ],
     "water": [],
@@ -4831,10 +4842,15 @@
       "Move"
     ],
     "foreign unit": [],
-    "foreign city": [],
+    "foreign city": [
+      "EstablishTradeRoute"
+    ],
     "foreign unit, at peace": [],
-    "foreign city, at peace": [],
+    "foreign city, at peace": [
+      "EstablishTradeRoute"
+    ],
     "own city": [
+      "EstablishTradeRoute",
       "Move"
     ],
     "water": [],

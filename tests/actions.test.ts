@@ -1,3 +1,6 @@
+import AIClient from '@civ-clone/core-ai-client/AIClient';
+import Client from '@civ-clone/core-client/Client';
+import Writing from '@civ-clone/base-science-advance-writing/Writing';
 // Civilization II's new orders and the rules around them, as civ2-unit registers them (survey-units §4.1, §5.1 and §7;
 //  OpenCiv2 richardpenman/civ2@49f26ec).
 import airliftShotDown, { airliftThreat } from '../Rules/Unit/airlift';
@@ -36,7 +39,7 @@ import {
   Road,
 } from '@civ-clone/civ2-world/TileImprovements';
 import { Grassland, Hills, Mountains } from '@civ-clone/civ2-world/Terrains';
-import { addCity, setUp } from './lib/game';
+import { addCity, addPlayer, setUp } from './lib/game';
 import { Construction, Refrigeration } from '@civ-clone/civ2-world/Advances';
 import Airport from '@civ-clone/base-city-improvement-airport/Airport';
 import Detonated from '@civ-clone/base-unit-action-nuclear-attack/Rules/Detonated';
@@ -239,16 +242,31 @@ describe('paradrop, airlift and sabotage', function (): void {
     expect(actionNames(musketeers, at(5, 5))).to.include('Airlift');
   });
 
-  it("offers a Spy, not a Diplomat, sabotage of another player's lone unit", async (): Promise<void> => {
+  it("offers a person's Spy, not a Diplomat or a computer's Spy, sabotage of another player's lone unit, and each a bribe (`spy_unit_mission`)", async (): Promise<void> => {
     const { game, player, enemy, at } = await setUp(),
+      computer = addPlayer(game),
       spy = new Spy(null, player, at(1, 1), game.rules),
-      diplomat = new Diplomat(null, player, at(1, 1), game.rules);
+      diplomat = new Diplomat(null, player, at(1, 1), game.rules),
+      computerSpy = new Spy(null, computer, at(1, 2), game.rules);
 
-    [spy, diplomat].forEach((unit) => unit.moves().set(1));
+    game.clients.register(new (class extends Client {})(player) as never);
+    game.clients.register(new (class extends AIClient {})(computer) as never);
+
+    [spy, diplomat, computerSpy].forEach((unit) => unit.moves().set(1));
     new Musketeers(null, enemy, at(2, 1), game.rules);
 
-    expect(actionNames(spy, at(2, 1))).to.include('SabotageUnit');
+    // A computer bribes only knowing the Diplomat's prerequisite (`unit_spy.cpp:1090`).
+    expect(actionNames(computerSpy, at(2, 1))).to.not.include('BribeUnit');
+    game.playerResearch.getByPlayer(computer).addAdvance(Writing);
+
+    expect(actionNames(spy, at(2, 1))).to.include.members([
+      'BribeUnit',
+      'SabotageUnit',
+    ]);
+    expect(actionNames(diplomat, at(2, 1))).to.include('BribeUnit');
     expect(actionNames(diplomat, at(2, 1))).to.not.include('SabotageUnit');
+    expect(actionNames(computerSpy, at(2, 1))).to.include('BribeUnit');
+    expect(actionNames(computerSpy, at(2, 1))).to.not.include('SabotageUnit');
   });
 });
 

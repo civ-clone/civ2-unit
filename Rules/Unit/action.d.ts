@@ -27,6 +27,9 @@ import Tile from '@civ-clone/core-world/Tile';
 import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
 import Unit from '@civ-clone/core-unit/Unit';
 import { TreatyPartnerDependencies } from '@civ-clone/base-unit-lifecycle/lib/treatyPartner';
+import { PlayerGovernmentRegistry } from '@civ-clone/core-government/PlayerGovernmentRegistry';
+import { PlayerRegistry } from '@civ-clone/core-player/PlayerRegistry';
+import { PlayerTreasuryRegistry } from '@civ-clone/core-treasury/PlayerTreasuryRegistry';
 /** The tile improvements that make a worked square a treaty partner's land. */
 export declare const territoryImprovements: (typeof TileImprovement)[];
 /**
@@ -58,8 +61,13 @@ export interface ActionDependencies {
   engine?: Engine;
   interactionRegistry?: InteractionRegistry;
   pathFinderRegistry?: PathFinderRegistry;
+  manhattanProjectBuilt?: () => boolean;
   pendingEffectRegistry?: PendingEffectRegistry;
+  playerGovernmentRegistry?: PlayerGovernmentRegistry;
+  playerRegistry?: PlayerRegistry;
   playerResearchRegistry?: PlayerResearchRegistry;
+  playerTreasuryRegistry?: PlayerTreasuryRegistry;
+  randomNumberGenerator?: () => number;
   requirementRegistry?: RequirementRegistry;
   ruleRegistry?: RuleRegistry;
   strategyNoteRegistry?: StrategyNoteRegistry;
@@ -79,10 +87,9 @@ export interface ActionDependencies {
  *  treaty (a ceasefire, a peace or an alliance) is gated by the player's Senate (`SenateIntervenes`, which
  *  civ2-diplomacy answers): when it intervenes, the row's `overruled/` form is offered instead (`diplo_confirm_attack`).
  *  An ally is never attacked, its units exert no zone of control, and a unit moving onto its city is repaired there
- *  (`allied-repair`). Of the Diplomat's and Spy's missions, an embassy and an investigation are offered (Civ2's mission
- *  menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a multiplayer game's chat
- *  spying, and talks open from the client); theft, sabotage, revolt and bribery are part 2 of M2d. Help with a wonder
- *  is civ2-wonder's.
+ *  (`allied-repair`). The Diplomat's and Spy's missions and the Caravan's trade route come first (`Rules/Unit/missions`;
+ *  Civ2's mission menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a
+ *  multiplayer game's chat spying, and talks open from the client). Help with a wonder is civ2-wonder's.
  */
 export declare const getRules: ({
   cityGrowthRegistry,
@@ -94,7 +101,11 @@ export declare const getRules: ({
   interactionRegistry,
   pathFinderRegistry,
   pendingEffectRegistry,
+  playerGovernmentRegistry,
+  playerRegistry,
   playerResearchRegistry,
+  playerTreasuryRegistry,
+  randomNumberGenerator,
   requirementRegistry,
   ruleRegistry,
   strategyNoteRegistry,
@@ -107,5 +118,6 @@ export declare const getRules: ({
   unitRegistry,
   wonderRegistry,
   workedTileRegistry,
+  manhattanProjectBuilt,
 }?: ActionDependencies) => Action[];
 export default getRules;

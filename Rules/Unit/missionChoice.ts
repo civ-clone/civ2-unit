@@ -8,6 +8,7 @@ import {
 } from '@civ-clone/core-pending-effect/PendingEffectRegistry';
 import City from '@civ-clone/core-city/City';
 import Dependencies from '@civ-clone/civ2-diplomacy/lib/Dependencies';
+import DiplomaticMissions from '@civ-clone/base-unit-trait-diplomatic-missions/DiplomaticMissions';
 import Effect from '@civ-clone/core-rule/Effect';
 import MissionChoice from '@civ-clone/base-unit-agent/Rules/MissionChoice';
 import Unit from '@civ-clone/core-unit/Unit';
@@ -26,8 +27,9 @@ export interface MissionChoiceDependencies {
 /**
  * A computer player's mission at a city (base-unit-agent's `MissionChoice`), as `spy_city_mission_ai_choice`
  * (`unit_spy.cpp:227-251`) chooses it: `lib/computerMission`, for the AI client to read once each time its Diplomat or
- * Spy is about to enter a city. It draws as the original does, once with a vendetta (a Spy's poisoning). A person's
- * agent gets no answer: the person chooses.
+ * Spy is about to enter another player's city. It draws as the original does, once with a vendetta. Anything else (a
+ * person's agent, who chooses for itself, a unit with no diplomatic missions, or the unit's own city) gets no answer and
+ * draws nothing.
  */
 export const getRules = ({
   clientRegistry = clientRegistryInstance,
@@ -38,6 +40,8 @@ export const getRules = ({
   new MissionChoice(
     'civ2-unit:mission-choice/computer',
     new Effect((unit: Unit, city: City): string | undefined =>
+      !unit.hasTrait(DiplomaticMissions) ||
+      city.player() === unit.player() ||
       isHuman(unit.player(), clientRegistry)
         ? undefined
         : computerMission(

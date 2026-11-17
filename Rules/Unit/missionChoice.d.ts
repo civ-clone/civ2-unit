@@ -11,8 +11,9 @@ export interface MissionChoiceDependencies {
 /**
  * A computer player's mission at a city (base-unit-agent's `MissionChoice`), as `spy_city_mission_ai_choice`
  * (`unit_spy.cpp:227-251`) chooses it: `lib/computerMission`, for the AI client to read once each time its Diplomat or
- * Spy is about to enter a city. It draws as the original does, once with a vendetta (a Spy's poisoning). A person's
- * agent gets no answer: the person chooses.
+ * Spy is about to enter another player's city. It draws as the original does, once with a vendetta. Anything else (a
+ * person's agent, who chooses for itself, a unit with no diplomatic missions, or the unit's own city) gets no answer and
+ * draws nothing.
  */
 export declare const getRules: ({
   clientRegistry,

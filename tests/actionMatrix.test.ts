@@ -17,9 +17,20 @@ import { unitTypes } from '../lib/unitTable';
 //  lists them in order, so the order is behaviour.
 
 const actionRuleIds = [
+  'steal-technology',
+  'sneak-steal-technology',
   'establish-embassy',
   'investigate-city',
+  'industrial-sabotage',
+  'sneak-industrial-sabotage',
+  'poison-water',
+  'sneak-poison-water',
+  'plant-nuclear-device',
+  'incite-revolt',
+  'subvert-city',
+  'bribe-unit',
   'sabotage-unit',
+  'establish-trade-route',
   'land-aircraft',
   'allied-repair',
   'move',
@@ -84,7 +95,7 @@ const fixturePath = join(
 describe('unit actions', function (): void {
   this.timeout(300000);
 
-  it('registers the 54 action rules in their order, each attack and treaty-breaking one followed by its overruled form', (): void => {
+  it('registers the 65 action rules in their order, each attack and treaty-breaking one followed by its overruled form', (): void => {
     const game = new Game({ rng: createRng(1008) });
 
     register(game);
@@ -201,6 +212,6 @@ describe('unit actions', function (): void {
     }
 
     expect(cells).length(51 * 21);
-    expect(count).to.equal(338354);
+    expect(count).to.equal(361861);
   });
 });

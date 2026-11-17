@@ -1,4 +1,5 @@
 import { Attack, CaptureCity, NuclearAttack } from '../../Actions';
+import Dependencies from '@civ-clone/civ2-diplomacy/lib/Dependencies';
 import { PlayerRegistry } from '@civ-clone/core-player/PlayerRegistry';
 import { CityRegistry } from '@civ-clone/core-city/CityRegistry';
 import { ClientRegistry } from '@civ-clone/core-client/ClientRegistry';
@@ -33,6 +34,7 @@ export interface ForcedWarDependencies {
   ruleRegistry?: RuleRegistry;
   turn?: Turn;
   unitRegistry?: UnitRegistry;
+  diplomacy?: Dependencies;
 }
 /**
  * What an attack does to its target's relations, in place of base-unit-lifecycle's `break-peace-treaty` rule: OpenCiv2
@@ -66,5 +68,6 @@ export declare const getRules: ({
   ruleRegistry,
   turn,
   unitRegistry,
+  diplomacy,
 }?: ForcedWarDependencies) => Moved[];
 export default getRules;

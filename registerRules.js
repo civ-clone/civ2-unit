@@ -17,6 +17,12 @@ const Move_1 = require("@civ-clone/base-unit-action-move/Move");
 const RuleSets_1 = require("./RuleSets");
 const RuleSet_1 = require("@civ-clone/core-rule/RuleSet");
 const Actions_1 = require("./Actions");
+const Detonates_1 = require("@civ-clone/base-unit-trait-detonates/Detonates");
+const InciteRevolt_1 = require("@civ-clone/base-unit-action-incite-revolt/InciteRevolt");
+const SubvertCity_1 = require("@civ-clone/base-unit-action-incite-revolt/SubvertCity");
+const dependenciesOf_1 = require("@civ-clone/civ2-diplomacy/lib/dependenciesOf");
+const espionage_1 = require("./Rules/Unit/espionage");
+const incited_1 = require("@civ-clone/civ2-city/Rules/City/incited");
 const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
 const action_1 = require("./Rules/Unit/action");
 const forcedWar_1 = require("./Rules/Unit/forcedWar");
@@ -109,7 +115,11 @@ const register = (game) => {
         interactionRegistry: game.interactions,
         pathFinderRegistry: game.pathFinders,
         pendingEffectRegistry: game.pendingEffects,
+        playerGovernmentRegistry: game.playerGovernments,
+        playerRegistry: game.players,
         playerResearchRegistry: game.playerResearch,
+        playerTreasuryRegistry: game.playerTreasuries,
+        randomNumberGenerator: game.rng,
         requirementRegistry: game.requirements,
         ruleRegistry: game.rules,
         strategyNoteRegistry: game.strategyNotes,
@@ -144,7 +154,8 @@ const register = (game) => {
         defenders: exports.defenders,
         homeCity: (0, homeCity_1.default)((from, to) => from.distanceFrom(to), game.cities),
         lostWithCity: [Veteran_1.default],
-        defectingCauses: [],
+        // Units in or beside a city incited to revolt go with it (`city_incite_transfer`, `city.cpp:2252-2275`).
+        defectingCauses: [InciteRevolt_1.default, SubvertCity_1.default],
     });
     const missions = (0, diplomatRules_1.default)('civ2-unit', {
         engine: game.engine,
@@ -152,7 +163,9 @@ const register = (game) => {
         ruleRegistry: game.rules,
         turn: game.turn,
     });
-    game.rules.register(...(0, buildCost_1.default)(), ...cityUnits.buildingComplete, ...cityUnits.created, ...(0, created_1.default)({
+    game.rules.register(...(0, buildCost_1.default)(), ...cityUnits.buildingComplete, ...cityUnits.created, 
+    // The units in or beside a city incited to revolt go with it.
+    ...cityUnits.captured, ...(0, created_1.default)({
         playerGovernmentRegistry: game.playerGovernments,
         ruleRegistry: game.rules,
         unitImprovementRegistry: game.unitImprovements,
@@ -190,8 +203,9 @@ const register = (game) => {
         vetoes: (() => {
             const protectedBy = (0, detonatedRules_1.protectedByCityWithin)(game.cities, 3, (city, unit) => city.player() !== unit.player() &&
                 (0, hasImprovementOrWonder_1.cityHasImprovement)(city, SdiDefence_1.default, game.cityImprovements), distance_1.default);
+            // Only a missile: a Spy's planted device isn't stopped (`unit_nuclear_attack(civ, x, y, 0)`, `unit_spy.cpp:687`).
             return (unit, tile) => {
-                const stopped = protectedBy(unit, tile);
+                const stopped = unit.hasTrait(Detonates_1.default) && protectedBy(unit, tile);
                 if (stopped) {
                     game.engine.emit('unit:nuclear-stopped', unit, tile);
                 }
@@ -222,13 +236,39 @@ const register = (game) => {
         nearLand: movedRules_1.adjacentToLand,
     }).filter((rule) => rule.id() !== forcedWar_1.LIFECYCLE_BREAK_TREATY_RULE), ...(0, forcedWar_1.default)({
         cityRegistry: game.cities,
+        diplomacy: (0, dependenciesOf_1.default)(game),
         clientRegistry: game.clients,
         interactionRegistry: game.interactions,
         playerRegistry: game.players,
         ruleRegistry: game.rules,
         turn: game.turn,
         unitRegistry: game.units,
-    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, ...lifecycle.transferred, ...(0, strength_1.default)({
+    }), ...(0, singleUse_1.default)(), ...(0, movementCost_1.default)(game.tileImprovements, game.transports, game.terrainFeatures, game.cities), ...lifecycle.playerAction, ...lifecycle.stowed, ...missions.embassyEstablished, ...missions.cityInvestigated, 
+    // What the Diplomat's and Spy's missions do, and whether the agent survives them.
+    ...(0, espionage_1.default)({
+        cityBuildRegistry: game.cityBuilds,
+        cityGrowthRegistry: game.cityGrowth,
+        cityImprovementRegistry: game.cityImprovements,
+        cityRegistry: game.cities,
+        clientRegistry: game.clients,
+        diplomacy: (0, dependenciesOf_1.default)(game),
+        engine: game.engine,
+        interactionRegistry: game.interactions,
+        pendingEffectRegistry: game.pendingEffects,
+        playerGovernmentRegistry: game.playerGovernments,
+        playerResearchRegistry: game.playerResearch,
+        playerTreasuryRegistry: game.playerTreasuries,
+        randomNumberGenerator: game.rng,
+        ruleRegistry: game.rules,
+        transportRegistry: game.transports,
+        turn: game.turn,
+        unitImprovementRegistry: game.unitImprovements,
+        unitRegistry: game.units,
+        inciterBecomesFounder: (city, inciter) => (0, incited_1.inciterBecomesFounder)(city, inciter, {
+            pendingEffectRegistry: game.pendingEffects,
+            turn: game.turn,
+        }),
+    }), ...lifecycle.transferred, ...(0, strength_1.default)({
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,
         playerResearchRegistry: game.playerResearch,

@@ -103,17 +103,75 @@ From OpenCiv2 `diplo_confirm_attack`, `diplo_force_war` (`diplomacy.cpp:6861-692
   any peace ends; and once they've met a war is in force (with no declaration when there wasn't one, ending any
   ceasefire left between two computer players), both attitudes are set to 100, even mid-war, and the attacker is
   marked as having attacked without declaring war (civ2-diplomacy's `SNEAK_ATTACK`) unless either side already is;
-  when it is, the victim's allies join the war (civ2-diplomacy's `alliesJoinWar`, `unit_combat.cpp:1593`). No
+  after a battle (not a capture, `city.cpp:5405`), the victim's allies join the war (civ2-diplomacy's `forceWar`,
+  then `alliesJoinWar`, `unit_combat.cpp:1593`). Espionage missions with an enemy (the warned forms below) break
+  nothing themselves. No
   vendetta is left. A person pillaging is made to declare war on the owner of the nearest city, anyone's at any
   distance, unless it is the person's own or they're at war, treaty or not (`unit.cpp:2985-2998`,
   `madeToDeclareWar`); a computer player's pillage changes no treaty. Moving onto a partner's land (civ-clone's own
   sneak move, which the original doesn't have) ends the peace only.
 - **Paradrop** never lands in the city of a player with a treaty. The original lets a person drop there, asking its
   Senate (`unit.cpp:2305-2316`); here no one may.
-- **Diplomats and Spies:** Establish Embassy and Investigate City, in that order. The embassy isn't offered to a
-  player that has an `Embassy` there or owns a standing United Nations; Marco Polo's doesn't hide it. There is no Meet
-  with Leader: the original's mission menu has none (its option 7 is a multiplayer game's chat spying), and talks open
-  from the client.
+
+## Diplomats, Spies and Caravans (M2d part 2)
+
+From OpenCiv2 `src/auto/unit_spy.cpp` and `unit_caravan_enter_city` (`unit.cpp:3331`), on base-unit-agent's seams
+(`Rules/Unit/missions` offers them, `Rules/Unit/espionage` carries them out, `lib/espionage` holds the numbers):
+
+- **Rows, in order** (a computer takes the first; theft is its default): steal, embassy, investigate, industrial
+  sabotage, poison water, plant a nuclear device, incite a revolt, subvert (the doubled price), bribe a unit, sabotage a
+  unit, then a trade route, before `move`.
+  - **Theft:** a Diplomat once per city (any thief's `AdvanceStolen`, which a change of owner clears), a Spy also at a
+    robbed city; a computer only while there's something to take, and a person who finds nothing pays a move. The
+    advance is walked over `@CIVILIZE`'s 100 slots from a `rand % 100` drawn as the mission starts, before any caught
+    check or detection. A person's Spy at a city not
+    yet robbed may choose the advance (`MissionTargets`): a caught check, then the hard escape. A Spy at a robbed city
+    makes a caught check and the hard escape too. Each Diplomat or Spy in the city detects a random theft at 20, 40 or
+    60 in 100 (Diplomat, Spy, veteran Spy): the thief stays, its moves spent, and nothing more happens.
+  - **Industrial sabotage:** a random building (39 slots from a `rand % 39` always drawn first, never the Palace or SDI
+    Defense), or the production when there's none or, rolled whenever there are shields in the box, at 1 in 2 for a
+    Diplomat, 1 in 3 for a Spy, one more for a veteran. A person's Spy may choose a building (not the Palace, SDI Defense or a Wonder) or the production: one
+    caught check, another with a Palace in the city, another for City Walls, then the hard escape. **Classic:** the
+    damage happens only when either side is a person, so two computer players' sabotage only spends the agent.
+  - **Poison water** (Spy): a person's at size 2 or more; a city loses 1, or at size 1 its food box empties. The escape
+    is ordinary or hard on a coin flip.
+  - **Plant a nuclear device** (a person's Spy): Rocketry, Nuclear Fission and a Manhattan Project ever built; three
+    caught checks and one more for a Palace. SDI Defense doesn't stop it. Unless the planter is Fundamentalist, the
+    others find out at ½ (a veteran ¼): civ2-diplomacy's `nuclearDeviceDiscovered`.
+  - **Incite a revolt:** not a Democracy's city, nor with the agent within 2 (diagonally) of the owner's Palace; a
+    computer only without a treaty, and only with twice the price in hand. The price is `size × ((gold + 1000) /
+    (distance + 3))`, the distance from the agent to the nearest Palace (16 with none; 10 at most under Communism;
+    halved by a Courthouse), halved in disorder, again for an empty city and again for its founder; a Spy pays a sixth
+    less, a veteran a third. Under a treaty a person may pay double (`SubvertCity`) below 15001: civ2-city's
+    `inciterBecomesFounder` runs just before the capture. Either way the city is captured with the action as the cause
+    (civ2-city's `Captured` rules), its units in it and beside it defect (`defectingCauses`), homed there with full
+    moves, every order but fortifying (their busy state) cleared, and the inciter counts 2 subversions.
+  - **Bribe a unit** (lone, outside a city, not a Democracy's): `cost × ((gold + 750) / (distance + 2))`, the distance
+    from the owner's Palace to the unit (10 at most under the briber's Communism), halved but for Settlers and
+    Engineers. A computer needs the Diplomat's prerequisite, never bribes a Caravan or Freight and pays only up to half
+    its gold. The unit is rehomed in the nearest city if that's the briber's, its moves restored and every order
+    cleared; the briber then moves onto its square, or, bribing a ship at sea from land, boards it if it has room and
+    otherwise stays.
+  - **Sabotage a unit:** a person's Spy only (the original's default combat rules give it bribe or sabotage); the unit
+    loses half its hit points left.
+- **Missions start from land or a ship**, and none has a treaty test (`unit_move_dir_land_unit_checks`).
+- **Caught checks** (`spy_check_caught`, odds 3, a veteran 6; a Diplomat is always caught): a Spy that passes one goes
+  to its nearest city with its moves spent, before the mission goes on, but pays no move and isn't promoted; a Spy
+  planting a device is therefore away from the blast. Any escape to a city takes the agent off a ship it was aboard
+  (base-unit-agent's `escape`, given the game's transport registry).
+- **Escapes** (`AgentSurvives`): a Diplomat is used up after a mission. A Spy pays a move and escapes with odds 2,
+  doubled for a veteran, halved when hard (`base-unit-agent`'s `escape`), to its nearest city with its moves spent,
+  and becomes a veteran. An embassy or an investigation uses up a computer's agent and a person's Diplomat; a person's
+  Spy stays, paying a third of a move for the embassy and for a city's first investigation since the city last worked
+  its turn (`lib/missionRecords`, saved). A caught Spy, or one lost after a mission, goes to `AgentLost`, where civ2-diplomacy raises its incidents.
+- **Under a treaty** a person is offered theft, sabotage and poisoning only as `SneakStealTechnology`,
+  `SneakIndustrialSabotage` and `SneakPoisonWater` (with `enemy()`), which a client confirms first
+  (`spy_confirm_treaty_breach`). The treaty breaks only through the incident if the agent is lost.
+- **A computer's choice:** `lib/computerMission` is `spy_city_mission_ai_choice`, for the AI to read.
+- **Trade routes:** a Caravan or Freight is offered `establish-trade-route` into any foreign city, or an own city other
+  than its home with no distance or continent test; with no home, its player's nearest city is home for this (a route
+  from a city to itself isn't offered), from land or a ship. What the route is worth is civ2-city's
+  `TradeRouteEstablished` rule.
 
 ## Not here
 
@@ -121,6 +179,10 @@ From OpenCiv2 `diplo_confirm_attack`, `diplo_force_war` (`diplomacy.cpp:6861-692
   win.
 - A computer player's units attacking across a treaty: the original's computer units never do (they stop, and the AI
   breaks treaties through its own rolls); here the rows are offered to anyone, and the AI client decides.
+- A homeless Caravan whose nearest city is the one it's entering: the original sets up a route from that city to
+  itself; here no route is offered there.
+- A computer Caravan's refusals at a ferry port (`CITYF_AI_FERRY_PORT`) or a city not its goto target: the AI's to make.
+- A theft's preference for spaceship advances in a space race: there is no spaceship yet.
 - An airlift's risk counts players not at peace, where the original asks for war, and a human isn't asked to confirm a
   risky airlift first.
 

@@ -45,6 +45,12 @@ const StealTechnology_1 = require("@civ-clone/base-unit-action-steal-technology/
 const SubvertCity_1 = require("@civ-clone/base-unit-action-incite-revolt/SubvertCity");
 const TechnologyStolen_1 = require("@civ-clone/base-unit-action-steal-technology/Rules/TechnologyStolen");
 const UnitBribed_1 = require("@civ-clone/base-unit-action-bribe-unit/Rules/UnitBribed");
+const Captured_1 = require("@civ-clone/core-city/Rules/Captured");
+const Yields_1 = require("@civ-clone/civ2-city/Yields");
+const Actions_1 = require("../../Actions");
+const Priorities_1 = require("@civ-clone/core-rule/Priorities");
+const ProcessYield_1 = require("@civ-clone/core-city/Rules/ProcessYield");
+const cosmic_1 = require("@civ-clone/civ2-rules/data/cosmic");
 const WaterPoisoned_1 = require("@civ-clone/base-unit-action-poison-water/Rules/WaterPoisoned");
 const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
 const escape_2 = require("@civ-clone/base-unit-agent/lib/escape");
@@ -61,8 +67,9 @@ exports.escapingMissions = [
     PoisonWater_1.default,
     InciteRevolt_1.default,
 ];
-/** A third of a move, what a person's Spy pays for an embassy or a first investigation (`moves_used++`). */
-exports.THIRD_OF_A_MOVE = 1 / 3;
+/** A third of a move, what a person's Spy pays for an embassy or a first investigation (`moves_used++`, one of @COSMIC's
+ *  road movement multiplier's steps). */
+exports.THIRD_OF_A_MOVE = 1 / cosmic_1.cosmic.roadMoveMultiplier;
 /** Whether anyone has robbed `city` of an advance (`CITYF_TECH_STOLEN`). */
 const robbed = (city, interactionRegistry = InteractionRegistry_1.instance) => interactionRegistry
     .entries()
@@ -99,16 +106,30 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
     const veteran = (unit) => (0, espionage_1.isVeteran)(unit, unitImprovementRegistry), human = (player) => (0, isHuman_1.default)(player, clientRegistry), is = (mission, ...types) => types.some((Type) => mission instanceof Type), cityOf = (mission) => mission.city(), has = (city, Improvement) => cityImprovementRegistry
         .getByCity(city)
         .some((improvement) => improvement instanceof Improvement && !improvement.destroyed()), 
-    // `spy_check_caught` `count` times: a Spy must escape each (odds 3, 6 for a veteran); a Diplomat never does.
-    caughtChecks = (unit, count) => {
+    // `spy_check_caught` `count` times: a Spy must escape each (odds 3, 6 for a veteran); a Diplomat never does. An
+    //  escape is `spy_try_escape(unit, -1, civ)` in full: the Spy goes to its nearest city with its moves spent, even
+    //  before the mission (`unit_spy.cpp:47-62`), but pays no move and isn't promoted for it.
+    caughtChecks = (unit, mission, count) => {
         for (let i = 0; i < count; i++) {
             if (!(0, espionage_1.isSpy)(unit) ||
-                !(0, escape_1.rollEscape)((0, escape_1.escapeOdds)(escape_1.CAUGHT_CHECK, veteran(unit)), randomNumberGenerator)) {
+                !(0, escape_2.default)(unit, escape_1.CAUGHT_CHECK, {
+                    action: mission,
+                    cityRegistry,
+                    odds: (agent, mode) => (0, escape_1.escapeOdds)(mode, veteran(agent)),
+                    randomNumberGenerator,
+                    relocates: true,
+                    ruleRegistry,
+                })) {
                 return false;
             }
         }
         return true;
     }, 
+    // The advance a theft takes and the building a random sabotage takes, each walked from a slot drawn as the mission
+    //  starts, before any caught check or detection and whatever comes of them (`unit_spy.cpp:352-366`, `:459-468`).
+    theft = new WeakMap(), sabotage = new WeakMap(), theftOf = (unit, city, mission) => theft.has(mission)
+        ? theft.get(mission)
+        : (0, stealAdvance_1.firstStealableAdvance)(unit.player(), city.player(), espionage_1.theftOrder, randomNumberGenerator, { playerResearchRegistry }), 
     // Whether a planted device's Spy was a veteran, read before the blast destroys it.
     plantedByVeteran = new WeakMap(), makeVeteran = (unit) => {
         if (!veteran(unit)) {
@@ -153,6 +174,17 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
             // No mode: `missionMode` passes over an answer that isn't `ORDINARY` or `HARD`.
             return undefined;
         })),
+        // A theft's advance and a sabotage's building, drawn first (no mode answered).
+        new MissionMode_1.default('civ2-unit:mission-mode/draw-target', new Criterion_1.default((unit, mission) => is(mission, StealTechnology_1.default, IndustrialSabotage_1.default)), new Effect_1.default((unit, mission) => {
+            const city = cityOf(mission);
+            if (mission instanceof StealTechnology_1.default) {
+                theft.set(mission, (0, stealAdvance_1.firstStealableAdvance)(unit.player(), city.player(), espionage_1.theftOrder, randomNumberGenerator, { playerResearchRegistry }));
+            }
+            else {
+                sabotage.set(mission, (0, espionage_1.randomSabotageTarget)((Type) => has(city, Type), randomNumberGenerator));
+            }
+            return undefined;
+        })),
         // A random theft at a city already robbed: a caught check and the hard escape (`unit_spy.cpp:384-393`).
         new MissionMode_1.default('civ2-unit:mission-mode/robbed-city', new Criterion_1.default((unit, mission) => mission instanceof StealTechnology_1.default &&
             mission.chosenTarget() === undefined &&
@@ -165,19 +197,22 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
             const city = cityOf(mission);
             if (mission instanceof PlantNuclearDevice_1.default) {
                 plantedByVeteran.set(mission, veteran(unit));
-                return caughtChecks(unit, 3 + (has(city, Palace_1.default) ? 1 : 0));
+                return caughtChecks(unit, mission, 3 + (has(city, Palace_1.default) ? 1 : 0));
             }
             if (mission instanceof IndustrialSabotage_1.default) {
                 const target = mission.chosenTarget();
                 if (target === undefined) {
                     return true;
                 }
-                return caughtChecks(unit, 1 +
+                return caughtChecks(unit, mission, 1 +
                     (has(city, Palace_1.default) ? 1 : 0) +
                     (target instanceof CityWalls_1.default ? 1 : 0));
             }
-            // A theft: one check when it is hard (a chosen advance, or a city already robbed); none for a random one.
-            return resolvedMode === escape_1.HARD ? caughtChecks(unit, 1) : true;
+            // A theft: one check when it is hard (a chosen advance, or a city already robbed); none for a random one, nor
+            //  when there's nothing to take (`unit_spy.cpp:367`).
+            return resolvedMode === escape_1.HARD && theftOf(unit, city, mission) !== null
+                ? caughtChecks(unit, mission, 1)
+                : true;
         })),
         // After a theft, a sabotage, a poisoning or an incited revolt: a Diplomat is used up; a Spy pays a move and tries
         //  to escape (`spy_try_escape`). After an incited revolt, the city it just took isn't where it goes: the original
@@ -246,14 +281,19 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
             ...sabotageable(city),
             espionage_1.PRODUCTION,
         ])),
-        // Counter-espionage, on a random theft only (base-unit-action-steal-technology asks only then).
-        new MissionDetected_1.default('civ2-unit:mission-detected/defenders', new Criterion_1.default((unit, city, mission) => mission instanceof StealTechnology_1.default), new Effect_1.default((unit, city) => (0, espionage_1.detected)(unitRegistry
+        // Counter-espionage, on a random theft only (base-unit-action-steal-technology asks only then), when there's
+        //  something to take.
+        new MissionDetected_1.default('civ2-unit:mission-detected/defenders', new Criterion_1.default((unit, city, mission) => mission instanceof StealTechnology_1.default &&
+            theftOf(unit, city, mission) !== null), new Effect_1.default((unit, city) => (0, espionage_1.detected)(unitRegistry
             .getByTile(city.tile())
             .filter((defender) => defender !== unit), randomNumberGenerator, unitImprovementRegistry))),
-        // The advance: the one chosen, or the random walk over `@CIVILIZE` (`unit_spy.cpp:352-366`). With nothing to take,
-        //  a person's agent loses a move and stays (`:425-431`).
+        // The advance: the one chosen, or the random walk over `@CIVILIZE` (`unit_spy.cpp:352-366`), drawn as the mission
+        //  started. With nothing to take, a person's agent loses a move and stays (`:425-431`). The original's preference
+        //  for spaceship advances during a space race isn't here: there is no spaceship yet.
         new TechnologyStolen_1.default('civ2-unit:technology-stolen/steal', new Effect_1.default((unit, city, action) => {
-            const thief = unit.player(), victim = city.player(), chosen = action === null || action === void 0 ? void 0 : action.chosenTarget(), AdvanceType = chosen !== null && chosen !== void 0 ? chosen : (0, stealAdvance_1.firstStealableAdvance)(thief, victim, espionage_1.theftOrder, randomNumberGenerator, { playerResearchRegistry });
+            const thief = unit.player(), victim = city.player(), chosen = action === null || action === void 0 ? void 0 : action.chosenTarget(), AdvanceType = chosen !== null && chosen !== void 0 ? chosen : (action === undefined
+                ? (0, stealAdvance_1.firstStealableAdvance)(thief, victim, espionage_1.theftOrder, randomNumberGenerator, { playerResearchRegistry })
+                : theftOf(unit, city, action));
             if (AdvanceType === null) {
                 if (human(thief)) {
                     unit.moves().set(Math.max(0, unit.moves().value() - 1));
@@ -269,9 +309,10 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
             });
             return true;
         })),
-        // The building or production: the one chosen, or a random building (`randomSabotageTarget`), or the production
-        //  when there's none, or, with shields in the box, when `sabotagesProduction` says so. Only when either side is a
-        //  person does it happen (`unit_spy.cpp:577`).
+        // The building or production: the one chosen, or the random building drawn as the mission started
+        //  (`randomSabotageTarget`), or the production when there's none; and, with shields in the box, a random sabotage
+        //  takes the production when `sabotagesProduction` says so, which is rolled whether or not there was a building
+        //  (`unit_spy.cpp:563-575`). Only when either side is a person does it happen (`:577`).
         new CitySabotaged_1.default('civ2-unit:city-sabotaged/sabotage', new Effect_1.default((unit, city, action) => {
             const chosen = action === null || action === void 0 ? void 0 : action.chosenTarget(), cityBuild = cityBuildRegistry.getByCity(city);
             let target;
@@ -279,11 +320,13 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
                 target = chosen;
             }
             else {
-                const Improvement = (0, espionage_1.randomSabotageTarget)((Type) => has(city, Type), randomNumberGenerator);
+                const Improvement = action !== undefined &&
+                    sabotage.has(action)
+                    ? sabotage.get(action)
+                    : (0, espionage_1.randomSabotageTarget)((Type) => has(city, Type), randomNumberGenerator), production = cityBuild.progress().value() !== 0 &&
+                    (0, espionage_1.sabotagesProduction)((0, espionage_1.isSpy)(unit), veteran(unit), randomNumberGenerator);
                 target =
-                    Improvement === null ||
-                        (cityBuild.progress().value() !== 0 &&
-                            (0, espionage_1.sabotagesProduction)((0, espionage_1.isSpy)(unit), veteran(unit), randomNumberGenerator))
+                    Improvement === null || production
                         ? espionage_1.PRODUCTION
                         : cityImprovementRegistry
                             .getByCity(city)
@@ -345,7 +388,8 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
         })),
         // A unit bribed (`unit_bribe`, `unit_spy.cpp:1022-1060`): a computer pays only when the price is at most half its
         //  gold. The unit's home becomes the nearest city, anyone's, if that is the briber's, and none otherwise; its
-        //  moves are restored and its orders cleared. The briber counts a subversion. No incident; the briber stays.
+        //  moves are restored and its orders cleared. The briber counts a subversion, then goes on with its move onto the
+        //  square, paying what that costs (`spy_unit_mission` returns 0, `unit_move.cpp:797-800`). No incident.
         new UnitBribed_1.default('civ2-unit:unit-bribed/transfer', new Effect_1.default((unit, target, action) => {
             const briber = unit.player(), previousOwner = target.player(), cost = action.cost();
             if (!human(briber) && Math.trunc(gold(briber) / 2) < cost) {
@@ -361,8 +405,36 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
             target.setStatus(null);
             target.setActive();
             engine.emit('unit:bribed', target, briber, previousOwner, cost);
+            new Actions_1.Move(action.from(), action.to(), unit, ruleRegistry).perform();
             return true;
         })),
+        // A city's investigated mark lasts until it next works its turn (`city_process`, `city.cpp:4463`).
+        new ProcessYield_1.default('civ2-unit:city/process-yield/forget-investigated', new Criterion_1.default((cityYield) => cityYield instanceof Yields_1.Food), new Effect_1.default((cityYield, city) => (0, missionRecords_1.forgetCity)(city, pendingEffectRegistry))),
+        // A city that changes hands, incited or taken, is no longer robbed (`city_capture_aftermath` clears
+        //  `CITYF_TECH_STOLEN`, `city.cpp:5483`).
+        new Captured_1.default('civ2-unit:city/captured/forget-robbed', new Effect_1.default((city) => interactionRegistry
+            .entries()
+            .filter((interaction) => interaction instanceof AdvanceStolen_1.default &&
+            interaction.city() === city)
+            .forEach((interaction) => interactionRegistry.unregister(interaction)))),
+        // Units that defect to a city incited to revolt have their moves back, and lose any orders but fortifying
+        //  (`city_incite_transfer`, `city.cpp:2271-2274`); after base-unit-build's defection (`High`).
+        new Captured_1.default('civ2-unit:city/captured/defected-units', new Priorities_1.Low(), new Criterion_1.default((city, capturingPlayer, originalPlayer, cause) => cause instanceof InciteRevolt_1.default), new Effect_1.default((city, capturingPlayer) => [
+            city.tile(),
+            ...city
+                .tile()
+                .getNeighbours()
+                .filter((tile) => cityRegistry.getByTile(tile) === null),
+        ]
+            .flatMap((tile) => unitRegistry.getByTile(tile))
+            .filter((unit) => unit.player() === capturingPlayer && unit.city() === city)
+            .forEach((unit) => {
+            unit.moves().set(unit.movement());
+            if (!(unit.status() instanceof Actions_1.Fortify)) {
+                unit.setStatus(null);
+                unit.setActive();
+            }
+        }))),
         // The city's investigated record goes with it.
         new Destroyed_1.default('civ2-unit:city/destroyed/forget-investigated', new Effect_1.default((city) => (0, missionRecords_1.forgetCity)(city, pendingEffectRegistry))),
     ];

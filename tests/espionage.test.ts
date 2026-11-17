@@ -49,6 +49,9 @@ import dependenciesOf from '@civ-clone/civ2-diplomacy/lib/dependenciesOf';
 import espionage from '../Rules/Unit/espionage';
 import { expect } from 'chai';
 import { investigated } from '../lib/missionRecords';
+import { Food } from '@civ-clone/civ2-city/Yields';
+import ProcessYield from '@civ-clone/core-city/Rules/ProcessYield';
+import { robbed } from '../Rules/Unit/espionage';
 import computerMission from '../lib/computerMission';
 import { Deity } from '@civ-clone/civ2-difficulty/Difficulties';
 import ManhattanProject from '@civ-clone/base-wonder-manhattanproject/ManhattanProject';
@@ -411,8 +414,9 @@ describe('missions', function (): void {
       }
     ).perform('CityWalls');
 
-    // Three caught checks, then the hard escape: odds 2 halved to 1, and a coin flip (lost: no roll at odds 1).
-    expect(count).to.equal(3 + 1);
+    // The slot walk's draw first (`unit_spy.cpp:459`, whatever is chosen), three caught checks, then the hard escape:
+    //  odds 2 halved to 1, and a coin flip (lost: no roll at odds 1).
+    expect(count).to.equal(1 + 3 + 1);
     expect(walls.destroyed()).to.true;
     expect(spy.destroyed()).to.true;
   });
@@ -724,7 +728,8 @@ describe('escape odds, prices and a planted device, through the rules', function
       const { game, enemy, unit, at } = await agent(Spy, 'person', veteran);
 
       game.playerResearch.getByPlayer(enemy).addAdvance(Alphabet);
-      withRng(game, draws(roll, 0.9));
+      // The theft's slot draw comes first (`unit_spy.cpp:352`), then the caught check.
+      withRng(game, draws(0.5, roll, 0.9));
       (
         find(unit, at(2, 1), 'StealTechnology') as unknown as {
           perform(choice: unknown): void;
@@ -832,8 +837,166 @@ describe('escape odds, prices and a planted device, through the rules', function
     // Four caught checks (3 + the Palace), then the discovery roll.
     expect(caught).to.equal(5);
     expect(discovered).length(1);
-    // The Spy stood within the blast.
-    expect(spy.destroyed()).to.true;
+    // Each caught check it passed took it to its nearest city, out of the blast (`unit_spy.cpp:47-62`), where it
+    //  stays: the original makes no escape after the device.
+    expect(spy.destroyed()).to.false;
+    expect(spy.tile()).to.equal(home.tile());
+    expect(spy.moves().value()).to.equal(0);
+  });
+});
+
+describe('review fixes', function (): void {
+  this.timeout(20000);
+
+  const agent = async (UnitType: typeof Unit, who: 'person' | 'computer') => {
+    const setting = await setUp(),
+      { game, player, enemy, at } = setting,
+      city = addCity(game, enemy, at(2, 1), 'Target'),
+      home = addCity(game, player, at(1, 5), 'Home'),
+      unit = new UnitType(home, player, at(1, 1), game.rules);
+
+    (who === 'person' ? person : computer)(game, player);
+    computer(game, enemy);
+    unit.moves().set(3);
+    treasury(game, player, 1000);
+    treasury(game, enemy, 0);
+
+    return { ...setting, city, home, unit };
+  };
+
+  it('sends a Spy that passes a caught check to its nearest city before the mission goes on (`unit_spy.cpp:47-62`)', async (): Promise<void> => {
+    const {
+      game,
+      enemy,
+      player,
+      city,
+      home,
+      unit: spy,
+      at,
+    } = await agent(Spy, 'computer');
+
+    game.playerResearch.getByPlayer(enemy).addAdvance(Alphabet);
+    game.interactions.register(
+      new AdvanceStolen(player, enemy, city, game.rules, game.turn) as never
+    );
+    new Diplomat(null, enemy, at(2, 1), game.rules);
+
+    // The slot walk, the caught check passed, then the defending Diplomat detects it.
+    withRng(game, draws(0.5, 0.5, 0.1));
+    find(spy, at(2, 1), 'StealTechnology')!.perform();
+
+    expect(spy.destroyed()).to.false;
+    expect(spy.tile()).to.equal(home.tile());
+    expect(spy.moves().value()).to.equal(0);
+    expect(game.playerResearch.getByPlayer(player).completed(Alphabet)).to
+      .false;
+  });
+
+  it('offers a person a theft with nothing to take, and charges a move for it (`unit_spy.cpp:461-467`)', async (): Promise<void> => {
+    const { game, unit: diplomat, at } = await agent(Diplomat, 'person');
+
+    let count = 0;
+
+    withRng(game, () => (count++, 0.5));
+    find(diplomat, at(2, 1), 'StealTechnology')!.perform();
+
+    // Only the slot walk's draw: no detection, no escape.
+    expect(count).to.equal(1);
+    expect(diplomat.destroyed()).to.false;
+    expect(diplomat.moves().value()).to.equal(2);
+
+    const { unit: computerDiplomat, ...other } = await agent(
+      Diplomat,
+      'computer'
+    );
+
+    expect(names(computerDiplomat, other.at(2, 1))).to.not.include(
+      'StealTechnology'
+    );
+  });
+
+  it('rolls for the production whenever the shield box holds any, with or without a building (`unit_spy.cpp:563-575`)', async (): Promise<void> => {
+    const { game, city, unit: spy, at } = await agent(Spy, 'computer');
+
+    game.cityBuilds.getByCity(city).progress().set(5);
+
+    let count = 0;
+
+    withRng(game, () => (count++, 0.9));
+    find(spy, at(2, 1), 'IndustrialSabotage')!.perform();
+
+    // The slot walk, the production roll, then the escape's roll.
+    expect(count).to.equal(3);
+  });
+
+  it("forgets a city's investigation when it next works its turn (`city.cpp:4463`)", async (): Promise<void> => {
+    const { game, city, unit: spy, at } = await agent(Spy, 'person');
+
+    find(spy, at(2, 1), 'InvestigateCity')!.perform();
+    expect(investigated(city, game.pendingEffects)).to.true;
+
+    game.rules.process(ProcessYield, new Food(2), city, []);
+    expect(investigated(city, game.pendingEffects)).to.false;
+
+    find(spy, at(2, 1), 'InvestigateCity')!.perform();
+    expect(spy.moves().value()).to.be.closeTo(3 - 2 / 3, 1e-9);
+  });
+
+  it('clears a robbed city when it changes hands (`city.cpp:5483`)', async (): Promise<void> => {
+    const { game, player, enemy, city } = await agent(Diplomat, 'computer');
+
+    game.interactions.register(
+      new AdvanceStolen(player, enemy, city, game.rules, game.turn) as never
+    );
+    expect(robbed(city, game.interactions)).to.true;
+
+    city.capture(player);
+    expect(robbed(city, game.interactions)).to.false;
+  });
+
+  it('moves the briber onto the square of the unit it bribed (`unit_move.cpp:797-800`)', async (): Promise<void> => {
+    const { game, enemy, unit: diplomat, at } = await agent(Diplomat, 'person'),
+      lone = new Warrior(null, enemy, at(2, 2), game.rules);
+
+    find(diplomat, at(2, 2), 'BribeUnit')!.perform();
+
+    expect(lone.player()).to.equal(diplomat.player());
+    expect(diplomat.tile()).to.equal(at(2, 2));
+    expect(diplomat.moves().value()).to.be.below(3);
+  });
+
+  it('gives units that defect to an incited city their moves back (`city.cpp:2271-2274`)', async (): Promise<void> => {
+    const {
+        game,
+        enemy,
+        city,
+        unit: diplomat,
+        at,
+      } = await agent(Diplomat, 'person'),
+      defender = new Warrior(null, enemy, at(2, 1), game.rules);
+
+    defender.moves().set(0);
+    find(diplomat, at(2, 1), 'InciteRevolt')!.perform();
+
+    expect(defender.player()).to.equal(diplomat.player());
+    expect(defender.city()).to.equal(city);
+    expect(defender.moves().value()).to.equal(1);
+  });
+
+  it('opens a route, or a mission, from a ship (`unit_move.cpp:778`)', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      home = addCity(game, player, at(1, 5), 'Home'),
+      coastal = addCity(game, enemy, at(7, 1), 'Coastal'),
+      caravan = new Caravan(home, player, at(8, 1), game.rules),
+      diplomat = new Diplomat(home, player, at(8, 2), game.rules);
+
+    computer(game, player);
+    caravan.moves().set(1);
+    diplomat.moves().set(2);
+
+    expect(coastal.tile().isLand()).to.true;
+    expect(names(caravan, at(7, 1))).to.include('EstablishTradeRoute');
+    expect(names(diplomat, at(7, 1))).to.include('IndustrialSabotage');
   });
 });
 

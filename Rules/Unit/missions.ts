@@ -27,11 +27,8 @@ import {
   TreatyLevel,
   treatyLevel,
 } from '@civ-clone/base-diplomacy/lib/treatyLevel';
-import {
-  bribeUnitCriteria,
-  diplomat,
-  hasNoEmbassy as buildHasNoEmbassy,
-} from '@civ-clone/base-unit-action-rules/lib/criteria/diplomat';
+import DiplomaticMissions from '@civ-clone/base-unit-trait-diplomatic-missions/DiplomaticMissions';
+import { hasNoEmbassy as buildHasNoEmbassy } from '@civ-clone/base-unit-action-rules/lib/criteria/diplomat';
 import {
   distanceFromPalace,
   palaceTiles,
@@ -129,8 +126,8 @@ export interface MissionRows {
  *  `spy_city_mission_ai_choice`) and the Caravan's trade route, as rows of civ2-unit's action table. What each mission
  *  does is `Rules/Unit/espionage`.
  *
- * - **Theft**: a Diplomat once per city (`CITYF_TECH_STOLEN`), a Spy also at a city already robbed; only while there's
- *   something to take.
+ * - **Theft**: a Diplomat once per city (`CITYF_TECH_STOLEN`), a Spy also at a city already robbed; a computer only
+ *   while there's something to take (a person tries anyway, and pays a move).
  * - **Sabotage**: always offered.
  * - **Poisoning**: a Spy; a person's only at size 2 or more (a computer's empties a size-1 city's food box).
  * - **Planting a nuclear device**: a person's Spy, knowing Rocketry and Nuclear Fission, once the Manhattan Project has
@@ -147,8 +144,8 @@ export interface MissionRows {
  * - **A trade route**: to any foreign city, or to an own city other than home with no distance or continent test; a
  *   unit with no home is homed, for this, in its player's nearest city (`unit.cpp:694-699`).
  *
- * There is no treaty test on any mission: the original's checks for Diplomats and Caravans come before its treaty
- *  checks (`unit_move_dir_land_unit_checks`).
+ * There is no treaty test on any mission, and each may start from a ship: the original's checks for Diplomats and
+ *  Caravans come before its treaty checks, whatever square the unit leaves (`unit_move_dir_land_unit_checks`).
  */
 export const missionRows = ({
   cityGrowthRegistry,
@@ -169,7 +166,35 @@ export const missionRows = ({
   unitRegistry,
   wonderRegistry,
 }: MissionRowDependencies): MissionRows => {
-  const { diplomatCriteria } = diplomat({ cityRegistry }),
+  // A mission on a foreign city next to the agent, with moves left: from a ship too, as the original's Diplomat and
+  //  Caravan moves are checked whatever the square they leave (`unit_move_dir_land_unit_checks`, `unit_move.cpp:778-800`).
+  const diplomatCriteria = [
+      isNeighbouringTile,
+      hasMovesLeft,
+      new Criterion((unit: Unit, to: Tile): boolean => {
+        const city = cityRegistry.getByTile(to);
+
+        return (
+          unit.hasTrait(DiplomaticMissions) &&
+          city !== null &&
+          city.player() !== unit.player()
+        );
+      }),
+    ],
+    // A lone unit of another player's outside a city, from land or a ship (`spy_unit_mission`).
+    bribeUnitCriteria = [
+      isNeighbouringTile,
+      hasMovesLeft,
+      new Criterion((unit: Unit): boolean => unit.hasTrait(DiplomaticMissions)),
+      new Criterion(
+        (unit: Unit, to: Tile): boolean => cityRegistry.getByTile(to) === null
+      ),
+      new Criterion((unit: Unit, to: Tile): boolean => {
+        const units = unitRegistry.getByTile(to);
+
+        return units.length === 1 && units[0].player() !== unit.player();
+      }),
+    ],
     cityOn = (to: Tile): City => cityRegistry.getByTile(to)!,
     human = (player: Player): boolean => isHuman(player, clientRegistry),
     governed = (player: Player, ...types: (typeof Government)[]): boolean => {
@@ -232,14 +257,17 @@ export const missionRows = ({
     ),
     spy = new Criterion((unit: Unit): boolean => unit.hasTrait(Covert)),
     person = new Criterion((unit: Unit): boolean => human(unit.player())),
+    // A Diplomat at a city not yet robbed, or a Spy (`unit_spy.cpp:190`). A person is offered it with nothing to take,
+    //  and pays a move for trying (`:461-467`); a computer only when there's something.
     canSteal = new Criterion(
       (unit: Unit, to: Tile): boolean =>
         (isSpy(unit) || !robbed(cityOn(to), interactionRegistry)) &&
-        stealableAdvances(
-          unit.player(),
-          cityOn(to).player(),
-          playerResearchRegistry
-        ).length > 0
+        (human(unit.player()) ||
+          stealableAdvances(
+            unit.player(),
+            cityOn(to).player(),
+            playerResearchRegistry
+          ).length > 0)
     ),
     canPoison = new Criterion(
       (unit: Unit, to: Tile): boolean =>
@@ -480,7 +508,7 @@ export const missionRows = ({
     bribe: {
       name: 'bribe-unit',
       criteria: [
-        ...bribeUnitCriteria({ cityRegistry, unitRegistry }),
+        ...bribeUnitCriteria,
         new Criterion((unit: Unit, to: Tile): boolean => {
           const [target] = unitRegistry.getByTile(to);
 
@@ -529,8 +557,9 @@ export const missionRows = ({
               return false;
             }
 
+            // Any foreign city, from a ship too (`unit_move.cpp:778`).
             if (city.player() !== unit.player()) {
-              return from.isLand();
+              return true;
             }
 
             return home !== city;

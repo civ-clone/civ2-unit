@@ -56,8 +56,8 @@ export interface MissionRows {
  *  `spy_city_mission_ai_choice`) and the Caravan's trade route, as rows of civ2-unit's action table. What each mission
  *  does is `Rules/Unit/espionage`.
  *
- * - **Theft**: a Diplomat once per city (`CITYF_TECH_STOLEN`), a Spy also at a city already robbed; only while there's
- *   something to take.
+ * - **Theft**: a Diplomat once per city (`CITYF_TECH_STOLEN`), a Spy also at a city already robbed; a computer only
+ *   while there's something to take (a person tries anyway, and pays a move).
  * - **Sabotage**: always offered.
  * - **Poisoning**: a Spy; a person's only at size 2 or more (a computer's empties a size-1 city's food box).
  * - **Planting a nuclear device**: a person's Spy, knowing Rocketry and Nuclear Fission, once the Manhattan Project has
@@ -74,8 +74,8 @@ export interface MissionRows {
  * - **A trade route**: to any foreign city, or to an own city other than home with no distance or continent test; a
  *   unit with no home is homed, for this, in its player's nearest city (`unit.cpp:694-699`).
  *
- * There is no treaty test on any mission: the original's checks for Diplomats and Caravans come before its treaty
- *  checks (`unit_move_dir_land_unit_checks`).
+ * There is no treaty test on any mission, and each may start from a ship: the original's checks for Diplomats and
+ *  Caravans come before its treaty checks, whatever square the unit leaves (`unit_move_dir_land_unit_checks`).
  */
 export declare const missionRows: ({
   cityGrowthRegistry,

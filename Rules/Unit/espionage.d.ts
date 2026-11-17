@@ -29,6 +29,8 @@ import RevoltIncited from '@civ-clone/base-unit-action-incite-revolt/Rules/Revol
 import StealTechnology from '@civ-clone/base-unit-action-steal-technology/StealTechnology';
 import TechnologyStolen from '@civ-clone/base-unit-action-steal-technology/Rules/TechnologyStolen';
 import UnitBribed from '@civ-clone/base-unit-action-bribe-unit/Rules/UnitBribed';
+import Captured from '@civ-clone/core-city/Rules/Captured';
+import ProcessYield from '@civ-clone/core-city/Rules/ProcessYield';
 import WaterPoisoned from '@civ-clone/base-unit-action-poison-water/Rules/WaterPoisoned';
 import Dependencies from '@civ-clone/civ2-diplomacy/lib/Dependencies';
 /** The city missions whose agent tries to escape afterwards (`spy_try_escape(unit, mode, victim)`), a Diplomat never. */
@@ -59,7 +61,8 @@ export interface EspionageDependencies {
   /** What else paying the doubled price does to the city, just before it changes hands (civ2-city: its founder). */
   inciterBecomesFounder?: (city: City, inciter: Player) => void;
 }
-/** A third of a move, what a person's Spy pays for an embassy or a first investigation (`moves_used++`). */
+/** A third of a move, what a person's Spy pays for an embassy or a first investigation (`moves_used++`, one of @COSMIC's
+ *  road movement multiplier's steps). */
 export declare const THIRD_OF_A_MOVE: number;
 /** Whether anyone has robbed `city` of an advance (`CITYF_TECH_STOLEN`). */
 export declare const robbed: (
@@ -122,6 +125,8 @@ export declare const getRules: ({
   | WaterPoisoned
   | RevoltIncited
   | UnitBribed
+  | ProcessYield
+  | Captured
   | Destroyed
 )[];
 export default getRules;

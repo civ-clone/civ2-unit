@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.missionRows = void 0;
 const espionage_1 = require("../../lib/espionage");
 const treatyLevel_1 = require("@civ-clone/base-diplomacy/lib/treatyLevel");
+const DiplomaticMissions_1 = require("@civ-clone/base-unit-trait-diplomatic-missions/DiplomaticMissions");
 const diplomat_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/diplomat");
 const distanceFromPalace_1 = require("@civ-clone/base-unit-agent/lib/distanceFromPalace");
 const Action_1 = require("@civ-clone/core-unit/Rules/Action");
@@ -45,8 +46,8 @@ const Units_1 = require("../../Units");
  *  `spy_city_mission_ai_choice`) and the Caravan's trade route, as rows of civ2-unit's action table. What each mission
  *  does is `Rules/Unit/espionage`.
  *
- * - **Theft**: a Diplomat once per city (`CITYF_TECH_STOLEN`), a Spy also at a city already robbed; only while there's
- *   something to take.
+ * - **Theft**: a Diplomat once per city (`CITYF_TECH_STOLEN`), a Spy also at a city already robbed; a computer only
+ *   while there's something to take (a person tries anyway, and pays a move).
  * - **Sabotage**: always offered.
  * - **Poisoning**: a Spy; a person's only at size 2 or more (a computer's empties a size-1 city's food box).
  * - **Planting a nuclear device**: a person's Spy, knowing Rocketry and Nuclear Fission, once the Manhattan Project has
@@ -63,11 +64,33 @@ const Units_1 = require("../../Units");
  * - **A trade route**: to any foreign city, or to an own city other than home with no distance or continent test; a
  *   unit with no home is homed, for this, in its player's nearest city (`unit.cpp:694-699`).
  *
- * There is no treaty test on any mission: the original's checks for Diplomats and Caravans come before its treaty
- *  checks (`unit_move_dir_land_unit_checks`).
+ * There is no treaty test on any mission, and each may start from a ship: the original's checks for Diplomats and
+ *  Caravans come before its treaty checks, whatever square the unit leaves (`unit_move_dir_land_unit_checks`).
  */
 const missionRows = ({ cityGrowthRegistry, cityImprovementRegistry, cityRegistry, clientRegistry, interactionRegistry, manhattanProjectBuilt, pendingEffectRegistry, playerGovernmentRegistry, playerRegistry, playerResearchRegistry, playerTreasuryRegistry, requirementRegistry, ruleRegistry, turn, unitImprovementRegistry, unitRegistry, wonderRegistry, }) => {
-    const { diplomatCriteria } = (0, diplomat_1.diplomat)({ cityRegistry }), cityOn = (to) => cityRegistry.getByTile(to), human = (player) => (0, isHuman_1.default)(player, clientRegistry), governed = (player, ...types) => {
+    // A mission on a foreign city next to the agent, with moves left: from a ship too, as the original's Diplomat and
+    //  Caravan moves are checked whatever the square they leave (`unit_move_dir_land_unit_checks`, `unit_move.cpp:778-800`).
+    const diplomatCriteria = [
+        Action_1.isNeighbouringTile,
+        Action_1.hasMovesLeft,
+        new Criterion_1.default((unit, to) => {
+            const city = cityRegistry.getByTile(to);
+            return (unit.hasTrait(DiplomaticMissions_1.default) &&
+                city !== null &&
+                city.player() !== unit.player());
+        }),
+    ], 
+    // A lone unit of another player's outside a city, from land or a ship (`spy_unit_mission`).
+    bribeUnitCriteria = [
+        Action_1.isNeighbouringTile,
+        Action_1.hasMovesLeft,
+        new Criterion_1.default((unit) => unit.hasTrait(DiplomaticMissions_1.default)),
+        new Criterion_1.default((unit, to) => cityRegistry.getByTile(to) === null),
+        new Criterion_1.default((unit, to) => {
+            const units = unitRegistry.getByTile(to);
+            return units.length === 1 && units[0].player() !== unit.player();
+        }),
+    ], cityOn = (to) => cityRegistry.getByTile(to), human = (player) => (0, isHuman_1.default)(player, clientRegistry), governed = (player, ...types) => {
         try {
             return playerGovernmentRegistry.getByPlayer(player).is(...types);
         }
@@ -95,8 +118,12 @@ const missionRows = ({ cityGrowthRegistry, cityImprovementRegistry, cityRegistry
         .some((improvement) => improvement instanceof Improvement && !improvement.destroyed()), 
     // `civ_distance_to_capital(player, tile)`: the diagonal distance from `tile` to `player`'s nearest Palace, 16 with
     //  none (`civ.cpp:6396`).
-    distanceToCapital = (player, tile) => (0, distanceFromPalace_1.distanceFromPalace)((0, distanceFromPalace_1.palaceTiles)(player, (improvement) => improvement instanceof Palace_1.default, cityImprovementRegistry), tile, capitalLink_1.diagonalDistance, 16), underTreaty = (unit, to) => (0, treatyLevel_1.treatyLevel)({ interactionRegistry }, unit.player(), cityOn(to).player()) >= treatyLevel_1.TreatyLevel.Ceasefire, personUnderTreaty = new Criterion_1.default((unit, to) => human(unit.player()) && underTreaty(unit, to)), notPersonUnderTreaty = new Criterion_1.default((unit, to) => !human(unit.player()) || !underTreaty(unit, to)), spy = new Criterion_1.default((unit) => unit.hasTrait(Covert_1.default)), person = new Criterion_1.default((unit) => human(unit.player())), canSteal = new Criterion_1.default((unit, to) => ((0, espionage_1.isSpy)(unit) || !(0, espionage_2.robbed)(cityOn(to), interactionRegistry)) &&
-        (0, stealAdvance_1.stealableAdvances)(unit.player(), cityOn(to).player(), playerResearchRegistry).length > 0), canPoison = new Criterion_1.default((unit, to) => !human(unit.player()) ||
+    distanceToCapital = (player, tile) => (0, distanceFromPalace_1.distanceFromPalace)((0, distanceFromPalace_1.palaceTiles)(player, (improvement) => improvement instanceof Palace_1.default, cityImprovementRegistry), tile, capitalLink_1.diagonalDistance, 16), underTreaty = (unit, to) => (0, treatyLevel_1.treatyLevel)({ interactionRegistry }, unit.player(), cityOn(to).player()) >= treatyLevel_1.TreatyLevel.Ceasefire, personUnderTreaty = new Criterion_1.default((unit, to) => human(unit.player()) && underTreaty(unit, to)), notPersonUnderTreaty = new Criterion_1.default((unit, to) => !human(unit.player()) || !underTreaty(unit, to)), spy = new Criterion_1.default((unit) => unit.hasTrait(Covert_1.default)), person = new Criterion_1.default((unit) => human(unit.player())), 
+    // A Diplomat at a city not yet robbed, or a Spy (`unit_spy.cpp:190`). A person is offered it with nothing to take,
+    //  and pays a move for trying (`:461-467`); a computer only when there's something.
+    canSteal = new Criterion_1.default((unit, to) => ((0, espionage_1.isSpy)(unit) || !(0, espionage_2.robbed)(cityOn(to), interactionRegistry)) &&
+        (human(unit.player()) ||
+            (0, stealAdvance_1.stealableAdvances)(unit.player(), cityOn(to).player(), playerResearchRegistry).length > 0)), canPoison = new Criterion_1.default((unit, to) => !human(unit.player()) ||
         cityGrowthRegistry.getByCity(cityOn(to)).size() > 1), canPlant = new Criterion_1.default((unit) => knows(unit.player(), Rocketry_1.default) &&
         knows(unit.player(), NuclearFission_1.default) &&
         manhattanProjectBuilt()), 
@@ -216,7 +243,7 @@ const missionRows = ({ cityGrowthRegistry, cityImprovementRegistry, cityRegistry
         bribe: {
             name: 'bribe-unit',
             criteria: [
-                ...(0, diplomat_1.bribeUnitCriteria)({ cityRegistry, unitRegistry }),
+                ...bribeUnitCriteria,
                 new Criterion_1.default((unit, to) => {
                     const [target] = unitRegistry.getByTile(to);
                     if (governed(target.player(), Democracy_1.default)) {
@@ -247,8 +274,9 @@ const missionRows = ({ cityGrowthRegistry, cityImprovementRegistry, cityRegistry
                     if (home === null) {
                         return false;
                     }
+                    // Any foreign city, from a ship too (`unit_move.cpp:778`).
                     if (city.player() !== unit.player()) {
-                        return from.isLand();
+                        return true;
                     }
                     return home !== city;
                 }),

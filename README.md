@@ -145,18 +145,20 @@ From OpenCiv2 `src/auto/unit_spy.cpp` and `unit_caravan_enter_city` (`unit.cpp:3
     less, a veteran a third. Under a treaty a person may pay double (`SubvertCity`) below 15001: civ2-city's
     `inciterBecomesFounder` runs just before the capture. Either way the city is captured with the action as the cause
     (civ2-city's `Captured` rules), its units in it and beside it defect (`defectingCauses`), homed there with full
-    moves and no orders but fortifying, and the inciter counts 2 subversions.
+    moves, every order but fortifying (their busy state) cleared, and the inciter counts 2 subversions.
   - **Bribe a unit** (lone, outside a city, not a Democracy's): `cost × ((gold + 750) / (distance + 2))`, the distance
     from the owner's Palace to the unit (10 at most under the briber's Communism), halved but for Settlers and
     Engineers. A computer needs the Diplomat's prerequisite, never bribes a Caravan or Freight and pays only up to half
-    its gold. The unit is rehomed in the nearest city if that's the briber's, its moves restored; the briber then moves
-    onto its square.
+    its gold. The unit is rehomed in the nearest city if that's the briber's, its moves restored and every order
+    cleared; the briber then moves onto its square, or, bribing a ship at sea from land, boards it if it has room and
+    otherwise stays.
   - **Sabotage a unit:** a person's Spy only (the original's default combat rules give it bribe or sabotage); the unit
     loses half its hit points left.
 - **Missions start from land or a ship**, and none has a treaty test (`unit_move_dir_land_unit_checks`).
 - **Caught checks** (`spy_check_caught`, odds 3, a veteran 6; a Diplomat is always caught): a Spy that passes one goes
   to its nearest city with its moves spent, before the mission goes on, but pays no move and isn't promoted; a Spy
-  planting a device is therefore away from the blast.
+  planting a device is therefore away from the blast. Any escape to a city takes the agent off a ship it was aboard
+  (base-unit-agent's `escape`, given the game's transport registry).
 - **Escapes** (`AgentSurvives`): a Diplomat is used up after a mission. A Spy pays a move and escapes with odds 2,
   doubled for a veteran, halved when hard (`base-unit-agent`'s `escape`), to its nearest city with its moves spent,
   and becomes a veteran. An embassy or an investigation uses up a computer's agent and a person's Diplomat; a person's

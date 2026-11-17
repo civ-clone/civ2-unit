@@ -260,6 +260,7 @@ const register = (game) => {
         playerTreasuryRegistry: game.playerTreasuries,
         randomNumberGenerator: game.rng,
         ruleRegistry: game.rules,
+        transportRegistry: game.transports,
         turn: game.turn,
         unitImprovementRegistry: game.unitImprovements,
         unitRegistry: game.units,

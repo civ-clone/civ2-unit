@@ -120,7 +120,17 @@ import Unit from '@civ-clone/core-unit/Unit';
 import UnitBribed from '@civ-clone/base-unit-action-bribe-unit/Rules/UnitBribed';
 import Captured from '@civ-clone/core-city/Rules/Captured';
 import { Food } from '@civ-clone/civ2-city/Yields';
-import { Fortify, Move } from '../../Actions';
+import { Embark, Move } from '../../Actions';
+import {
+  ITransport,
+  isTransport,
+} from '@civ-clone/core-unit-transport/Transport';
+import {
+  TransportRegistry,
+  instance as transportRegistryInstance,
+} from '@civ-clone/core-unit-transport/TransportRegistry';
+import Fortified from '@civ-clone/base-unit-action-fortify/Rules/Fortified';
+import Fortifying from '@civ-clone/base-unit-action-fortify/Rules/Fortifying';
 import { Low } from '@civ-clone/core-rule/Priorities';
 import ProcessYield from '@civ-clone/core-city/Rules/ProcessYield';
 import Tile from '@civ-clone/core-world/Tile';
@@ -162,6 +172,7 @@ export interface EspionageDependencies {
   playerTreasuryRegistry?: PlayerTreasuryRegistry;
   randomNumberGenerator?: () => number;
   ruleRegistry?: RuleRegistry;
+  transportRegistry?: TransportRegistry;
   turn?: Turn;
   unitImprovementRegistry?: UnitImprovementRegistry;
   unitRegistry?: UnitRegistry;
@@ -227,6 +238,7 @@ export const getRules = ({
   playerTreasuryRegistry = playerTreasuryRegistryInstance,
   randomNumberGenerator = randomNumberGeneratorInstance,
   ruleRegistry = ruleRegistryInstance,
+  transportRegistry = transportRegistryInstance,
   turn = turnInstance,
   unitImprovementRegistry = unitImprovementRegistryInstance,
   unitRegistry = unitRegistryInstance,
@@ -275,6 +287,7 @@ export const getRules = ({
             randomNumberGenerator,
             relocates: true,
             ruleRegistry,
+            transportRegistry,
           })
         ) {
           return false;
@@ -509,6 +522,7 @@ export const getRules = ({
             escapeOdds(oddsMode, veteran(agent)),
           randomNumberGenerator,
           ruleRegistry,
+          transportRegistry,
         });
       })
     ),
@@ -843,11 +857,35 @@ export const getRules = ({
           briber,
           home !== null && home.player() === briber ? home : null
         );
+        // `orders = ORDER_NONE`: every order goes, fortifying included (`unit_spy.cpp:1046`).
         target.moves().set(target.movement());
+        target.setBusy();
         target.setStatus(null);
         target.setActive();
 
         engine.emit('unit:bribed', target, briber, previousOwner, cost);
+
+        // A land briber goes on to a ship it bribed at sea only by boarding it, when it has room
+        //  (`unit_move.cpp:1507-1513`); otherwise it stays where it is.
+        if (!action.to().isLand() && action.from().isLand()) {
+          const transport = target as unknown as ITransport;
+
+          if (
+            isTransport(target) &&
+            transport.hasCapacity() &&
+            transport.canStow(unit)
+          ) {
+            new Embark(
+              action.from(),
+              action.to(),
+              unit,
+              transport,
+              ruleRegistry
+            ).perform();
+          }
+
+          return true;
+        }
 
         new Move(action.from(), action.to(), unit, ruleRegistry).perform();
 
@@ -911,7 +949,12 @@ export const getRules = ({
           .forEach((unit: Unit): void => {
             unit.moves().set(unit.movement());
 
-            if (!(unit.status() instanceof Fortify)) {
+            // Orders are the unit's busy state: fortifying or fortified stays, anything else (asleep, on sentry, at
+            //  work) is cleared.
+            const busy = unit.busy();
+
+            if (!(busy instanceof Fortifying || busy instanceof Fortified)) {
+              unit.setBusy();
               unit.setStatus(null);
               unit.setActive();
             }

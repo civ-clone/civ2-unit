@@ -48,6 +48,10 @@ const UnitBribed_1 = require("@civ-clone/base-unit-action-bribe-unit/Rules/UnitB
 const Captured_1 = require("@civ-clone/core-city/Rules/Captured");
 const Yields_1 = require("@civ-clone/civ2-city/Yields");
 const Actions_1 = require("../../Actions");
+const Transport_1 = require("@civ-clone/core-unit-transport/Transport");
+const TransportRegistry_1 = require("@civ-clone/core-unit-transport/TransportRegistry");
+const Fortified_1 = require("@civ-clone/base-unit-action-fortify/Rules/Fortified");
+const Fortifying_1 = require("@civ-clone/base-unit-action-fortify/Rules/Fortifying");
 const Priorities_1 = require("@civ-clone/core-rule/Priorities");
 const ProcessYield_1 = require("@civ-clone/core-city/Rules/ProcessYield");
 const cosmic_1 = require("@civ-clone/civ2-rules/data/cosmic");
@@ -102,7 +106,7 @@ exports.robbed = robbed;
  *   civ2-diplomacy's `nuclearDeviceDiscovered`; a city incited, paid for and captured with the action as the cause;
  *   a unit bribed and rehomed.
  */
-const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImprovementRegistry = CityImprovementRegistry_1.instance, cityRegistry = CityRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, diplomacy, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pendingEffectRegistry = PendingEffectRegistry_1.instance, playerGovernmentRegistry = PlayerGovernmentRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, playerTreasuryRegistry = PlayerTreasuryRegistry_1.instance, randomNumberGenerator = core_random_1.instance, ruleRegistry = RuleRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, inciterBecomesFounder = () => { }, } = {}) => {
+const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImprovementRegistry = CityImprovementRegistry_1.instance, cityRegistry = CityRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, diplomacy, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pendingEffectRegistry = PendingEffectRegistry_1.instance, playerGovernmentRegistry = PlayerGovernmentRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, playerTreasuryRegistry = PlayerTreasuryRegistry_1.instance, randomNumberGenerator = core_random_1.instance, ruleRegistry = RuleRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, inciterBecomesFounder = () => { }, } = {}) => {
     const veteran = (unit) => (0, espionage_1.isVeteran)(unit, unitImprovementRegistry), human = (player) => (0, isHuman_1.default)(player, clientRegistry), is = (mission, ...types) => types.some((Type) => mission instanceof Type), cityOf = (mission) => mission.city(), has = (city, Improvement) => cityImprovementRegistry
         .getByCity(city)
         .some((improvement) => improvement instanceof Improvement && !improvement.destroyed()), 
@@ -119,6 +123,7 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
                     randomNumberGenerator,
                     relocates: true,
                     ruleRegistry,
+                    transportRegistry,
                 })) {
                 return false;
             }
@@ -236,6 +241,7 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
                 odds: (agent, oddsMode) => (0, escape_1.escapeOdds)(oddsMode, veteran(agent)),
                 randomNumberGenerator,
                 ruleRegistry,
+                transportRegistry,
             });
         })),
         // An embassy: a person's Spy stays and pays a third of a move; a person's Diplomat and any computer agent are
@@ -401,10 +407,23 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
             (0, missionRecords_1.addSubversions)(briber, 1, pendingEffectRegistry);
             const home = (0, nearestCity_1.default)(cityRegistry, target.tile());
             target.transfer(briber, home !== null && home.player() === briber ? home : null);
+            // `orders = ORDER_NONE`: every order goes, fortifying included (`unit_spy.cpp:1046`).
             target.moves().set(target.movement());
+            target.setBusy();
             target.setStatus(null);
             target.setActive();
             engine.emit('unit:bribed', target, briber, previousOwner, cost);
+            // A land briber goes on to a ship it bribed at sea only by boarding it, when it has room
+            //  (`unit_move.cpp:1507-1513`); otherwise it stays where it is.
+            if (!action.to().isLand() && action.from().isLand()) {
+                const transport = target;
+                if ((0, Transport_1.isTransport)(target) &&
+                    transport.hasCapacity() &&
+                    transport.canStow(unit)) {
+                    new Actions_1.Embark(action.from(), action.to(), unit, transport, ruleRegistry).perform();
+                }
+                return true;
+            }
             new Actions_1.Move(action.from(), action.to(), unit, ruleRegistry).perform();
             return true;
         })),
@@ -430,7 +449,11 @@ const getRules = ({ cityBuildRegistry = CityBuildRegistry_1.instance, cityGrowth
             .filter((unit) => unit.player() === capturingPlayer && unit.city() === city)
             .forEach((unit) => {
             unit.moves().set(unit.movement());
-            if (!(unit.status() instanceof Actions_1.Fortify)) {
+            // Orders are the unit's busy state: fortifying or fortified stays, anything else (asleep, on sentry, at
+            //  work) is cleared.
+            const busy = unit.busy();
+            if (!(busy instanceof Fortifying_1.default || busy instanceof Fortified_1.default)) {
+                unit.setBusy();
                 unit.setStatus(null);
                 unit.setActive();
             }

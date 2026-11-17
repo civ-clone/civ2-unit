@@ -52,6 +52,10 @@ import { investigated } from '../lib/missionRecords';
 import { Food } from '@civ-clone/civ2-city/Yields';
 import ProcessYield from '@civ-clone/core-city/Rules/ProcessYield';
 import { robbed } from '../Rules/Unit/espionage';
+import { Ironclad, Trireme } from '../Units';
+import { ITransport } from '@civ-clone/core-unit-transport/Transport';
+import Fortified from '@civ-clone/base-unit-action-fortify/Rules/Fortified';
+import Sleeping from '@civ-clone/base-unit-action-sleep/Rules/Sleeping';
 import computerMission from '../lib/computerMission';
 import { Deity } from '@civ-clone/civ2-difficulty/Difficulties';
 import ManhattanProject from '@civ-clone/base-wonder-manhattanproject/ManhattanProject';
@@ -112,6 +116,7 @@ const person = (game: Game, player: Player): void =>
       playerTreasuryRegistry: game.playerTreasuries,
       randomNumberGenerator: rng,
       ruleRegistry: game.rules,
+      transportRegistry: game.transports,
       turn: game.turn,
       unitImprovementRegistry: game.unitImprovements,
       unitRegistry: game.units,
@@ -997,6 +1002,180 @@ describe('review fixes', function (): void {
     expect(coastal.tile().isLand()).to.true;
     expect(names(caravan, at(7, 1))).to.include('EstablishTradeRoute');
     expect(names(diplomat, at(7, 1))).to.include('IndustrialSabotage');
+  });
+});
+
+describe('second review fixes', function (): void {
+  this.timeout(30000);
+
+  // A coastal city of the enemy's at (7, 1), a home city at (1, 5), and a Trireme of the player's at sea at (8, 1).
+  const aboard = async (who: 'person' | 'computer', seed?: number) => {
+    const setting = await setUp(undefined, seed),
+      { game, player, enemy, at } = setting,
+      city = addCity(game, enemy, at(7, 1), 'Coastal'),
+      home = addCity(game, player, at(1, 5), 'Home'),
+      ship = new Trireme(
+        home,
+        player,
+        at(8, 1),
+        game.rules
+      ) as unknown as Unit & ITransport,
+      spy = new Spy(home, player, at(7, 2), game.rules);
+
+    (who === 'person' ? person : computer)(game, player);
+    computer(game, enemy);
+    treasury(game, player, 1000);
+    treasury(game, enemy, 0);
+    (
+      ship as unknown as { setTransportRegistry(r: unknown): void }
+    ).setTransportRegistry(game.transports);
+    expect(ship.stow(spy, at(7, 2))).to.true;
+    spy.setTile(at(8, 1));
+    spy.moves().set(3);
+
+    return { ...setting, city, home, ship, spy };
+  };
+
+  it('takes a Spy that passes a caught check off its ship (`unit_spy.cpp:47-62`)', async (): Promise<void> => {
+    const { game, player, enemy, city, home, spy, at } = await aboard('person');
+
+    // A city already robbed, with a Diplomat to detect the theft: the caught check is the only escape made.
+    game.playerResearch.getByPlayer(enemy).addAdvance(Alphabet);
+    game.interactions.register(
+      new AdvanceStolen(player, enemy, city, game.rules, game.turn) as never
+    );
+    new Diplomat(null, enemy, at(7, 1), game.rules);
+    // The slot walk, the caught check passed, then the detection.
+    withRng(game, draws(0.5, 0.5, 0.1));
+    find(spy, at(7, 1), 'StealTechnology')!.perform();
+
+    expect(spy.destroyed()).to.false;
+    expect(spy.tile()).to.equal(home.tile());
+    expect(game.transports.hasUnit(spy)).to.false;
+    expect(spy.busy()).to.null;
+  });
+
+  it('takes a Spy that escapes after a mission off its ship', async (): Promise<void> => {
+    const { game, home, spy, at } = await aboard('computer');
+
+    withRng(game, draws(0, 0.9));
+    find(spy, at(7, 1), 'IndustrialSabotage')!.perform();
+
+    expect(spy.tile()).to.equal(home.tile());
+    expect(game.transports.hasUnit(spy)).to.false;
+  });
+
+  it('takes a Spy that escapes after sabotaging a unit off its ship', async (): Promise<void> => {
+    let escaped = 0;
+
+    for (let seed = 1; seed <= 20; seed++) {
+      const { game, enemy, home, spy, at } = await aboard('person', seed);
+
+      new Warrior(null, enemy, at(8, 2), game.rules);
+      game.unitImprovements.register(new Veteran(spy));
+      find(spy, at(8, 2), 'SabotageUnit')!.perform();
+
+      if (!spy.destroyed()) {
+        escaped++;
+        expect(spy.tile()).to.equal(home.tile());
+        expect(game.transports.hasUnit(spy)).to.false;
+      }
+    }
+
+    expect(escaped).to.be.above(0);
+  });
+
+  it('wakes a sleeping defector, and leaves a fortified one fortified (`city.cpp:2271-2274`)', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      city = addCity(game, enemy, at(2, 1), 'Target'),
+      home = addCity(game, player, at(1, 5), 'Home'),
+      diplomat = new Diplomat(home, player, at(1, 1), game.rules),
+      sleeper = new Warrior(null, enemy, at(2, 1), game.rules),
+      guard = new Warrior(null, enemy, at(2, 1), game.rules),
+      fortified = new Fortified();
+
+    person(game, player);
+    computer(game, enemy);
+    treasury(game, player, 1000);
+    treasury(game, enemy, 0);
+    diplomat.moves().set(2);
+    sleeper.setBusy(new Sleeping());
+    sleeper.setActive(false);
+    guard.setBusy(fortified);
+    guard.setActive(false);
+
+    find(diplomat, at(2, 1), 'InciteRevolt')!.perform();
+
+    expect(city.player()).to.equal(player);
+    expect(sleeper.player()).to.equal(player);
+    expect(sleeper.busy()).to.null;
+    expect(sleeper.active()).to.true;
+    expect(guard.busy()).to.equal(fortified);
+  });
+
+  it('clears every order of a bribed unit, fortified included (`unit_spy.cpp:1046`)', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      home = addCity(game, player, at(1, 5), 'Home'),
+      diplomat = new Diplomat(home, player, at(1, 1), game.rules),
+      lone = new Warrior(null, enemy, at(2, 2), game.rules);
+
+    person(game, player);
+    computer(game, enemy);
+    treasury(game, player, 1000);
+    treasury(game, enemy, 0);
+    diplomat.moves().set(2);
+    lone.setBusy(new Fortified());
+    lone.setActive(false);
+
+    find(diplomat, at(2, 2), 'BribeUnit')!.perform();
+
+    expect(lone.player()).to.equal(player);
+    expect(lone.busy()).to.null;
+    expect(lone.active()).to.true;
+  });
+
+  it('boards a ship it bribed at sea when it has room, and otherwise stays (`unit_move.cpp:1507-1513`)', async (): Promise<void> => {
+    const { game, player, enemy, at } = await setUp(),
+      home = addCity(game, player, at(1, 5), 'Home'),
+      diplomat = new Diplomat(home, player, at(7, 1), game.rules),
+      ship = new Trireme(null, enemy, at(8, 1), game.rules) as unknown as Unit &
+        ITransport;
+
+    person(game, player);
+    computer(game, enemy);
+    treasury(game, player, 1000);
+    treasury(game, enemy, 0);
+    (
+      ship as unknown as { setTransportRegistry(r: unknown): void }
+    ).setTransportRegistry(game.transports);
+    diplomat.moves().set(2);
+
+    find(diplomat, at(8, 1), 'BribeUnit')!.perform();
+
+    expect(ship.player()).to.equal(player);
+    expect(diplomat.tile()).to.equal(at(8, 1));
+    expect(game.transports.hasUnit(diplomat)).to.true;
+
+    // A bribed warship has no hold: the briber stays ashore.
+    const other = await setUp(),
+      otherHome = addCity(other.game, other.player, other.at(1, 5), 'Home'),
+      briber = new Diplomat(
+        otherHome,
+        other.player,
+        other.at(7, 1),
+        other.game.rules
+      );
+
+    person(other.game, other.player);
+    computer(other.game, other.enemy);
+    treasury(other.game, other.player, 1000);
+    treasury(other.game, other.enemy, 0);
+    new Ironclad(null, other.enemy, other.at(8, 1), other.game.rules);
+    briber.moves().set(2);
+
+    find(briber, other.at(8, 1), 'BribeUnit')!.perform();
+
+    expect(briber.tile()).to.equal(other.at(7, 1));
   });
 });
 

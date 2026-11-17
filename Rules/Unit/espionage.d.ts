@@ -30,6 +30,7 @@ import StealTechnology from '@civ-clone/base-unit-action-steal-technology/StealT
 import TechnologyStolen from '@civ-clone/base-unit-action-steal-technology/Rules/TechnologyStolen';
 import UnitBribed from '@civ-clone/base-unit-action-bribe-unit/Rules/UnitBribed';
 import Captured from '@civ-clone/core-city/Rules/Captured';
+import { TransportRegistry } from '@civ-clone/core-unit-transport/TransportRegistry';
 import ProcessYield from '@civ-clone/core-city/Rules/ProcessYield';
 import WaterPoisoned from '@civ-clone/base-unit-action-poison-water/Rules/WaterPoisoned';
 import Dependencies from '@civ-clone/civ2-diplomacy/lib/Dependencies';
@@ -55,6 +56,7 @@ export interface EspionageDependencies {
   playerTreasuryRegistry?: PlayerTreasuryRegistry;
   randomNumberGenerator?: () => number;
   ruleRegistry?: RuleRegistry;
+  transportRegistry?: TransportRegistry;
   turn?: Turn;
   unitImprovementRegistry?: UnitImprovementRegistry;
   unitRegistry?: UnitRegistry;
@@ -110,6 +112,7 @@ export declare const getRules: ({
   playerTreasuryRegistry,
   randomNumberGenerator,
   ruleRegistry,
+  transportRegistry,
   turn,
   unitImprovementRegistry,
   unitRegistry,

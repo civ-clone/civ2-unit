@@ -708,6 +708,13 @@ export const getRules = ({
                 if (!isVeteran(spy, unitImprovementRegistry)) {
                   unitImprovementRegistry.register(new Veteran(spy));
                 }
+
+                // Off any ship it was aboard (base-unit-agent's `escape` unloads it from its default transport
+                //  registry, which a game of its own doesn't use; SabotageUnit doesn't pass the game's on).
+                if (transportRegistry.hasUnit(spy)) {
+                  transportRegistry.getByUnit(spy).transport().unload(spy);
+                  spy.setBusy();
+                }
               },
             }
           ) as UnitAction,

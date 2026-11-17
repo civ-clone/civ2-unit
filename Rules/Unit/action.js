@@ -322,6 +322,12 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
                     if (!(0, espionage_1.isVeteran)(spy, unitImprovementRegistry)) {
                         unitImprovementRegistry.register(new Veteran_1.default(spy));
                     }
+                    // Off any ship it was aboard (base-unit-agent's `escape` unloads it from its default transport
+                    //  registry, which a game of its own doesn't use; SabotageUnit doesn't pass the game's on).
+                    if (transportRegistry.hasUnit(spy)) {
+                        transportRegistry.getByUnit(spy).transport().unload(spy);
+                        spy.setBusy();
+                    }
                 },
             }),
         },

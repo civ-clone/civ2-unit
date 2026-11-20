@@ -17,7 +17,6 @@ const Move_1 = require("@civ-clone/base-unit-action-move/Move");
 const RuleSets_1 = require("./RuleSets");
 const RuleSet_1 = require("@civ-clone/core-rule/RuleSet");
 const Actions_1 = require("./Actions");
-const Detonates_1 = require("@civ-clone/base-unit-trait-detonates/Detonates");
 const InciteRevolt_1 = require("@civ-clone/base-unit-action-incite-revolt/InciteRevolt");
 const SubvertCity_1 = require("@civ-clone/base-unit-action-incite-revolt/SubvertCity");
 const dependenciesOf_1 = require("@civ-clone/civ2-diplomacy/lib/dependenciesOf");
@@ -45,10 +44,9 @@ const cityUnitRules_1 = require("@civ-clone/base-unit-build/lib/cityUnitRules");
 const diplomatRules_1 = require("@civ-clone/base-unit-lifecycle/lib/diplomatRules");
 const detonatedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/detonatedRules");
 const movedRules_1 = require("@civ-clone/base-unit-lifecycle/lib/movedRules");
-const SdiDefence_1 = require("@civ-clone/base-city-improvement-sdidefence/SdiDefence");
 const SingleUse_1 = require("@civ-clone/base-unit-trait-single-use/SingleUse");
-const hasImprovementOrWonder_1 = require("@civ-clone/base-wonder/lib/hasImprovementOrWonder");
-const distance_1 = require("./lib/distance");
+const describedRule_1 = require("./lib/describedRule");
+const sdiDefence_1 = require("./lib/sdiDefence");
 const coastBound_1 = require("./lib/coastBound");
 const homeCity_1 = require("@civ-clone/base-unit-build/lib/homeCity");
 const manhattanProject_1 = require("./lib/manhattanProject");
@@ -198,22 +196,15 @@ const register = (game) => {
         sparesUnits: () => false,
         Pollution: TileImprovements_1.Pollution,
         falloutChance: 2 / 3,
-        // Another player's city with SDI Defense within 3 of the target, by `map_distance`, stops a nuclear attack
-        //  and the missile is lost (`unit_nuclear_attack`). The client hears `unit:nuclear-stopped` as well as the
-        //  detonation it is told of either way.
-        vetoes: (() => {
-            const protectedBy = (0, detonatedRules_1.protectedByCityWithin)(game.cities, 3, (city, unit) => city.player() !== unit.player() &&
-                (0, hasImprovementOrWonder_1.cityHasImprovement)(city, SdiDefence_1.default, game.cityImprovements), distance_1.default);
-            // Only a missile: a Spy's planted device isn't stopped (`unit_nuclear_attack(civ, x, y, 0)`, `unit_spy.cpp:687`).
-            return (unit, tile) => {
-                const stopped = unit.hasTrait(Detonates_1.default) && protectedBy(unit, tile);
-                if (stopped) {
-                    game.engine.emit('unit:nuclear-stopped', unit, tile);
-                }
-                return stopped;
-            };
-        })(),
-    }), ...lifecycle.expectedMovementCost, ...lifecycle.impassable, ...lifecycle.halted, ...lifecycle.lostAtSea, 
+        // Another player's city with SDI Defense near the target stops a nuclear missile (`lib/sdiDefence`).
+        vetoes: (0, sdiDefence_1.default)({
+            cityImprovementRegistry: game.cityImprovements,
+            cityRegistry: game.cities,
+            engine: game.engine,
+        }),
+    }).map((rule) => rule.id() === sdiDefence_1.SDI_DEFENCE_DESCRIBED_RULE
+        ? (0, describedRule_1.describedRule)(rule, (0, sdiDefence_1.sdiDefenceDescription)())
+        : rule), ...lifecycle.expectedMovementCost, ...lifecycle.impassable, ...lifecycle.halted, ...lifecycle.lostAtSea, 
     // base-unit-lifecycle's moved rules but its `break-peace-treaty`, which `forcedWar` replaces.
     ...(0, movedRules_1.default)('civ2-unit', {
         cityRegistry: game.cities,

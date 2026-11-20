@@ -156,6 +156,7 @@ import {
 } from '@civ-clone/core-city/WorkedTileRegistry';
 import actionRules, {
   ActionRow,
+  actionId,
   NamedRow,
   Perform,
 } from '@civ-clone/base-unit-action-rules/lib/actionRules';
@@ -171,6 +172,7 @@ import Airport from '@civ-clone/base-city-improvement-airport/Airport';
 import City from '@civ-clone/core-city/City';
 import CityImprovement from '@civ-clone/core-city-improvement/CityImprovement';
 import Criterion from '@civ-clone/core-rule/Criterion';
+import Description from '@civ-clone/core-rule/Description';
 import DelayedAction from '@civ-clone/core-unit/DelayedAction';
 import { ITransport } from '@civ-clone/core-unit-transport/Transport';
 import IgnoresZoneOfControl from '@civ-clone/base-unit-trait-ignores-zone-of-control/IgnoresZoneOfControl';
@@ -383,6 +385,9 @@ export interface ActionDependencies {
  *  Civ2's mission menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a
  *  multiplayer game's chat spying, and talks open from the client). Help with a wonder is civ2-wonder's.
  */
+/** The rule that airlifts a land unit between two cities with an Airport. */
+export const AIRLIFT_ACTION_RULE = actionId('civ2-unit', 'airlift');
+
 export const getRules = ({
   cityGrowthRegistry = cityGrowthRegistryInstance,
   clientRegistry = clientRegistryInstance,
@@ -1056,13 +1061,23 @@ export const getRules = ({
       //  (`unit_cmd_airlift`, `unit_airlift_perform`).
       {
         name: 'airlift',
-        criteria: airliftCriteria(
-          { cityRegistry, pendingEffectRegistry, turn },
-          {
-            canAirlift: (unit: Unit): boolean => rowOf(unit)?.[1] === LAND,
-            canAirliftFrom: cityHasAirport,
-          }
-        ),
+        criteria: [
+          ...airliftCriteria(
+            { cityRegistry, pendingEffectRegistry, turn },
+            {
+              canAirlift: (unit: Unit): boolean => rowOf(unit)?.[1] === LAND,
+              canAirliftFrom: cityHasAirport,
+            }
+          ),
+          // What an Airport does, for the Civilopedia (civ-clone/web-renderer#1196). base-unit-action-rules hands a
+          //  row's criteria to the rule as they are, and a rule takes a `Description` among them, though the row's
+          //  type lists only criteria.
+          new Description({
+            type: 'airlift',
+            subject: Airport,
+            unit: Land,
+          }) as unknown as Criterion,
+        ],
         effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
           new Airlift(
             from,

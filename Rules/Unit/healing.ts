@@ -26,7 +26,11 @@ import {
 } from '@civ-clone/core-unit/UnitRegistry';
 import Airport from '@civ-clone/base-city-improvement-airport/Airport';
 import Barracks from '@civ-clone/base-city-improvement-barracks/Barracks';
+import Air from '@civ-clone/base-unit-type-air/Air';
 import City from '@civ-clone/core-city/City';
+import Description from '@civ-clone/core-rule/Description';
+import Land from '@civ-clone/base-unit-type-land/Land';
+import Naval from '@civ-clone/base-unit-type-naval/Naval';
 import CityImprovement from '@civ-clone/core-city-improvement/CityImprovement';
 import Moved from '@civ-clone/core-unit/Rules/Moved';
 import PortFacility from '@civ-clone/base-city-improvement-portfacility/PortFacility';
@@ -37,6 +41,7 @@ import Unit from '@civ-clone/core-unit/Unit';
 import { Yield as UnitYield } from '@civ-clone/core-unit/Rules/Yield';
 import { cosmic } from '@civ-clone/civ2-rules/data/cosmic';
 import damagedMovementRules from '@civ-clone/base-unit-healing/lib/damagedMovementRules';
+import { describedRule } from '../../lib/describedRule';
 import distance from '../../lib/distance';
 import healingRules from '@civ-clone/base-unit-healing/lib/healingRules';
 import { unitTypes } from '../../lib/unitTable';
@@ -55,6 +60,22 @@ export const healingFacilities: [number, typeof CityImprovement][] = [
   [AIR, Airport],
   [SEA, PortFacility],
 ];
+
+/** The unit type of each domain, as a description names it (civ-clone/web-renderer#1196). */
+export const domainUnitTypes: [number, typeof Unit][] = [
+  [LAND, Land],
+  [AIR, Air],
+  [SEA, Naval],
+];
+
+/** The unit type of a domain. */
+export const domainUnitType = (domain: number): typeof Unit =>
+  domainUnitTypes.find(
+    ([unitDomain]: [number, typeof Unit]): boolean => unitDomain === domain
+  )![1];
+
+/** The rule of base-unit-healing's that heals, which says what each of `healingFacilities` does. */
+export const HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
 
 export interface HealingDependencies {
   cityImprovementRegistry?: CityImprovementRegistry;
@@ -111,7 +132,7 @@ export const getRules = ({
       )?.[1];
 
   return [
-    ...healingRules(
+    ...(healingRules(
       {
         cityRegistry,
         landMassRegistry,
@@ -150,7 +171,22 @@ export const getRules = ({
         },
         distance,
       }
-    ),
+    ).map((rule: Moved | TurnStart): Moved | TurnStart =>
+      rule.id() === HEAL_UNITS_RULE
+        ? describedRule(
+            rule,
+            new Description(
+              ...healingFacilities.map(
+                ([domain, Facility]: [number, typeof CityImprovement]) => ({
+                  type: 'heals',
+                  subject: Facility,
+                  unit: domainUnitType(domain),
+                })
+              )
+            )
+          )
+        : rule
+    ) as (Moved | TurnStart)[]),
     ...damagedMovementRules({
       id: 'civ2-unit:unit/yield/damaged-movement',
       stepsPerMove: cosmic.roadMoveMultiplier,

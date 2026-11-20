@@ -22,8 +22,10 @@ import {
 import Advance from '@civ-clone/core-science/Advance';
 import City from '@civ-clone/core-city/City';
 import Criterion from '@civ-clone/core-rule/Criterion';
+import Description from '@civ-clone/core-rule/Description';
 import Effect from '@civ-clone/core-rule/Effect';
 import Fundamentalism from '@civ-clone/base-government-fundamentalism/Fundamentalism';
+import ManhattanProject from '@civ-clone/base-wonder-manhattanproject/ManhattanProject';
 import Gunpowder from '@civ-clone/base-science-advance-gunpowder/Gunpowder';
 import { IConstructor } from '@civ-clone/core-registry/Registry';
 import NuclearFission from '@civ-clone/base-science-advance-nuclearfission/NuclearFission';
@@ -73,7 +75,8 @@ export const getRules = ({
     rule = (
       reason: string,
       UnitType: typeof Unit,
-      allowed: (city: City) => boolean
+      allowed: (city: City) => boolean,
+      ...descriptions: Description[]
     ): Build =>
       new Build(
         `civ2-unit:city/build/${reason}/${UnitType.name}`,
@@ -85,7 +88,10 @@ export const getRules = ({
         new Effect(
           (city: City): IBuildCriterion =>
             new Criterion((): boolean => allowed(city))
-        )
+        ),
+        // `Build` hands everything but its items to `Rule`, which takes a `Description`, though core-city-build's
+        //  constructor type doesn't list one.
+        ...(descriptions as unknown as Criterion[])
       ),
     [, , , , knightsAttack, knightsDefence, , , , , , knightsAdvance] =
       row(Knight),
@@ -127,7 +133,16 @@ export const getRules = ({
           'nuclear',
           UnitType,
           (city: City): boolean =>
-            manhattanProjectBuilt() && knows(city.player(), NuclearFission)
+            manhattanProjectBuilt() && knows(city.player(), NuclearFission),
+          // What the Manhattan Project does, for the Civilopedia (civ-clone/web-renderer#1196): once anyone has built
+          //  it, every civilization that knows Nuclear Fission can build the weapon.
+          new Description({
+            type: 'enables',
+            subject: ManhattanProject,
+            what: UnitType,
+            with: NuclearFission,
+            scope: 'world',
+          })
         )
       );
     }

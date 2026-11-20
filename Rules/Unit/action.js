@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.treatyPartnerOf = exports.withoutDomainTest = exports.pillageable = exports.partisanPillageOrder = exports.pillageOrder = exports.territoryImprovements = void 0;
+exports.getRules = exports.AIRLIFT_ACTION_RULE = exports.treatyPartnerOf = exports.withoutDomainTest = exports.pillageable = exports.partisanPillageOrder = exports.pillageOrder = exports.territoryImprovements = void 0;
 const Actions_1 = require("../../Actions");
 const units_1 = require("../../data/units");
 const Action_1 = require("@civ-clone/core-unit/Rules/Action");
@@ -30,6 +30,7 @@ const attack_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/attack"
 const worker_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/worker");
 const Airport_1 = require("@civ-clone/base-city-improvement-airport/Airport");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
+const Description_1 = require("@civ-clone/core-rule/Description");
 const IgnoresZoneOfControl_1 = require("@civ-clone/base-unit-trait-ignores-zone-of-control/IgnoresZoneOfControl");
 const Land_1 = require("@civ-clone/base-unit-type-land/Land");
 const NavalTransport_1 = require("@civ-clone/base-unit-type-naval-transport/NavalTransport");
@@ -151,6 +152,8 @@ const rowOf = (unit) => rows.get(unit.constructor);
  *  Civ2's mission menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a
  *  multiplayer game's chat spying, and talks open from the client). Help with a wonder is civ2-wonder's.
  */
+/** The rule that airlifts a land unit between two cities with an Airport. */
+exports.AIRLIFT_ACTION_RULE = (0, actionRules_1.actionId)('civ2-unit', 'airlift');
 const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, cityImprovementRegistry = CityImprovementRegistry_1.instance, cityNameRegistry = CityNameRegistry_1.instance, cityRegistry = CityRegistry_1.instance, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pathFinderRegistry = PathFinderRegistry_1.instance, pendingEffectRegistry = PendingEffectRegistry_1.instance, playerGovernmentRegistry = PlayerGovernmentRegistry_1.instance, playerRegistry = PlayerRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, playerTreasuryRegistry = PlayerTreasuryRegistry_1.instance, randomNumberGenerator = core_random_1.instance, requirementRegistry = RequirementRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, strategyNoteRegistry = StrategyNoteRegistry_1.instance, strategyRegistry = StrategyRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, wonderRegistry = WonderRegistry_1.instance, workedTileRegistry = WorkedTileRegistry_1.instance, manhattanProjectBuilt = (0, manhattanProject_1.default)(wonderRegistry, cityImprovementRegistry), } = {}) => {
     // Allies (`TREATY_ALLIANCE`): one can't attack the other (`diplo_confirm_attack`), its units exert no zone of control
     //  on the other's (`tile_zoc_unit_adjacent`), and its land is no treaty partner's to trespass on.
@@ -486,10 +489,20 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
         //  (`unit_cmd_airlift`, `unit_airlift_perform`).
         {
             name: 'airlift',
-            criteria: (0, criteria_1.default)({ cityRegistry, pendingEffectRegistry, turn }, {
-                canAirlift: (unit) => { var _a; return ((_a = rowOf(unit)) === null || _a === void 0 ? void 0 : _a[1]) === units_1.LAND; },
-                canAirliftFrom: cityHasAirport,
-            }),
+            criteria: [
+                ...(0, criteria_1.default)({ cityRegistry, pendingEffectRegistry, turn }, {
+                    canAirlift: (unit) => { var _a; return ((_a = rowOf(unit)) === null || _a === void 0 ? void 0 : _a[1]) === units_1.LAND; },
+                    canAirliftFrom: cityHasAirport,
+                }),
+                // What an Airport does, for the Civilopedia (civ-clone/web-renderer#1196). base-unit-action-rules hands a
+                //  row's criteria to the rule as they are, and a rule takes a `Description` among them, though the row's
+                //  type lists only criteria.
+                new Description_1.default({
+                    type: 'airlift',
+                    subject: Airport_1.default,
+                    unit: Land_1.default,
+                }),
+            ],
             effect: (unit, to, from = unit.tile()) => new Actions_1.Airlift(from, to, unit, ruleRegistry, cityRegistry, pendingEffectRegistry, turn),
         },
         // A person's Senate is asked when the nearest city's owner has a treaty with it (`unit.cpp:2985-2998`, mask 0xe).

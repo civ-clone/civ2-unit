@@ -91,6 +91,8 @@ export interface ActionDependencies {
  *  Civ2's mission menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a
  *  multiplayer game's chat spying, and talks open from the client). Help with a wonder is civ2-wonder's.
  */
+/** The rule that airlifts a land unit between two cities with an Airport. */
+export declare const AIRLIFT_ACTION_RULE: string;
 export declare const getRules: ({
   cityGrowthRegistry,
   clientRegistry,

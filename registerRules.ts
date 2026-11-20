@@ -19,7 +19,6 @@ import { Requirement } from '@civ-clone/core-requirement/Requirement';
 import RuleSet from '@civ-clone/core-rule/RuleSet';
 import { SneakAttack, SneakMove, SneakPillage } from './Actions';
 import Unit from '@civ-clone/core-unit/Unit';
-import Detonates from '@civ-clone/base-unit-trait-detonates/Detonates';
 import InciteRevolt from '@civ-clone/base-unit-action-incite-revolt/InciteRevolt';
 import Player from '@civ-clone/core-player/Player';
 import SubvertCity from '@civ-clone/base-unit-action-incite-revolt/SubvertCity';
@@ -53,18 +52,17 @@ import canJoinCity from './Rules/Unit/canJoinCity';
 import created from './Rules/Unit/created';
 import cityUnitRules from '@civ-clone/base-unit-build/lib/cityUnitRules';
 import diplomatRules from '@civ-clone/base-unit-lifecycle/lib/diplomatRules';
-import detonatedRules, {
-  protectedByCityWithin,
-} from '@civ-clone/base-unit-lifecycle/lib/detonatedRules';
+import detonatedRules from '@civ-clone/base-unit-lifecycle/lib/detonatedRules';
 import movedRules, {
   adjacentToLand,
 } from '@civ-clone/base-unit-lifecycle/lib/movedRules';
 import City from '@civ-clone/core-city/City';
-import SdiDefence from '@civ-clone/base-city-improvement-sdidefence/SdiDefence';
 import SingleUse from '@civ-clone/base-unit-trait-single-use/SingleUse';
-import Tile from '@civ-clone/core-world/Tile';
-import { cityHasImprovement } from '@civ-clone/base-wonder/lib/hasImprovementOrWonder';
-import distance from './lib/distance';
+import { describedRule } from './lib/describedRule';
+import sdiDefenceVetoes, {
+  SDI_DEFENCE_DESCRIBED_RULE,
+  sdiDefenceDescription,
+} from './lib/sdiDefence';
 import triremeLossChance from './lib/coastBound';
 import homeCity from '@civ-clone/base-unit-build/lib/homeCity';
 import manhattanProjectBuilt from './lib/manhattanProject';
@@ -272,31 +270,18 @@ export const register = (game: Game): void => {
         sparesUnits: (): boolean => false,
         Pollution,
         falloutChance: 2 / 3,
-        // Another player's city with SDI Defense within 3 of the target, by `map_distance`, stops a nuclear attack
-        //  and the missile is lost (`unit_nuclear_attack`). The client hears `unit:nuclear-stopped` as well as the
-        //  detonation it is told of either way.
-        vetoes: (() => {
-          const protectedBy = protectedByCityWithin(
-            game.cities,
-            3,
-            (city: City, unit: Unit): boolean =>
-              city.player() !== unit.player() &&
-              cityHasImprovement(city, SdiDefence, game.cityImprovements),
-            distance
-          );
-
-          // Only a missile: a Spy's planted device isn't stopped (`unit_nuclear_attack(civ, x, y, 0)`, `unit_spy.cpp:687`).
-          return (unit: Unit, tile: Tile): boolean => {
-            const stopped = unit.hasTrait(Detonates) && protectedBy(unit, tile);
-
-            if (stopped) {
-              game.engine.emit('unit:nuclear-stopped', unit, tile);
-            }
-
-            return stopped;
-          };
-        })(),
+        // Another player's city with SDI Defense near the target stops a nuclear missile (`lib/sdiDefence`).
+        vetoes: sdiDefenceVetoes({
+          cityImprovementRegistry: game.cityImprovements,
+          cityRegistry: game.cities,
+          engine: game.engine,
+        }),
       }
+    ).map(
+      (rule: Rule): Rule =>
+        rule.id() === SDI_DEFENCE_DESCRIBED_RULE
+          ? describedRule(rule, sdiDefenceDescription())
+          : rule
     ),
     ...lifecycle.expectedMovementCost,
     ...lifecycle.impassable,

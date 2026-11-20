@@ -35,6 +35,7 @@ import {
 import Air from '@civ-clone/base-unit-type-air/Air';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
 import Criterion from '@civ-clone/core-rule/Criterion';
+import Description from '@civ-clone/core-rule/Description';
 import DefenceBonusVsAir from '@civ-clone/base-unit-trait-defence-bonus-vs-air/DefenceBonusVsAir';
 import DefenceBonusVsMounted from '@civ-clone/base-unit-trait-defence-bonus-vs-mounted/DefenceBonusVsMounted';
 import Effect from '@civ-clone/core-rule/Effect';
@@ -58,6 +59,7 @@ import { cityHasImprovementOrWonder } from '@civ-clone/base-wonder/lib/hasImprov
 import { cachedTerrainLookup } from '@civ-clone/base-terrain-properties/lib/terrainTable';
 import { defence as terrainDefence } from '@civ-clone/civ2-world/lib/terrainProperties';
 import { defenceStrength } from '@civ-clone/base-unit-yield/lib/defenceMultipliers';
+import { describedRule } from '../../lib/describedRule';
 import { unitTypes } from '../../lib/unitTable';
 
 // A terrain's defence in half steps (2 is ×1), looked up by class.
@@ -74,6 +76,9 @@ const rows = new Map<Function, UnitRow>(
 );
 
 const rowOf = (unit: Unit): UnitRow | undefined => rows.get(unit.constructor);
+
+/** City Walls' multiplier (and the Great Wall's, as City Walls), read by the rule and by what it says it does. */
+export const cityWallsMultiplier: number = 3;
 
 export interface Dependencies {
   cityImprovementRegistry?: CityImprovementRegistry;
@@ -195,7 +200,7 @@ export const defenceMultipliers =
         requirementRegistry,
       })
     ) {
-      multipliers.push([CityWalls.name, 3]);
+      multipliers.push([CityWalls.name, cityWallsMultiplier]);
 
       return multipliers;
     }
@@ -234,7 +239,25 @@ const isMounted = (unit: Unit): boolean => {
  *  unit with no attack at eight times their strength.
  */
 export const getRules = (dependencies: Dependencies = {}): Strength[] => [
-  defenceStrength(defenceMultipliers(dependencies)),
+  // base-unit-yield's rule, saying what City Walls and the Great Wall do (civ-clone/web-renderer#1196).
+  describedRule(
+    defenceStrength(defenceMultipliers(dependencies)),
+    new Description(
+      {
+        type: 'defence_multiplier',
+        subject: CityWalls,
+        value: cityWallsMultiplier,
+        against: Land,
+        except: IgnoresFortifications,
+      },
+      {
+        type: 'acts_as',
+        subject: GreatWall,
+        improvement: CityWalls,
+        scope: 'player',
+      }
+    )
+  ),
 
   new Strength(
     'civ2-unit:unit/strength/air-superiority-vs-no-fuel',

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.healingFacilities = void 0;
+exports.getRules = exports.HEAL_UNITS_RULE = exports.domainUnitType = exports.domainUnitTypes = exports.healingFacilities = void 0;
 const units_1 = require("../../data/units");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
 const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
@@ -11,9 +11,14 @@ const UnitImprovementRegistry_1 = require("@civ-clone/core-unit-improvement/Unit
 const UnitRegistry_1 = require("@civ-clone/core-unit/UnitRegistry");
 const Airport_1 = require("@civ-clone/base-city-improvement-airport/Airport");
 const Barracks_1 = require("@civ-clone/base-city-improvement-barracks/Barracks");
+const Air_1 = require("@civ-clone/base-unit-type-air/Air");
+const Description_1 = require("@civ-clone/core-rule/Description");
+const Land_1 = require("@civ-clone/base-unit-type-land/Land");
+const Naval_1 = require("@civ-clone/base-unit-type-naval/Naval");
 const PortFacility_1 = require("@civ-clone/base-city-improvement-portfacility/PortFacility");
 const cosmic_1 = require("@civ-clone/civ2-rules/data/cosmic");
 const damagedMovementRules_1 = require("@civ-clone/base-unit-healing/lib/damagedMovementRules");
+const describedRule_1 = require("../../lib/describedRule");
 const distance_1 = require("../../lib/distance");
 const healingRules_1 = require("@civ-clone/base-unit-healing/lib/healingRules");
 const unitTable_1 = require("../../lib/unitTable");
@@ -26,6 +31,17 @@ exports.healingFacilities = [
     [units_1.AIR, Airport_1.default],
     [units_1.SEA, PortFacility_1.default],
 ];
+/** The unit type of each domain, as a description names it (civ-clone/web-renderer#1196). */
+exports.domainUnitTypes = [
+    [units_1.LAND, Land_1.default],
+    [units_1.AIR, Air_1.default],
+    [units_1.SEA, Naval_1.default],
+];
+/** The unit type of a domain. */
+const domainUnitType = (domain) => exports.domainUnitTypes.find(([unitDomain]) => unitDomain === domain)[1];
+exports.domainUnitType = domainUnitType;
+/** The rule of base-unit-healing's that heals, which says what each of `healingFacilities` does. */
+exports.HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
 /**
  * Civilization II's healing (`civ_heal_units`, at the start of each of the player's turns, for the units that didn't
  *  move in their last one) and the slowing of damaged units (`unit_max_moves`):
@@ -83,7 +99,13 @@ const getRules = ({ cityImprovementRegistry = CityImprovementRegistry_1.instance
                 steps: 1,
             },
             distance: distance_1.default,
-        }),
+        }).map((rule) => rule.id() === exports.HEAL_UNITS_RULE
+            ? (0, describedRule_1.describedRule)(rule, new Description_1.default(...exports.healingFacilities.map(([domain, Facility]) => ({
+                type: 'heals',
+                subject: Facility,
+                unit: (0, exports.domainUnitType)(domain),
+            }))))
+            : rule),
         ...(0, damagedMovementRules_1.default)({
             id: 'civ2-unit:unit/yield/damaged-movement',
             stepsPerMove: cosmic_1.cosmic.roadMoveMultiplier,

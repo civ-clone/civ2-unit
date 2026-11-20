@@ -8,6 +8,8 @@ import { TileImprovementRegistry } from '@civ-clone/core-tile-improvement/TileIm
 import { UnitImprovementRegistry } from '@civ-clone/core-unit-improvement/UnitImprovementRegistry';
 import Strength from '@civ-clone/core-unit/Rules/Strength';
 import Unit from '@civ-clone/core-unit/Unit';
+/** City Walls' multiplier (and the Great Wall's, as City Walls), read by the rule and by what it says it does. */
+export declare const cityWallsMultiplier: number;
 export interface Dependencies {
   cityImprovementRegistry?: CityImprovementRegistry;
   cityRegistry?: CityRegistry;

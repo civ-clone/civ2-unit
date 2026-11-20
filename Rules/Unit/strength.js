@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.defenceMultipliers = void 0;
+exports.getRules = exports.defenceMultipliers = exports.cityWallsMultiplier = void 0;
 const units_1 = require("../../data/units");
 const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
@@ -13,6 +13,7 @@ const UnitImprovementRegistry_1 = require("@civ-clone/core-unit-improvement/Unit
 const Air_1 = require("@civ-clone/base-unit-type-air/Air");
 const CityWalls_1 = require("@civ-clone/base-city-improvement-citywalls/CityWalls");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
+const Description_1 = require("@civ-clone/core-rule/Description");
 const DefenceBonusVsAir_1 = require("@civ-clone/base-unit-trait-defence-bonus-vs-air/DefenceBonusVsAir");
 const DefenceBonusVsMounted_1 = require("@civ-clone/base-unit-trait-defence-bonus-vs-mounted/DefenceBonusVsMounted");
 const Effect_1 = require("@civ-clone/core-rule/Effect");
@@ -31,6 +32,7 @@ const hasImprovementOrWonder_1 = require("@civ-clone/base-wonder/lib/hasImprovem
 const terrainTable_1 = require("@civ-clone/base-terrain-properties/lib/terrainTable");
 const terrainProperties_1 = require("@civ-clone/civ2-world/lib/terrainProperties");
 const defenceMultipliers_1 = require("@civ-clone/base-unit-yield/lib/defenceMultipliers");
+const describedRule_1 = require("../../lib/describedRule");
 const unitTable_1 = require("../../lib/unitTable");
 // A terrain's defence in half steps (2 is ×1), looked up by class.
 const terrainHalves = (0, terrainTable_1.cachedTerrainLookup)(terrainProperties_1.defence.map(([TerrainType, multiplier]) => [
@@ -40,6 +42,8 @@ const terrainHalves = (0, terrainTable_1.cachedTerrainLookup)(terrainProperties_
 // Each unit type's `@UNITS` row, by class.
 const rows = new Map(units_1.units.map((row, index) => [unitTable_1.unitTypes[index], row]));
 const rowOf = (unit) => rows.get(unit.constructor);
+/** City Walls' multiplier (and the Great Wall's, as City Walls), read by the rule and by what it says it does. */
+exports.cityWallsMultiplier = 3;
 /**
  * Civilization II's defence bonuses for `defender` against `attacker` (`null`: against any), as named multipliers
  *  (`unit_defense_strength`): the terrain's half steps, plus one for a river; then, outside a city, a land unit on a
@@ -108,7 +112,7 @@ const defenceMultipliers = ({ cityImprovementRegistry = CityImprovementRegistry_
             playerResearchRegistry,
             requirementRegistry,
         })) {
-        multipliers.push([CityWalls_1.default.name, 3]);
+        multipliers.push([CityWalls_1.default.name, exports.cityWallsMultiplier]);
         return multipliers;
     }
     if (unitImprovementRegistry
@@ -135,7 +139,19 @@ const isMounted = (unit) => {
  *  unit with no attack at eight times their strength.
  */
 const getRules = (dependencies = {}) => [
-    (0, defenceMultipliers_1.defenceStrength)((0, exports.defenceMultipliers)(dependencies)),
+    // base-unit-yield's rule, saying what City Walls and the Great Wall do (civ-clone/web-renderer#1196).
+    (0, describedRule_1.describedRule)((0, defenceMultipliers_1.defenceStrength)((0, exports.defenceMultipliers)(dependencies)), new Description_1.default({
+        type: 'defence_multiplier',
+        subject: CityWalls_1.default,
+        value: exports.cityWallsMultiplier,
+        against: Land_1.default,
+        except: IgnoresFortifications_1.default,
+    }, {
+        type: 'acts_as',
+        subject: GreatWall_1.default,
+        improvement: CityWalls_1.default,
+        scope: 'player',
+    })),
     new Strength_1.default('civ2-unit:unit/strength/air-superiority-vs-no-fuel', new Criterion_1.default((attacker, defender) => {
         const attackerRow = rowOf(attacker), defenderRow = rowOf(defender);
         return (attackerRow !== undefined &&

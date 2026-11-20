@@ -7,9 +7,16 @@ import { UnitRegistry } from '@civ-clone/core-unit/UnitRegistry';
 import CityImprovement from '@civ-clone/core-city-improvement/CityImprovement';
 import Moved from '@civ-clone/core-unit/Rules/Moved';
 import TurnStart from '@civ-clone/core-player/Rules/TurnStart';
+import Unit from '@civ-clone/core-unit/Unit';
 import { Yield as UnitYield } from '@civ-clone/core-unit/Rules/Yield';
 /** The improvement that heals a unit of each domain fully in a city (`civ_heal_units`). */
 export declare const healingFacilities: [number, typeof CityImprovement][];
+/** The unit type of each domain, as a description names it (civ-clone/web-renderer#1196). */
+export declare const domainUnitTypes: [number, typeof Unit][];
+/** The unit type of a domain. */
+export declare const domainUnitType: (domain: number) => typeof Unit;
+/** The rule of base-unit-healing's that heals, which says what each of `healingFacilities` does. */
+export declare const HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
 export interface HealingDependencies {
   cityImprovementRegistry?: CityImprovementRegistry;
   cityRegistry?: CityRegistry;

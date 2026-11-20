@@ -8,8 +8,10 @@ const Units_1 = require("../../Units");
 const PlayerGovernmentRegistry_1 = require("@civ-clone/core-government/PlayerGovernmentRegistry");
 const PlayerResearchRegistry_1 = require("@civ-clone/core-science/PlayerResearchRegistry");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
+const Description_1 = require("@civ-clone/core-rule/Description");
 const Effect_1 = require("@civ-clone/core-rule/Effect");
 const Fundamentalism_1 = require("@civ-clone/base-government-fundamentalism/Fundamentalism");
+const ManhattanProject_1 = require("@civ-clone/base-wonder-manhattanproject/ManhattanProject");
 const Gunpowder_1 = require("@civ-clone/base-science-advance-gunpowder/Gunpowder");
 const NuclearFission_1 = require("@civ-clone/base-science-advance-nuclearfission/NuclearFission");
 const unitTable_1 = require("../../lib/unitTable");
@@ -32,7 +34,10 @@ const row = (UnitType) => rowOf.get(UnitType);
  */
 const getRules = ({ clientRegistry = ClientRegistry_1.instance, playerGovernmentRegistry = PlayerGovernmentRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, manhattanProjectBuilt = () => false, } = {}) => {
     const knows = (player, AdvanceType) => AdvanceType === null ||
-        playerResearchRegistry.getByPlayer(player).completed(AdvanceType), rule = (reason, UnitType, allowed) => new Build_1.Build(`civ2-unit:city/build/${reason}/${UnitType.name}`, UnitType, new Criterion_1.default((city, BuildItem) => BuildItem === UnitType && !(0, isBarbarian_1.default)(city.player())), new Effect_1.default((city) => new Criterion_1.default(() => allowed(city)))), [, , , , knightsAttack, knightsDefence, , , , , , knightsAdvance] = row(Units_1.Knight), musketeersDefence = row(Units_1.Musketman)[5];
+        playerResearchRegistry.getByPlayer(player).completed(AdvanceType), rule = (reason, UnitType, allowed, ...descriptions) => new Build_1.Build(`civ2-unit:city/build/${reason}/${UnitType.name}`, UnitType, new Criterion_1.default((city, BuildItem) => BuildItem === UnitType && !(0, isBarbarian_1.default)(city.player())), new Effect_1.default((city) => new Criterion_1.default(() => allowed(city))), 
+    // `Build` hands everything but its items to `Rule`, which takes a `Description`, though core-city-build's
+    //  constructor type doesn't list one.
+    ...descriptions), [, , , , knightsAttack, knightsDefence, , , , , , knightsAdvance] = row(Units_1.Knight), musketeersDefence = row(Units_1.Musketman)[5];
     return unitTable_2.unitTypes.flatMap((UnitType) => {
         const [, domain, move, , attack, defence, , , , , role] = row(UnitType), rules = [];
         if (role === units_1.DEFEND && defence < musketeersDefence) {
@@ -45,7 +50,16 @@ const getRules = ({ clientRegistry = ClientRegistry_1.instance, playerGovernment
             rules.push(rule('outclassed-mounted', UnitType, (city) => !knows(city.player(), (0, unitTable_1.advanceType)(knightsAdvance))));
         }
         if (attack >= units_1.NUCLEAR_ATTACK) {
-            rules.push(rule('nuclear', UnitType, (city) => manhattanProjectBuilt() && knows(city.player(), NuclearFission_1.default)));
+            rules.push(rule('nuclear', UnitType, (city) => manhattanProjectBuilt() && knows(city.player(), NuclearFission_1.default), 
+            // What the Manhattan Project does, for the Civilopedia (civ-clone/web-renderer#1196): once anyone has built
+            //  it, every civilization that knows Nuclear Fission can build the weapon.
+            new Description_1.default({
+                type: 'enables',
+                subject: ManhattanProject_1.default,
+                what: UnitType,
+                with: NuclearFission_1.default,
+                scope: 'world',
+            })));
         }
         if (UnitType === Units_1.Fanatic) {
             rules.push(rule('fundamentalism', UnitType, (city) => {

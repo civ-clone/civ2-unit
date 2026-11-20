@@ -38,6 +38,7 @@ import {
 import Action from '@civ-clone/core-unit/Action';
 import CityWalls from '@civ-clone/base-city-improvement-citywalls/CityWalls';
 import Criterion from '@civ-clone/core-rule/Criterion';
+import Description from '@civ-clone/core-rule/Description';
 import Defeated from '@civ-clone/core-unit/Rules/Defeated';
 import Effect from '@civ-clone/core-rule/Effect';
 import GreatWall from '@civ-clone/base-wonder-great-wall/GreatWall';
@@ -129,7 +130,21 @@ export const getRules = ({
       }
 
       cityGrowthRegistry.getByCity(city).shrink(by);
-    })
+    }),
+    new Description(
+      {
+        type: 'protects_from',
+        subject: CityWalls,
+        event: 'defeat',
+        what: 'size',
+      },
+      {
+        type: 'acts_as',
+        subject: GreatWall,
+        improvement: CityWalls,
+        scope: 'player',
+      }
+    )
   ),
 ];
 

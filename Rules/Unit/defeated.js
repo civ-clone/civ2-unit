@@ -13,6 +13,7 @@ const TileImprovementRegistry_1 = require("@civ-clone/core-tile-improvement/Tile
 const WonderRegistry_1 = require("@civ-clone/core-wonder/WonderRegistry");
 const CityWalls_1 = require("@civ-clone/base-city-improvement-citywalls/CityWalls");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
+const Description_1 = require("@civ-clone/core-rule/Description");
 const Defeated_1 = require("@civ-clone/core-unit/Rules/Defeated");
 const Effect_1 = require("@civ-clone/core-rule/Effect");
 const GreatWall_1 = require("@civ-clone/base-wonder-great-wall/GreatWall");
@@ -55,6 +56,16 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, cityImpr
             return;
         }
         cityGrowthRegistry.getByCity(city).shrink(by);
+    }), new Description_1.default({
+        type: 'protects_from',
+        subject: CityWalls_1.default,
+        event: 'defeat',
+        what: 'size',
+    }, {
+        type: 'acts_as',
+        subject: GreatWall_1.default,
+        improvement: CityWalls_1.default,
+        scope: 'player',
     })),
 ];
 exports.getRules = getRules;

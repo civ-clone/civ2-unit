@@ -264,6 +264,7 @@ import { instance as randomNumberGeneratorInstance } from '@civ-clone/core-rando
 import buildManhattanProjectBuilt from '../../lib/manhattanProject';
 import { isVeteran } from '../../lib/espionage';
 import missionRows from './missions';
+import { BARRACKS_REPAIR_STEPS, REPAIR_STEPS } from '../../lib/AlliedRepair';
 
 /** The tile improvements that make a worked square a treaty partner's land. */
 export const territoryImprovements: (typeof TileImprovement)[] = [
@@ -385,6 +386,9 @@ export interface ActionDependencies {
  *  Civ2's mission menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a
  *  multiplayer game's chat spying, and talks open from the client). Help with a wonder is civ2-wonder's.
  */
+/** The rule that repairs a land unit moving onto an ally's city, more with Barracks. */
+export const ALLIED_REPAIR_ACTION_RULE = actionId('civ2-unit', 'allied-repair');
+
 /** The rule that airlifts a land unit between two cities with an Airport. */
 export const AIRLIFT_ACTION_RULE = actionId('civ2-unit', 'airlift');
 
@@ -781,6 +785,13 @@ export const getRules = ({
 
             return owner !== null && allied(unit.player(), owner);
           }),
+          // What Barracks do for an ally's units, for the Civilopedia (civ-clone/web-renderer#1291), among the criteria
+          //  as the airlift row's is.
+          new Description({
+            type: 'repairs_allies',
+            subject: Barracks,
+            value: BARRACKS_REPAIR_STEPS,
+          }) as unknown as Criterion,
         ],
         effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
           new AlliedRepair(
@@ -794,8 +805,8 @@ export const getRules = ({
                 (improvement: CityImprovement): boolean =>
                   improvement instanceof Barracks
               )
-              ? 2
-              : 1,
+              ? BARRACKS_REPAIR_STEPS
+              : REPAIR_STEPS,
             unitImprovementRegistry,
             ruleRegistry
           ) as UnitAction,

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.AIRLIFT_ACTION_RULE = exports.treatyPartnerOf = exports.withoutDomainTest = exports.pillageable = exports.partisanPillageOrder = exports.pillageOrder = exports.territoryImprovements = void 0;
+exports.getRules = exports.AIRLIFT_ACTION_RULE = exports.ALLIED_REPAIR_ACTION_RULE = exports.treatyPartnerOf = exports.withoutDomainTest = exports.pillageable = exports.partisanPillageOrder = exports.pillageOrder = exports.territoryImprovements = void 0;
 const Actions_1 = require("../../Actions");
 const units_1 = require("../../data/units");
 const Action_1 = require("@civ-clone/core-unit/Rules/Action");
@@ -86,6 +86,7 @@ const core_random_1 = require("@civ-clone/core-random");
 const manhattanProject_1 = require("../../lib/manhattanProject");
 const espionage_1 = require("../../lib/espionage");
 const missions_1 = require("./missions");
+const AlliedRepair_1 = require("../../lib/AlliedRepair");
 /** The tile improvements that make a worked square a treaty partner's land. */
 exports.territoryImprovements = [
     TileImprovements_1.Irrigation,
@@ -152,6 +153,8 @@ const rowOf = (unit) => rows.get(unit.constructor);
  *  Civ2's mission menu, `spy_city_mission_menu`, has no meeting: its option 7, `unit_spy.cpp:211-218`, is a
  *  multiplayer game's chat spying, and talks open from the client). Help with a wonder is civ2-wonder's.
  */
+/** The rule that repairs a land unit moving onto an ally's city, more with Barracks. */
+exports.ALLIED_REPAIR_ACTION_RULE = (0, actionRules_1.actionId)('civ2-unit', 'allied-repair');
 /** The rule that airlifts a land unit between two cities with an Airport. */
 exports.AIRLIFT_ACTION_RULE = (0, actionRules_1.actionId)('civ2-unit', 'airlift');
 const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRegistry = ClientRegistry_1.instance, cityImprovementRegistry = CityImprovementRegistry_1.instance, cityNameRegistry = CityNameRegistry_1.instance, cityRegistry = CityRegistry_1.instance, engine = Engine_1.instance, interactionRegistry = InteractionRegistry_1.instance, pathFinderRegistry = PathFinderRegistry_1.instance, pendingEffectRegistry = PendingEffectRegistry_1.instance, playerGovernmentRegistry = PlayerGovernmentRegistry_1.instance, playerRegistry = PlayerRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance, playerTreasuryRegistry = PlayerTreasuryRegistry_1.instance, randomNumberGenerator = core_random_1.instance, requirementRegistry = RequirementRegistry_1.instance, ruleRegistry = RuleRegistry_1.instance, strategyNoteRegistry = StrategyNoteRegistry_1.instance, strategyRegistry = StrategyRegistry_1.instance, terrainFeatureRegistry = TerrainFeatureRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, transportRegistry = TransportRegistry_1.instance, turn = Turn_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, wonderRegistry = WonderRegistry_1.instance, workedTileRegistry = WorkedTileRegistry_1.instance, manhattanProjectBuilt = (0, manhattanProject_1.default)(wonderRegistry, cityImprovementRegistry), } = {}) => {
@@ -371,12 +374,19 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
                     const owner = cityOwner(to);
                     return owner !== null && allied(unit.player(), owner);
                 }),
+                // What Barracks do for an ally's units, for the Civilopedia (civ-clone/web-renderer#1291), among the criteria
+                //  as the airlift row's is.
+                new Description_1.default({
+                    type: 'repairs_allies',
+                    subject: Barracks_1.default,
+                    value: AlliedRepair_1.BARRACKS_REPAIR_STEPS,
+                }),
             ],
             effect: (unit, to, from = unit.tile()) => new Actions_1.AlliedRepair(from, to, unit, cityRegistry.getByTile(to), cityImprovementRegistry
                 .getByCity(cityRegistry.getByTile(to))
                 .some((improvement) => improvement instanceof Barracks_1.default)
-                ? 2
-                : 1, unitImprovementRegistry, ruleRegistry),
+                ? AlliedRepair_1.BARRACKS_REPAIR_STEPS
+                : AlliedRepair_1.REPAIR_STEPS, unitImprovementRegistry, ruleRegistry),
         },
         {
             name: 'move',

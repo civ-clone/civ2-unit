@@ -7,7 +7,14 @@ import { WonderRegistry } from '@civ-clone/core-wonder/WonderRegistry';
 import { TileImprovementRegistry } from '@civ-clone/core-tile-improvement/TileImprovementRegistry';
 import { UnitImprovementRegistry } from '@civ-clone/core-unit-improvement/UnitImprovementRegistry';
 import Strength from '@civ-clone/core-unit/Rules/Strength';
+import Terrain from '@civ-clone/core-terrain/Terrain';
 import Unit from '@civ-clone/core-unit/Unit';
+/** Each terrain's defence multiplier where it isn't ×1, for its Civilopedia entry, from the table the rule reads. */
+export declare const terrainDefenceDescriptions: () => {
+  type: string;
+  subject: typeof Terrain;
+  value: number;
+}[];
 /** City Walls' multiplier (and the Great Wall's, as City Walls), read by the rule and by what it says it does. */
 export declare const cityWallsMultiplier: number;
 export interface Dependencies {

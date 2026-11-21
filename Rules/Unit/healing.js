@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.HEAL_UNITS_RULE = exports.domainUnitType = exports.domainUnitTypes = exports.healingFacilities = void 0;
+exports.getRules = exports.HEAL_UNITS_RULE = exports.BARRACKS_NEAR_CITY_STEPS = exports.NEAR_CITY_STEPS = exports.NEAR_CITY_DISTANCE = exports.domainUnitType = exports.domainUnitTypes = exports.healingFacilities = void 0;
 const units_1 = require("../../data/units");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
 const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
@@ -40,6 +40,12 @@ exports.domainUnitTypes = [
 /** The unit type of a domain. */
 const domainUnitType = (domain) => exports.domainUnitTypes.find(([unitDomain]) => unitDomain === domain)[1];
 exports.domainUnitType = domainUnitType;
+/** How far (`map_distance`) from its player's nearest city on its land mass a land unit heals more. */
+exports.NEAR_CITY_DISTANCE = 3;
+/** The steps more a land unit near its player's city heals a turn without Barracks there. */
+exports.NEAR_CITY_STEPS = 1;
+/** The steps more a land unit near its player's city heals a turn with Barracks there, instead of `NEAR_CITY_STEPS`. */
+exports.BARRACKS_NEAR_CITY_STEPS = 2;
 /** The rule of base-unit-healing's that heals, which says what each of `healingFacilities` does. */
 exports.HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
 /**
@@ -76,9 +82,11 @@ const getRules = ({ cityImprovementRegistry = CityImprovementRegistry_1.instance
             stepsPerMaximum: 10,
             restSteps: (unit) => hasImprovement(unit.tile(), TileImprovements_1.Fortress) ? 2 : 1,
             nearCity: {
-                distance: 3,
+                distance: exports.NEAR_CITY_DISTANCE,
                 appliesTo: (unit) => domainOf(unit) === units_1.LAND,
-                steps: (unit, city) => cityHas(city, Barracks_1.default) ? 2 : 1,
+                steps: (unit, city) => cityHas(city, Barracks_1.default)
+                    ? exports.BARRACKS_NEAR_CITY_STEPS
+                    : exports.NEAR_CITY_STEPS,
             },
             inCityMultiplier: 2,
             fullHeal: (unit, city) => {
@@ -104,7 +112,16 @@ const getRules = ({ cityImprovementRegistry = CityImprovementRegistry_1.instance
                 type: 'heals',
                 subject: Facility,
                 unit: (0, exports.domainUnitType)(domain),
-            }))))
+            })), 
+            // Barracks' land units nearby heal faster (civ-clone/web-renderer#1291): `value` is the steps a turn
+            //  they heal more, which is `NEAR_CITY_STEPS` without them.
+            {
+                type: 'heals_nearby',
+                subject: Barracks_1.default,
+                value: exports.BARRACKS_NEAR_CITY_STEPS,
+                radius: exports.NEAR_CITY_DISTANCE,
+                unit: Land_1.default,
+            }))
             : rule),
         ...(0, damagedMovementRules_1.default)({
             id: 'civ2-unit:unit/yield/damaged-movement',

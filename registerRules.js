@@ -226,7 +226,11 @@ const register = (game) => {
         }),
         // Out of sight of land: none of the 9 squares, its own included, is land (`unit_move_dir_trireme_loss`).
         nearLand: movedRules_1.adjacentToLand,
-    }).filter((rule) => rule.id() !== forcedWar_1.LIFECYCLE_BREAK_TREATY_RULE), ...(0, forcedWar_1.default)({
+    })
+        .filter((rule) => rule.id() !== forcedWar_1.LIFECYCLE_BREAK_TREATY_RULE)
+        .map((rule) => rule.id() === coastBound_1.LIGHTHOUSE_DESCRIBED_RULE
+        ? (0, describedRule_1.describedRule)(rule, (0, coastBound_1.lighthouseDescription)())
+        : rule), ...(0, forcedWar_1.default)({
         cityRegistry: game.cities,
         diplomacy: (0, dependenciesOf_1.default)(game),
         clientRegistry: game.clients,

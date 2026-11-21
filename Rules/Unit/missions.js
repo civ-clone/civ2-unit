@@ -13,6 +13,7 @@ const Communism_1 = require("@civ-clone/base-government-communism/Communism");
 const Courthouse_1 = require("@civ-clone/base-city-improvement-courthouse/Courthouse");
 const Covert_1 = require("@civ-clone/base-unit-trait-covert/Covert");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
+const Description_1 = require("@civ-clone/core-rule/Description");
 const Democracy_1 = require("@civ-clone/base-government-democracy/Democracy");
 const EstablishEmbassy_1 = require("@civ-clone/base-unit-action-establish-embassy/EstablishEmbassy");
 const EstablishTradeRoute_1 = require("@civ-clone/base-unit-action-establish-trade-route/EstablishTradeRoute");
@@ -224,6 +225,14 @@ const missionRows = ({ cityGrowthRegistry, cityImprovementRegistry, cityRegistry
                     ...diplomatCriteria,
                     canIncite,
                     new Criterion_1.default((unit, to) => human(unit.player()) || !underTreaty(unit, to)),
+                    // What a Courthouse does to the price, for the Civilopedia (civ-clone/web-renderer#1291): base-unit-action-rules
+                    //  hands a row's criteria to the rule as they are, and a rule takes a `Description` among them. Said once,
+                    //  here, though `subvert-city`'s doubled price reads the same one.
+                    new Description_1.default({
+                        type: 'incite_distance',
+                        subject: Courthouse_1.default,
+                        value: espionage_1.COURTHOUSE_DISTANCE_DIVISOR,
+                    }),
                 ],
                 effect: (unit, to, from = unit.tile()) => new InciteRevolt_1.default(from, to, unit, cityOn(to), costToIncite(unit, to, from), ruleRegistry),
             },

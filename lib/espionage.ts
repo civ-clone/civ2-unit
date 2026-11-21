@@ -43,6 +43,9 @@ export const isTradeUnit = (unit: Unit): boolean =>
 export const isDiplomacyUnit = (unit: Unit): boolean =>
   unitRow(unit)?.[10] === DIPLOMACY;
 
+/** With a Courthouse, a city's distance from its owner's capital counts this many times less in its price to incite. */
+export const COURTHOUSE_DISTANCE_DIVISOR = 2;
+
 /** What can tip a city's price to incite (`spy_city_mission_incite_revolt`, `unit_spy.cpp:753-786`). */
 export interface InciteCostInputs {
   /** The city's size. */
@@ -93,7 +96,7 @@ export const inciteCost = ({
   }
 
   if (courthouse) {
-    dist = Math.trunc(dist / 2);
+    dist = Math.trunc(dist / COURTHOUSE_DISTANCE_DIVISOR);
   }
 
   let cost = size * Math.trunc((gold + 1000) / (dist + 3));

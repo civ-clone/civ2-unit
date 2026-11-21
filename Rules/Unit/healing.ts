@@ -74,6 +74,15 @@ export const domainUnitType = (domain: number): typeof Unit =>
     ([unitDomain]: [number, typeof Unit]): boolean => unitDomain === domain
   )![1];
 
+/** How far (`map_distance`) from its player's nearest city on its land mass a land unit heals more. */
+export const NEAR_CITY_DISTANCE = 3;
+
+/** The steps more a land unit near its player's city heals a turn without Barracks there. */
+export const NEAR_CITY_STEPS = 1;
+
+/** The steps more a land unit near its player's city heals a turn with Barracks there, instead of `NEAR_CITY_STEPS`. */
+export const BARRACKS_NEAR_CITY_STEPS = 2;
+
 /** The rule of base-unit-healing's that heals, which says what each of `healingFacilities` does. */
 export const HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
 
@@ -145,10 +154,12 @@ export const getRules = ({
         restSteps: (unit: Unit): number =>
           hasImprovement(unit.tile(), Fortress) ? 2 : 1,
         nearCity: {
-          distance: 3,
+          distance: NEAR_CITY_DISTANCE,
           appliesTo: (unit: Unit): boolean => domainOf(unit) === LAND,
           steps: (unit: Unit, city: City): number =>
-            cityHas(city, Barracks) ? 2 : 1,
+            cityHas(city, Barracks)
+              ? BARRACKS_NEAR_CITY_STEPS
+              : NEAR_CITY_STEPS,
         },
         inCityMultiplier: 2,
         fullHeal: (unit: Unit, city: City | null): boolean => {
@@ -182,7 +193,16 @@ export const getRules = ({
                   subject: Facility,
                   unit: domainUnitType(domain),
                 })
-              )
+              ),
+              // Barracks' land units nearby heal faster (civ-clone/web-renderer#1291): `value` is the steps a turn
+              //  they heal more, which is `NEAR_CITY_STEPS` without them.
+              {
+                type: 'heals_nearby',
+                subject: Barracks,
+                value: BARRACKS_NEAR_CITY_STEPS,
+                radius: NEAR_CITY_DISTANCE,
+                unit: Land,
+              }
             )
           )
         : rule

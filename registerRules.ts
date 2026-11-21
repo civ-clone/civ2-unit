@@ -63,7 +63,10 @@ import sdiDefenceVetoes, {
   SDI_DEFENCE_DESCRIBED_RULE,
   sdiDefenceDescription,
 } from './lib/sdiDefence';
-import triremeLossChance from './lib/coastBound';
+import triremeLossChance, {
+  LIGHTHOUSE_DESCRIBED_RULE,
+  lighthouseDescription,
+} from './lib/coastBound';
 import homeCity from '@civ-clone/base-unit-build/lib/homeCity';
 import manhattanProjectBuilt from './lib/manhattanProject';
 import lifecycleRules from '@civ-clone/base-unit-lifecycle/lib/lifecycleRules';
@@ -312,10 +315,17 @@ export const register = (game: Game): void => {
         // Out of sight of land: none of the 9 squares, its own included, is land (`unit_move_dir_trireme_loss`).
         nearLand: adjacentToLand,
       }
-    ).filter(
-      (rule: Rule<any, any>): boolean =>
-        rule.id() !== LIFECYCLE_BREAK_TREATY_RULE
-    ),
+    )
+      .filter(
+        (rule: Rule<any, any>): boolean =>
+          rule.id() !== LIFECYCLE_BREAK_TREATY_RULE
+      )
+      .map(
+        (rule: Rule<any, any>): Rule<any, any> =>
+          rule.id() === LIGHTHOUSE_DESCRIBED_RULE
+            ? describedRule(rule, lighthouseDescription())
+            : rule
+      ),
     ...forcedWar({
       cityRegistry: game.cities,
       diplomacy: dependenciesOf(game),

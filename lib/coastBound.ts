@@ -10,12 +10,31 @@ import {
   WonderRegistry,
   instance as wonderRegistryInstance,
 } from '@civ-clone/core-wonder/WonderRegistry';
+import Description from '@civ-clone/core-rule/Description';
 import Lighthouse from '@civ-clone/base-wonder-lighthouse/Lighthouse';
 import Navigation from '@civ-clone/base-science-advance-navigation/Navigation';
 import Seafaring from '@civ-clone/base-science-advance-seafaring/Seafaring';
+import { Trireme } from '@civ-clone/base-unit-trireme/Trireme';
 import Unit from '@civ-clone/core-unit/Unit';
 import { cosmic } from '@civ-clone/civ2-rules/data/cosmic';
 import { playerOwnsWonder } from '@civ-clone/base-wonder/lib/hasWonder';
+
+/** base-unit-lifecycle's rule that loses a coast-bound ship at sea, which says what the Lighthouse does. */
+export const LIGHTHOUSE_DESCRIBED_RULE =
+  'civ2-unit:unit/moved/trireme-lost-at-sea';
+
+/**
+ * What the Lighthouse does, for the Civilopedia (civ-clone/web-renderer#1291): its owner's coast-bound ships, which
+ *  are only Triremes in Civ2's `@UNITS`, are never lost at sea (`triremeLossChance`).
+ */
+export const lighthouseDescription = (): Description =>
+  new Description({
+    type: 'protects_from',
+    subject: Lighthouse,
+    event: 'lost_at_sea',
+    what: 'units',
+    unit: Trireme,
+  });
 
 export interface CoastBoundDependencies {
   playerResearchRegistry?: PlayerResearchRegistry;

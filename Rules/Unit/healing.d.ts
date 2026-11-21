@@ -15,6 +15,12 @@ export declare const healingFacilities: [number, typeof CityImprovement][];
 export declare const domainUnitTypes: [number, typeof Unit][];
 /** The unit type of a domain. */
 export declare const domainUnitType: (domain: number) => typeof Unit;
+/** How far (`map_distance`) from its player's nearest city on its land mass a land unit heals more. */
+export declare const NEAR_CITY_DISTANCE = 3;
+/** The steps more a land unit near its player's city heals a turn without Barracks there. */
+export declare const NEAR_CITY_STEPS = 1;
+/** The steps more a land unit near its player's city heals a turn with Barracks there, instead of `NEAR_CITY_STEPS`. */
+export declare const BARRACKS_NEAR_CITY_STEPS = 2;
 /** The rule of base-unit-healing's that heals, which says what each of `healingFacilities` does. */
 export declare const HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
 export interface HealingDependencies {

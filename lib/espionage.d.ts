@@ -16,6 +16,8 @@ export declare const unitRow: (unit: Unit) => UnitRow | undefined;
 export declare const isTradeUnit: (unit: Unit) => boolean;
 /** Whether `unit`'s role is the Diplomat's and Spy's (`ROLE_DIPLOMACY`). */
 export declare const isDiplomacyUnit: (unit: Unit) => boolean;
+/** With a Courthouse, a city's distance from its owner's capital counts this many times less in its price to incite. */
+export declare const COURTHOUSE_DISTANCE_DIVISOR = 2;
 /** What can tip a city's price to incite (`spy_city_mission_incite_revolt`, `unit_spy.cpp:753-786`). */
 export interface InciteCostInputs {
   /** The city's size. */

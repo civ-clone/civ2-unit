@@ -13,11 +13,17 @@ import Tile from '@civ-clone/core-world/Tile';
 import Unit from '@civ-clone/core-unit/Unit';
 import UnitImprovement from '@civ-clone/core-unit-improvement/UnitImprovement';
 
+/** The tenths of its hit points a unit moving onto an ally's city with Barracks is repaired. */
+export const BARRACKS_REPAIR_STEPS = 2;
+
+/** The tenths of its hit points a unit moving onto an ally's city without Barracks is repaired. */
+export const REPAIR_STEPS = 1;
+
 /**
  * A unit moving onto an ally's city (OpenCiv2 `unit_move_dir`, `src/auto/unit_move.cpp:803-830`): it doesn't go in,
- *  but is repaired `steps` tenths of its maximum hit points (2 when the city has Barracks, else 1), never more than its
- *  damage, and its turn ends. The original also clears the unit's "moved" flag, so it counts as having rested when its
- *  player's units next heal (base-unit-healing's `MovedThisTurn` is taken off). No `Moved` rule is processed: the unit
+ *  but is repaired `steps` tenths of its maximum hit points (`BARRACKS_REPAIR_STEPS` when the city has Barracks, else
+ *  `REPAIR_STEPS`), never more than its damage, and its turn ends. The original also clears the unit's "moved" flag,
+ *  so it counts as having rested when its player's units next heal (base-unit-healing's `MovedThisTurn` is taken off). No `Moved` rule is processed: the unit
  *  stays where it was.
  */
 export class AlliedRepair extends Action {
@@ -30,7 +36,7 @@ export class AlliedRepair extends Action {
     to: Tile,
     unit: Unit,
     city: City,
-    steps: number = 1,
+    steps: number = REPAIR_STEPS,
     unitImprovementRegistry: UnitImprovementRegistry = unitImprovementRegistryInstance,
     ruleRegistry: RuleRegistry = ruleRegistryInstance
   ) {

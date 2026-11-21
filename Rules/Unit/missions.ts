@@ -13,6 +13,7 @@ import { Turn } from '@civ-clone/core-turn-based-game/Turn';
 import { UnitImprovementRegistry } from '@civ-clone/core-unit-improvement/UnitImprovementRegistry';
 import { UnitRegistry } from '@civ-clone/core-unit/UnitRegistry';
 import {
+  COURTHOUSE_DISTANCE_DIVISOR,
   DOUBLED_PRICE_BELOW,
   bribeCost,
   inciteCost,
@@ -48,6 +49,7 @@ import Communism from '@civ-clone/base-government-communism/Communism';
 import Courthouse from '@civ-clone/base-city-improvement-courthouse/Courthouse';
 import Covert from '@civ-clone/base-unit-trait-covert/Covert';
 import Criterion from '@civ-clone/core-rule/Criterion';
+import Description from '@civ-clone/core-rule/Description';
 import Democracy from '@civ-clone/base-government-democracy/Democracy';
 import EstablishEmbassy from '@civ-clone/base-unit-action-establish-embassy/EstablishEmbassy';
 import EstablishTradeRoute from '@civ-clone/base-unit-action-establish-trade-route/EstablishTradeRoute';
@@ -469,6 +471,14 @@ export const missionRows = ({
             (unit: Unit, to: Tile): boolean =>
               human(unit.player()) || !underTreaty(unit, to)
           ),
+          // What a Courthouse does to the price, for the Civilopedia (civ-clone/web-renderer#1291): base-unit-action-rules
+          //  hands a row's criteria to the rule as they are, and a rule takes a `Description` among them. Said once,
+          //  here, though `subvert-city`'s doubled price reads the same one.
+          new Description({
+            type: 'incite_distance',
+            subject: Courthouse,
+            value: COURTHOUSE_DISTANCE_DIVISOR,
+          }) as unknown as Criterion,
         ],
         effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
           new InciteRevolt(

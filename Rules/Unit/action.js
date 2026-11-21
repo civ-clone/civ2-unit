@@ -8,7 +8,6 @@ const CityGrowthRegistry_1 = require("@civ-clone/core-city-growth/CityGrowthRegi
 const CityNameRegistry_1 = require("@civ-clone/core-civilization/CityNameRegistry");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
 const Engine_1 = require("@civ-clone/core-engine/Engine");
-const Terrains_1 = require("@civ-clone/civ2-world/Terrains");
 const InteractionRegistry_1 = require("@civ-clone/core-diplomacy/InteractionRegistry");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
 const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
@@ -49,6 +48,7 @@ const forcedWar_1 = require("./forcedWar");
 const nearestCity_1 = require("../../lib/nearestCity");
 const TerrainFeatures_1 = require("@civ-clone/civ2-world/TerrainFeatures");
 const RoutePlanner_1 = require("@civ-clone/base-unit-action-rules/lib/RoutePlanner");
+const terrainConversions_1 = require("../../lib/terrainConversions");
 const Veteran_1 = require("@civ-clone/base-unit-improvement-veteran/UnitImprovements/Veteran");
 const Types_1 = require("@civ-clone/core-terrain/Types");
 const move_1 = require("@civ-clone/base-unit-action-rules/lib/criteria/move");
@@ -604,16 +604,19 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
             extra,
             effect: (unit, to, from = unit.tile()) => new ActionType(from, to, unit, ruleRegistry, turn),
         })),
-        // The terrain each conversion changes: `@TERRAIN`'s irrigate and mine results that change the terrain
-        //  (`tests/conversions` checks them against civ2-world's table).
-        ...[
-            [Actions_1.ClearJungle, Terrains_1.Jungle],
-            [Actions_1.ClearForest, Terrains_1.Forest],
-            [Actions_1.PlantForest, Terrains_1.Plains, Terrains_1.Grassland, Terrains_1.Jungle, Terrains_1.Swamp],
-            [Actions_1.ClearSwamp, Terrains_1.Swamp],
-        ].map(([ActionType, ...terrains]) => ({
+        // The terrain each conversion changes (`lib/terrainConversions`), each saying what it makes of each terrain, for
+        //  the Civilopedia (civ-clone/web-renderer#620), among the criteria as the airlift row's is.
+        ...terrainConversions_1.terrainConversions.map(([ActionType, Improvement, ...terrains]) => ({
             conversion: ActionType,
             terrains,
+            extra: [
+                new Description_1.default(...terrains.map((TerrainType) => ({
+                    type: 'converts_to',
+                    subject: TerrainType,
+                    terrain: ActionType.result,
+                    improvement: Improvement,
+                }))),
+            ],
             effect: (unit, to, from = unit.tile()) => new ActionType(from, to, unit, ruleRegistry, terrainFeatureRegistry, turn),
         })),
         // Engineers transform their square's terrain, to what civ2-world's `TerrainConversion` rules say.

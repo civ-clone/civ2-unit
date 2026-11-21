@@ -212,6 +212,6 @@ describe('unit actions', function (): void {
     }
 
     expect(cells).length(51 * 21);
-    expect(count).to.equal(361861);
+    expect(count).to.equal(361951);
   });
 });

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.defenceMultipliers = exports.cityWallsMultiplier = void 0;
+exports.getRules = exports.defenceMultipliers = exports.cityWallsMultiplier = exports.terrainDefenceDescriptions = void 0;
 const units_1 = require("../../data/units");
 const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
@@ -42,6 +42,18 @@ const terrainHalves = (0, terrainTable_1.cachedTerrainLookup)(terrainProperties_
 // Each unit type's `@UNITS` row, by class.
 const rows = new Map(units_1.units.map((row, index) => [unitTable_1.unitTypes[index], row]));
 const rowOf = (unit) => rows.get(unit.constructor);
+/** Each terrain's defence multiplier where it isn't ×1, for its Civilopedia entry, from the table the rule reads. */
+const terrainDefenceDescriptions = () => terrainProperties_1.defence
+    .map(([TerrainType]) => {
+    var _a;
+    return ({
+        type: 'defence_bonus',
+        subject: TerrainType,
+        value: ((_a = terrainHalves(Object.create(TerrainType.prototype))) !== null && _a !== void 0 ? _a : 2) / 2,
+    });
+})
+    .filter(({ value }) => value !== 1);
+exports.terrainDefenceDescriptions = terrainDefenceDescriptions;
 /** City Walls' multiplier (and the Great Wall's, as City Walls), read by the rule and by what it says it does. */
 exports.cityWallsMultiplier = 3;
 /**
@@ -151,7 +163,9 @@ const getRules = (dependencies = {}) => [
         subject: GreatWall_1.default,
         improvement: CityWalls_1.default,
         scope: 'player',
-    })),
+    }, 
+    // What each terrain does for a defender (civ-clone/web-renderer#620), where it does anything.
+    ...(0, exports.terrainDefenceDescriptions)())),
     new Strength_1.default('civ2-unit:unit/strength/air-superiority-vs-no-fuel', new Criterion_1.default((attacker, defender) => {
         const attackerRow = rowOf(attacker), defenderRow = rowOf(defender);
         return (attackerRow !== undefined &&

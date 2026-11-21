@@ -77,6 +77,16 @@ const rows = new Map<Function, UnitRow>(
 
 const rowOf = (unit: Unit): UnitRow | undefined => rows.get(unit.constructor);
 
+/** Each terrain's defence multiplier where it isn't ×1, for its Civilopedia entry, from the table the rule reads. */
+export const terrainDefenceDescriptions = () =>
+  terrainDefence
+    .map(([TerrainType]) => ({
+      type: 'defence_bonus',
+      subject: TerrainType,
+      value: (terrainHalves(Object.create(TerrainType.prototype)) ?? 2) / 2,
+    }))
+    .filter(({ value }) => value !== 1);
+
 /** City Walls' multiplier (and the Great Wall's, as City Walls), read by the rule and by what it says it does. */
 export const cityWallsMultiplier: number = 3;
 
@@ -255,7 +265,9 @@ export const getRules = (dependencies: Dependencies = {}): Strength[] => [
         subject: GreatWall,
         improvement: CityWalls,
         scope: 'player',
-      }
+      },
+      // What each terrain does for a defender (civ-clone/web-renderer#620), where it does anything.
+      ...terrainDefenceDescriptions()
     )
   ),
 

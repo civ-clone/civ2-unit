@@ -13,9 +13,6 @@ import {
   BuildRoad,
   CaptureCity,
   CleanPollution,
-  ClearForest,
-  ClearJungle,
-  ClearSwamp,
   Disband,
   Disembark,
   Embark,
@@ -33,7 +30,6 @@ import {
   NuclearAttack,
   Paradrop,
   Pillage,
-  PlantForest,
   RailroadTo,
   RoadTo,
   SabotageUnit,
@@ -77,13 +73,6 @@ import {
   Engine,
   instance as engineInstance,
 } from '@civ-clone/core-engine/Engine';
-import {
-  Forest,
-  Grassland,
-  Jungle,
-  Plains,
-  Swamp,
-} from '@civ-clone/civ2-world/Terrains';
 import {
   InteractionRegistry,
   instance as interactionRegistryInstance,
@@ -207,6 +196,7 @@ import Player from '@civ-clone/core-player/Player';
 import { River } from '@civ-clone/civ2-world/TerrainFeatures';
 import RoutePlanner from '@civ-clone/base-unit-action-rules/lib/RoutePlanner';
 import Terrain from '@civ-clone/core-terrain/Terrain';
+import { terrainConversions } from '../../lib/terrainConversions';
 import TerrainFeature from '@civ-clone/core-terrain-feature/TerrainFeature';
 import Tile from '@civ-clone/core-world/Tile';
 import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
@@ -1289,27 +1279,22 @@ export const getRules = ({
         })
       ),
 
-      // The terrain each conversion changes: `@TERRAIN`'s irrigate and mine results that change the terrain
-      //  (`tests/conversions` checks them against civ2-world's table).
-      ...(
-        [
-          [ClearJungle, Jungle],
-          [ClearForest, Forest],
-          [PlantForest, Plains, Grassland, Jungle, Swamp],
-          [ClearSwamp, Swamp],
-        ] as [
-          (
-            | typeof ClearJungle
-            | typeof ClearForest
-            | typeof PlantForest
-            | typeof ClearSwamp
-          ),
-          ...(typeof Terrain)[]
-        ][]
-      ).map(
-        ([ActionType, ...terrains]): ActionRow => ({
+      // The terrain each conversion changes (`lib/terrainConversions`), each saying what it makes of each terrain, for
+      //  the Civilopedia (civ-clone/web-renderer#620), among the criteria as the airlift row's is.
+      ...terrainConversions.map(
+        ([ActionType, Improvement, ...terrains]): ActionRow => ({
           conversion: ActionType,
           terrains,
+          extra: [
+            new Description(
+              ...terrains.map((TerrainType: typeof Terrain) => ({
+                type: 'converts_to',
+                subject: TerrainType,
+                terrain: ActionType.result,
+                improvement: Improvement,
+              }))
+            ) as unknown as Criterion,
+          ],
           effect: (
             unit: Unit,
             to: Tile,

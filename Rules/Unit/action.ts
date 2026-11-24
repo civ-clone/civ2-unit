@@ -849,7 +849,16 @@ export const getRules = ({
       breaksTreaty(
         {
           name: 'attack',
-          criteria: [...attackCriteria, allPeaceExpired],
+          criteria: [
+            ...attackCriteria,
+            allPeaceExpired,
+            // What an Airbase does for a bomber's stack (civ-clone/web-renderer#1343): it loses the cover
+            //  `bomberCover` gives it elsewhere, among the criteria as the airlift row's description is.
+            new Description({
+              type: 'no_bomber_cover',
+              subject: Airbase,
+            }) as unknown as Criterion,
+          ],
           effect: (
             unit: Unit,
             to: Tile,
@@ -1046,6 +1055,11 @@ export const getRules = ({
               );
             }
           ),
+          // What an Airbase does for a paratrooper (civ-clone/web-renderer#1343), as the airlift row says its own.
+          new Description({
+            type: 'paradrop_from',
+            subject: Airbase,
+          }) as unknown as Criterion,
         ],
         effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
           new Paradrop(

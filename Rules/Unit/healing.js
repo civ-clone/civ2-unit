@@ -22,6 +22,7 @@ const describedRule_1 = require("../../lib/describedRule");
 const distance_1 = require("../../lib/distance");
 const healingRules_1 = require("@civ-clone/base-unit-healing/lib/healingRules");
 const unitTable_1 = require("../../lib/unitTable");
+const Units_1 = require("../../Units");
 // Each unit type's `@UNITS` row, by class.
 const rows = new Map(units_1.units.map((row, index) => [unitTable_1.unitTypes[index], row]));
 const domainOf = (unit) => { var _a; return (_a = rows.get(unit.constructor)) === null || _a === void 0 ? void 0 : _a[1]; };
@@ -130,7 +131,9 @@ const getRules = ({ cityImprovementRegistry = CityImprovementRegistry_1.instance
                 type: 'heals_resting',
                 subject: TileImprovements_1.Fortress,
                 value: exports.FORTRESS_REST_STEPS,
-            }, { type: 'heals', subject: TileImprovements_1.Airbase, unit: (0, exports.domainUnitType)(units_1.AIR) }))
+            }, { type: 'heals', subject: TileImprovements_1.Airbase, unit: (0, exports.domainUnitType)(units_1.AIR) }, 
+            // A Helicopter there doesn't wear down (`decay`, civ-clone/web-renderer#1343).
+            { type: 'no_wear', subject: TileImprovements_1.Airbase, unit: Units_1.Helicopter }))
             : rule),
         ...(0, damagedMovementRules_1.default)({
             id: 'civ2-unit:unit/yield/damaged-movement',

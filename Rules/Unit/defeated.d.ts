@@ -7,11 +7,17 @@ import { PlayerResearchRegistry } from '@civ-clone/core-science/PlayerResearchRe
 import { RequirementRegistry } from '@civ-clone/core-requirement/RequirementRegistry';
 import { TileImprovementRegistry } from '@civ-clone/core-tile-improvement/TileImprovementRegistry';
 import { WonderRegistry } from '@civ-clone/core-wonder/WonderRegistry';
+import Description from '@civ-clone/core-rule/Description';
 import Defeated from '@civ-clone/core-unit/Rules/Defeated';
 import Tile from '@civ-clone/core-world/Tile';
+import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
+/** The tile improvements a defeated defender's stack survives it on (`unit_resolve_attack_remove_loser`). */
+export declare const stackSparedBy: (typeof TileImprovement)[];
+/** What `stackSparedBy` does, said on base-unit-lifecycle's rule that spares the stack (civ-clone/web-renderer#1343). */
+export declare const sparesStackDescription: () => Description;
 /**
- * Where a defeated defender's stack survives it, besides a city (base-unit-lifecycle's `sparesStack`): a Fortress or
- *  an Airbase (`unit_resolve_attack_remove_loser`).
+ * Where a defeated defender's stack survives it, besides a city (base-unit-lifecycle's `sparesStack`): on one of
+ *  `stackSparedBy`.
  */
 export declare const sparesStack: (
   tileImprovementRegistry?: TileImprovementRegistry

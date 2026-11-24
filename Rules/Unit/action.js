@@ -408,7 +408,16 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
         // Civ1's resolver: base-unit-action-attack's `Attack`, with Civ2's strengths (`strength`).
         breaksTreaty({
             name: 'attack',
-            criteria: [...attackCriteria, allPeaceExpired],
+            criteria: [
+                ...attackCriteria,
+                allPeaceExpired,
+                // What an Airbase does for a bomber's stack (civ-clone/web-renderer#1343): it loses the cover
+                //  `bomberCover` gives it elsewhere, among the criteria as the airlift row's description is.
+                new Description_1.default({
+                    type: 'no_bomber_cover',
+                    subject: TileImprovements_1.Airbase,
+                }),
+            ],
             effect: (unit, to, from = unit.tile()) => (0, forcedWar_1.recordTargets)(new Actions_1.Attack(from, to, unit, ruleRegistry, unitRegistry), ownersOn(unit, to)),
         }, 
         // A person attacking a player it has met and isn't at war with: the Senate may stop it (`diplo_confirm_attack`,
@@ -491,6 +500,11 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
                     return (city === null ||
                         city.player() === unit.player() ||
                         !peaceWithOwner.validate(unit, to, from));
+                }),
+                // What an Airbase does for a paratrooper (civ-clone/web-renderer#1343), as the airlift row says its own.
+                new Description_1.default({
+                    type: 'paradrop_from',
+                    subject: TileImprovements_1.Airbase,
                 }),
             ],
             effect: (unit, to, from = unit.tile()) => new Actions_1.Paradrop(from, to, unit, ruleRegistry, cityRegistry, unitImprovementRegistry),

@@ -17,5 +17,8 @@ export declare const shortStep: {
 };
 /** A new city's first defender, if its player asks for one: the defensive units, strongest defence first. */
 export declare const defenders: (typeof Unit)[];
+/** base-unit-lifecycle's rule that destroys a defeated defender's stack, which says where it doesn't. */
+export declare const DESTROY_STACK_RULE =
+  'civ2-unit:unit/defeated/destroy-stack';
 export declare const register: (game: Game) => void;
 export default register;

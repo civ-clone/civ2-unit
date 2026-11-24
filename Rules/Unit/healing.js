@@ -48,6 +48,8 @@ exports.NEAR_CITY_STEPS = 1;
 exports.BARRACKS_NEAR_CITY_STEPS = 2;
 /** The rule of base-unit-healing's that heals, which says what each of `healingFacilities` does. */
 exports.HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
+/** The steps a unit resting on a Fortress heals a turn, where it would heal 1 elsewhere. */
+exports.FORTRESS_REST_STEPS = 2;
 /**
  * Civilization II's healing (`civ_heal_units`, at the start of each of the player's turns, for the units that didn't
  *  move in their last one) and the slowing of damaged units (`unit_max_moves`):
@@ -62,8 +64,6 @@ exports.HEAL_UNITS_RULE = 'civ2-unit:player/turn-start/heal-units';
  * - a damaged land unit or ship has its moves cut in proportion to its hit points, in thirds of a move rounded up to a
  *   whole move, at least 1 on land and 2 at sea; aircraft aren't slowed.
  */
-/** The steps a unit resting on a Fortress heals a turn, where it would heal 1 elsewhere. */
-exports.FORTRESS_REST_STEPS = 2;
 const getRules = ({ cityImprovementRegistry = CityImprovementRegistry_1.instance, cityRegistry = CityRegistry_1.instance, landMassRegistry = LandMassRegistry_1.instance, tileImprovementRegistry = TileImprovementRegistry_1.instance, unitImprovementRegistry = UnitImprovementRegistry_1.instance, unitRegistry = UnitRegistry_1.instance, } = {}) => {
     const hasImprovement = (tile, Improvement) => tileImprovementRegistry
         .getByTile(tile)

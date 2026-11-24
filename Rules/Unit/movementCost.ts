@@ -314,7 +314,7 @@ export const oceanMovementCostDescription = (): Description =>
  *  and effect as base-unit-movement's `movementCostRules` builds, with its `Description` among its own items. Built,
  *  not wrapped, so the path finder's every move pays nothing for the description.
  *
- * These 13 rules are copies of base-unit-movement's: a change to those rules there must be copied here. The id check
+ * These 15 rules are copies of base-unit-movement's: a change to those rules there must be copied here. The id check
  *  below catches a rename, but not a new criterion or a changed effect (`tests/descriptions` compares their answers).
  */
 const describeMovementCosts = (

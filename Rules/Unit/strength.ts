@@ -242,15 +242,15 @@ const isMounted = (unit: Unit): boolean => {
   );
 };
 
+/** A land unit's defence on a Fortress, outside a city, against what doesn't fly or ignore walls. */
+export const FORTRESS_MULTIPLIER = 2;
+
 /**
  * Civilization II's battle modifiers (`unit_resolve_attack`), after the defence bonuses: an air-superiority attacker
  *  halves an aircraft's defence when it has no fuel (a Helicopter); a `DefenceBonusVsMounted` defender against a mounted
  *  attacker, and a `DefenceBonusVsAir` one against an aircraft or missile, multiply their defence; Partisans attack a
  *  unit with no attack at eight times their strength.
  */
-/** A land unit's defence on a Fortress, outside a city, against what doesn't fly or ignore walls. */
-export const FORTRESS_MULTIPLIER = 2;
-
 export const getRules = (dependencies: Dependencies = {}): Strength[] => [
   // base-unit-yield's rule, saying what City Walls and the Great Wall do (civ-clone/web-renderer#1196).
   describedRule(

@@ -95,6 +95,9 @@ export interface HealingDependencies {
   unitRegistry?: UnitRegistry;
 }
 
+/** The steps a unit resting on a Fortress heals a turn, where it would heal 1 elsewhere. */
+export const FORTRESS_REST_STEPS = 2;
+
 /**
  * Civilization II's healing (`civ_heal_units`, at the start of each of the player's turns, for the units that didn't
  *  move in their last one) and the slowing of damaged units (`unit_max_moves`):
@@ -109,9 +112,6 @@ export interface HealingDependencies {
  * - a damaged land unit or ship has its moves cut in proportion to its hit points, in thirds of a move rounded up to a
  *   whole move, at least 1 on land and 2 at sea; aircraft aren't slowed.
  */
-/** The steps a unit resting on a Fortress heals a turn, where it would heal 1 elsewhere. */
-export const FORTRESS_REST_STEPS = 2;
-
 export const getRules = ({
   cityImprovementRegistry = cityImprovementRegistryInstance,
   cityRegistry = cityRegistryInstance,

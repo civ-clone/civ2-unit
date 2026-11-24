@@ -119,6 +119,7 @@ export const register = (game: Game): void => {
       randomNumberGenerator: game.rng,
       ruleRegistry: game.rules,
       transportRegistry: game.transports,
+      turn: game.turn,
       unitImprovementRegistry: game.unitImprovements,
       unitLossRegistry: game.unitLosses,
       unitRegistry: game.units,

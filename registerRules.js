@@ -87,6 +87,7 @@ const register = (game) => {
         randomNumberGenerator: game.rng,
         ruleRegistry: game.rules,
         transportRegistry: game.transports,
+        turn: game.turn,
         unitImprovementRegistry: game.unitImprovements,
         unitLossRegistry: game.unitLosses,
         unitRegistry: game.units,

@@ -35,7 +35,10 @@ import action, {
 } from './Rules/Unit/action';
 import forcedWar, { LIFECYCLE_BREAK_TREATY_RULE } from './Rules/Unit/forcedWar';
 import Rule from '@civ-clone/core-rule/Rule';
-import defeated, { sparesStack } from './Rules/Unit/defeated';
+import defeated, {
+  sparesStack,
+  sparesStackDescription,
+} from './Rules/Unit/defeated';
 import { Partisan } from './Units';
 import airliftShotDown from './Rules/Unit/airlift';
 import airliftRules from '@civ-clone/base-unit-action-airlift/lib/airliftRules';
@@ -106,6 +109,9 @@ export const defenders: (typeof Unit)[] = units
   .filter(([[, , , , , , , , , , role]]) => role === DEFEND)
   .sort(([a], [b]) => b[5] - a[5])
   .map(([, UnitType]) => UnitType);
+
+/** base-unit-lifecycle's rule that destroys a defeated defender's stack, which says where it doesn't. */
+export const DESTROY_STACK_RULE = 'civ2-unit:unit/defeated/destroy-stack';
 
 export const register = (game: Game): void => {
   // What each unit type can do and what it's for, first, so that no rule below is asked about a unit before then.
@@ -246,7 +252,14 @@ export const register = (game: Game): void => {
       ruleRegistry: game.rules,
       unitImprovementRegistry: game.unitImprovements,
     }),
-    ...lifecycle.defeated,
+    // base-unit-lifecycle's rule that destroys a defeated defender's stack, saying where it doesn't
+    //  (civ-clone/web-renderer#1343).
+    ...lifecycle.defeated.map(
+      (rule: Rule): Rule =>
+        rule.id() === DESTROY_STACK_RULE
+          ? describedRule(rule, sparesStackDescription())
+          : rule
+    ),
     ...defeated({
       cityGrowthRegistry: game.cityGrowth,
       cityImprovementRegistry: game.cityImprovements,

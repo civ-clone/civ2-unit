@@ -45,6 +45,7 @@ import { describedRule } from '../../lib/describedRule';
 import distance from '../../lib/distance';
 import healingRules from '@civ-clone/base-unit-healing/lib/healingRules';
 import { unitTypes } from '../../lib/unitTable';
+import { Helicopter } from '../../Units';
 
 // Each unit type's `@UNITS` row, by class.
 const rows = new Map<Function, UnitRow>(
@@ -213,7 +214,9 @@ export const getRules = ({
                 subject: Fortress,
                 value: FORTRESS_REST_STEPS,
               },
-              { type: 'heals', subject: Airbase, unit: domainUnitType(AIR) }
+              { type: 'heals', subject: Airbase, unit: domainUnitType(AIR) },
+              // A Helicopter there doesn't wear down (`decay`, civ-clone/web-renderer#1343).
+              { type: 'no_wear', subject: Airbase, unit: Helicopter }
             )
           )
         : rule

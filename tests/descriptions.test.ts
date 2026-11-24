@@ -17,7 +17,14 @@ import triremeLossChance, {
   lighthouseDescription,
 } from '../lib/coastBound';
 import { describedRule } from '../lib/describedRule';
-import { Fighter, Nuclear, Pikeman, Trireme, Warrior } from '../Units';
+import {
+  Fighter,
+  Helicopter,
+  Nuclear,
+  Pikeman,
+  Trireme,
+  Warrior,
+} from '../Units';
 import {
   SDI_DEFENCE_DESCRIBED_RULE,
   SDI_DEFENCE_RADIUS,
@@ -62,13 +69,17 @@ import PortFacility from '@civ-clone/base-city-improvement-portfacility/PortFaci
 import Rule from '@civ-clone/core-rule/Rule';
 import SdiDefence from '@civ-clone/base-city-improvement-sdidefence/SdiDefence';
 import build from '../Rules/City/build';
-import defeated from '../Rules/Unit/defeated';
+import defeated, {
+  sparesStack,
+  sparesStackDescription,
+  stackSparedBy,
+} from '../Rules/Unit/defeated';
 import { expect } from 'chai';
 import healing from '../Rules/Unit/healing';
 import healingRules from '@civ-clone/base-unit-healing/lib/healingRules';
 import movedRules from '@civ-clone/base-unit-lifecycle/lib/movedRules';
 import { defenceStrength } from '@civ-clone/base-unit-yield/lib/defenceMultipliers';
-import register from '../registerRules';
+import register, { DESTROY_STACK_RULE } from '../registerRules';
 import movementCostRules from '@civ-clone/base-unit-movement/lib/movementCostRules';
 import movementCost, {
   MOVE_RULE,
@@ -214,6 +225,7 @@ describe('descriptions', (): void => {
       },
       { type: 'heals_resting', subject: Fortress, value: FORTRESS_REST_STEPS },
       { type: 'heals', subject: Airbase, unit: Air },
+      { type: 'no_wear', subject: Airbase, unit: Helicopter },
     ]);
     expect(FORTRESS_REST_STEPS).to.equal(2);
     expect(rule.id()).to.equal(HEAL_UNITS_RULE);
@@ -305,7 +317,7 @@ describe('descriptions', (): void => {
 
   // civ-clone/web-renderer#1291.
 
-  it('the action rules say only what the Airport, Barracks and a Courthouse do, and what terrain conversions make', (): void => {
+  it('the action rules say only what the Airport, Barracks, a Courthouse and an Airbase do, and what terrain conversions make', (): void => {
     expect(
       describedBy(action())
         .filter(([, description]) => description.type !== 'converts_to')
@@ -317,6 +329,10 @@ describe('descriptions', (): void => {
     ).to.eql([
       ['civ2-unit:unit/action/incite-revolt', 'incite_distance', Courthouse],
       [ALLIED_REPAIR_ACTION_RULE, 'repairs_allies', Barracks],
+      ['civ2-unit:unit/action/attack', 'no_bomber_cover', Airbase],
+      // The attack a treaty overrules is the same row, so it says the same (civ-clone/web-renderer#1343).
+      ['civ2-unit:unit/action/overruled/attack', 'no_bomber_cover', Airbase],
+      ['civ2-unit:unit/action/paradrop', 'paradrop_from', Airbase],
       [AIRLIFT_ACTION_RULE, 'airlift', Airport],
     ]);
   });
@@ -982,6 +998,65 @@ describe('descriptions', (): void => {
 
       expect(rule.descriptions()).to.eql([
         { type: 'refuels', subject: Airbase, unit: Air },
+      ]);
+    });
+  });
+
+  // What else a Fortress and an Airbase do (civ-clone/web-renderer#1343).
+  describe('Fortress and Airbase', (): void => {
+    it('an Airbase says a bomber stack on it has no cover and Paratroopers drop from it, on the attack and paradrop rules', (): void => {
+      const rules = action(),
+        said = (type: string): [string | null, EffectDescription][] =>
+          describedBy(rules)
+            .filter(([, description]) => description.type === type)
+            .map(([rule, description]) => [rule.id(), description]);
+
+      expect(said('no_bomber_cover')).to.eql(
+        [
+          'civ2-unit:unit/action/attack',
+          'civ2-unit:unit/action/overruled/attack',
+        ].map((id) => [id, { type: 'no_bomber_cover', subject: Airbase }])
+      );
+      expect(said('paradrop_from')).to.eql([
+        [
+          'civ2-unit:unit/action/paradrop',
+          { type: 'paradrop_from', subject: Airbase },
+        ],
+      ]);
+    });
+
+    it("a Fortress and an Airbase say a defender's stack survives it there, as sparesStack answers", (): void => {
+      expect(stackSparedBy).to.eql([Fortress, Airbase]);
+      expect(
+        describedRule(new Rule(), sparesStackDescription()).descriptions()
+      ).to.eql([
+        { type: 'spares_stack', subject: Fortress },
+        { type: 'spares_stack', subject: Airbase },
+      ]);
+
+      const on = (Improvement: Function | null) =>
+        sparesStack({
+          getByTile: () =>
+            Improvement === null ? [] : [Object.create(Improvement.prototype)],
+        } as never)({} as never, {} as never);
+
+      expect(on(Fortress)).to.true;
+      expect(on(Airbase)).to.true;
+      expect(on(null)).to.false;
+
+      // On base-unit-lifecycle's rule as the game registers it. `combat.test.ts` ("kills the stack in the open, but not
+      //  on a Fortress or an Airbase") plays a battle through the registered rules, so the described rule behaves as before.
+      const game = new Game();
+
+      register(game);
+
+      const [rule] = game.rules
+        .entries()
+        .filter((rule) => rule.id() === DESTROY_STACK_RULE);
+
+      expect(rule.descriptions()).to.eql([
+        { type: 'spares_stack', subject: Fortress },
+        { type: 'spares_stack', subject: Airbase },
       ]);
     });
   });

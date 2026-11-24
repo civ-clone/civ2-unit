@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.register = exports.defenders = exports.shortStep = void 0;
+exports.register = exports.DESTROY_STACK_RULE = exports.defenders = exports.shortStep = void 0;
 const units_1 = require("./data/units");
 const core_game_1 = require("@civ-clone/core-game");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
@@ -78,6 +78,8 @@ exports.defenders = units_1.units
     .filter(([[, , , , , , , , , , role]]) => role === units_1.DEFEND)
     .sort(([a], [b]) => b[5] - a[5])
     .map(([, UnitType]) => UnitType);
+/** base-unit-lifecycle's rule that destroys a defeated defender's stack, which says where it doesn't. */
+exports.DESTROY_STACK_RULE = 'civ2-unit:unit/defeated/destroy-stack';
 const register = (game) => {
     // What each unit type can do and what it's for, first, so that no rule below is asked about a unit before then.
     game.rules.register(...(0, traits_1.default)(), ...(0, roles_1.default)());
@@ -175,7 +177,12 @@ const register = (game) => {
         randomNumberGenerator: game.rng,
         ruleRegistry: game.rules,
         unitImprovementRegistry: game.unitImprovements,
-    }), ...lifecycle.defeated, ...(0, defeated_1.default)({
+    }), 
+    // base-unit-lifecycle's rule that destroys a defeated defender's stack, saying where it doesn't
+    //  (civ-clone/web-renderer#1343).
+    ...lifecycle.defeated.map((rule) => rule.id() === exports.DESTROY_STACK_RULE
+        ? (0, describedRule_1.describedRule)(rule, (0, defeated_1.sparesStackDescription)())
+        : rule), ...(0, defeated_1.default)({
         cityGrowthRegistry: game.cityGrowth,
         cityImprovementRegistry: game.cityImprovements,
         cityRegistry: game.cities,

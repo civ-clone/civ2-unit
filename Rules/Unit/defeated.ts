@@ -50,9 +50,21 @@ import { cityHasImprovementOrWonder } from '@civ-clone/base-wonder/lib/hasImprov
 import isHuman from '@civ-clone/base-difficulty/lib/isHuman';
 import { levelOf } from '@civ-clone/civ2-difficulty/level';
 
+/** The tile improvements a defeated defender's stack survives it on (`unit_resolve_attack_remove_loser`). */
+export const stackSparedBy: (typeof TileImprovement)[] = [Fortress, Airbase];
+
+/** What `stackSparedBy` does, said on base-unit-lifecycle's rule that spares the stack (civ-clone/web-renderer#1343). */
+export const sparesStackDescription = (): Description =>
+  new Description(
+    ...stackSparedBy.map((Improvement) => ({
+      type: 'spares_stack',
+      subject: Improvement,
+    }))
+  );
+
 /**
- * Where a defeated defender's stack survives it, besides a city (base-unit-lifecycle's `sparesStack`): a Fortress or
- *  an Airbase (`unit_resolve_attack_remove_loser`).
+ * Where a defeated defender's stack survives it, besides a city (base-unit-lifecycle's `sparesStack`): on one of
+ *  `stackSparedBy`.
  */
 export const sparesStack =
   (
@@ -61,9 +73,11 @@ export const sparesStack =
   (tile: Tile): boolean =>
     tileImprovementRegistry
       .getByTile(tile)
-      .some(
-        (improvement: TileImprovement): boolean =>
-          improvement instanceof Fortress || improvement instanceof Airbase
+      .some((improvement: TileImprovement): boolean =>
+        stackSparedBy.some(
+          (Improvement: typeof TileImprovement): boolean =>
+            improvement instanceof Improvement
+        )
       );
 
 export interface DefeatedDependencies {

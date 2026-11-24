@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.sparesStack = void 0;
+exports.getRules = exports.sparesStack = exports.sparesStackDescription = exports.stackSparedBy = void 0;
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
 const CityGrowthRegistry_1 = require("@civ-clone/core-city-growth/CityGrowthRegistry");
 const ClientRegistry_1 = require("@civ-clone/core-client/ClientRegistry");
@@ -21,13 +21,21 @@ const Low_1 = require("@civ-clone/core-rule/Priorities/Low");
 const hasImprovementOrWonder_1 = require("@civ-clone/base-wonder/lib/hasImprovementOrWonder");
 const isHuman_1 = require("@civ-clone/base-difficulty/lib/isHuman");
 const level_1 = require("@civ-clone/civ2-difficulty/level");
+/** The tile improvements a defeated defender's stack survives it on (`unit_resolve_attack_remove_loser`). */
+exports.stackSparedBy = [TileImprovements_1.Fortress, TileImprovements_1.Airbase];
+/** What `stackSparedBy` does, said on base-unit-lifecycle's rule that spares the stack (civ-clone/web-renderer#1343). */
+const sparesStackDescription = () => new Description_1.default(...exports.stackSparedBy.map((Improvement) => ({
+    type: 'spares_stack',
+    subject: Improvement,
+})));
+exports.sparesStackDescription = sparesStackDescription;
 /**
- * Where a defeated defender's stack survives it, besides a city (base-unit-lifecycle's `sparesStack`): a Fortress or
- *  an Airbase (`unit_resolve_attack_remove_loser`).
+ * Where a defeated defender's stack survives it, besides a city (base-unit-lifecycle's `sparesStack`): on one of
+ *  `stackSparedBy`.
  */
 const sparesStack = (tileImprovementRegistry = TileImprovementRegistry_1.instance) => (tile) => tileImprovementRegistry
     .getByTile(tile)
-    .some((improvement) => improvement instanceof TileImprovements_1.Fortress || improvement instanceof TileImprovements_1.Airbase);
+    .some((improvement) => exports.stackSparedBy.some((Improvement) => improvement instanceof Improvement));
 exports.sparesStack = sparesStack;
 /**
  * `civ2-unit:unit/defeated/city-shrinks`: a city loses a citizen each time one of its defenders loses a battle

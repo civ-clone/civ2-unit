@@ -13,6 +13,9 @@ const UnitImprovementRegistry_1 = require("@civ-clone/core-unit-improvement/Unit
 const UnitRegistry_1 = require("@civ-clone/core-unit/UnitRegistry");
 const refuel_1 = require("@civ-clone/base-unit-fuel/lib/refuel");
 const TileImprovements_1 = require("@civ-clone/civ2-world/TileImprovements");
+const Air_1 = require("@civ-clone/base-unit-type-air/Air");
+const Description_1 = require("@civ-clone/core-rule/Description");
+const describedRule_1 = require("../../lib/describedRule");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
 const Effect_1 = require("@civ-clone/core-rule/Effect");
 const fuelRules_1 = require("@civ-clone/base-unit-fuel/lib/fuelRules");
@@ -37,7 +40,8 @@ const getRules = ({ cityRegistry = CityRegistry_1.instance, engine = Engine_1.in
     ...(0, fuelRules_1.default)({ engine, ruleRegistry, unitImprovementRegistry, unitRegistry }, { prefix: 'civ2-unit', countOn: 'out-of-moves' }),
     // Any city's square the unit is on, as the original's `tile_city_owner >= 0`, not only its player's.
     new Rules_1.Refuel('civ2-unit:unit/refuel/city', new Criterion_1.default((unit, tile) => cityRegistry.getByTile(tile) !== null), new Effect_1.default(() => true)),
-    (0, refuel_1.refuelOnTileImprovement)(TileImprovements_1.Airbase, tileImprovementRegistry, undefined, 'civ2-unit:unit/refuel/airbase'),
+    // What an Airbase does, for the Civilopedia (civ-clone/web-renderer#1272).
+    (0, describedRule_1.describedRule)((0, refuel_1.refuelOnTileImprovement)(TileImprovements_1.Airbase, tileImprovementRegistry, undefined, 'civ2-unit:unit/refuel/airbase'), new Description_1.default({ type: 'refuels', subject: TileImprovements_1.Airbase, unit: Air_1.default })),
     (0, refuel_1.refuelInStackWith)((base, unit) => (0, exports.carriesAircraft)(base) || ((0, exports.isSubmarine)(base) && unit.hasTrait(SingleUse_1.default)), unitRegistry, undefined, 'civ2-unit:unit/refuel/carrier'),
     (0, refuel_1.refuelAboard)(transportRegistry, undefined, 'civ2-unit:unit/refuel/aboard'),
 ];

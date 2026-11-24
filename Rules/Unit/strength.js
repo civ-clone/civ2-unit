@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.defenceMultipliers = exports.cityWallsMultiplier = exports.terrainDefenceDescriptions = void 0;
+exports.getRules = exports.FORTRESS_MULTIPLIER = exports.defenceMultipliers = exports.cityWallsMultiplier = exports.terrainDefenceDescriptions = void 0;
 const units_1 = require("../../data/units");
 const CityImprovementRegistry_1 = require("@civ-clone/core-city-improvement/CityImprovementRegistry");
 const CityRegistry_1 = require("@civ-clone/core-city/CityRegistry");
@@ -89,7 +89,7 @@ const defenceMultipliers = ({ cityImprovementRegistry = CityImprovementRegistry_
             (attacker === null ||
                 (!(attacker instanceof Air_1.default) &&
                     !attacker.hasTrait(IgnoresFortifications_1.default)))) {
-            multipliers.push([TileImprovements_1.Fortress.name, 2]);
+            multipliers.push([TileImprovements_1.Fortress.name, exports.FORTRESS_MULTIPLIER]);
             return multipliers;
         }
         if (unitImprovementRegistry
@@ -150,6 +150,8 @@ const isMounted = (unit) => {
  *  attacker, and a `DefenceBonusVsAir` one against an aircraft or missile, multiply their defence; Partisans attack a
  *  unit with no attack at eight times their strength.
  */
+/** A land unit's defence on a Fortress, outside a city, against what doesn't fly or ignore walls. */
+exports.FORTRESS_MULTIPLIER = 2;
 const getRules = (dependencies = {}) => [
     // base-unit-yield's rule, saying what City Walls and the Great Wall do (civ-clone/web-renderer#1196).
     (0, describedRule_1.describedRule)((0, defenceMultipliers_1.defenceStrength)((0, exports.defenceMultipliers)(dependencies)), new Description_1.default({
@@ -163,6 +165,14 @@ const getRules = (dependencies = {}) => [
         subject: GreatWall_1.default,
         improvement: CityWalls_1.default,
         scope: 'player',
+    }, 
+    // What a Fortress does for a defender (civ-clone/web-renderer#1272), in place of being fortified.
+    {
+        type: 'square_defence_multiplier',
+        subject: TileImprovements_1.Fortress,
+        value: exports.FORTRESS_MULTIPLIER,
+        unit: Land_1.default,
+        except: [Air_1.default, IgnoresFortifications_1.default],
     }, 
     // What each terrain does for a defender (civ-clone/web-renderer#620), where it does anything.
     ...(0, exports.terrainDefenceDescriptions)())),

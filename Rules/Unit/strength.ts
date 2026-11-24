@@ -159,7 +159,7 @@ export const defenceMultipliers =
           (!(attacker instanceof Air) &&
             !attacker.hasTrait(IgnoresFortifications)))
       ) {
-        multipliers.push([Fortress.name, 2]);
+        multipliers.push([Fortress.name, FORTRESS_MULTIPLIER]);
 
         return multipliers;
       }
@@ -248,6 +248,9 @@ const isMounted = (unit: Unit): boolean => {
  *  attacker, and a `DefenceBonusVsAir` one against an aircraft or missile, multiply their defence; Partisans attack a
  *  unit with no attack at eight times their strength.
  */
+/** A land unit's defence on a Fortress, outside a city, against what doesn't fly or ignore walls. */
+export const FORTRESS_MULTIPLIER = 2;
+
 export const getRules = (dependencies: Dependencies = {}): Strength[] => [
   // base-unit-yield's rule, saying what City Walls and the Great Wall do (civ-clone/web-renderer#1196).
   describedRule(
@@ -265,6 +268,14 @@ export const getRules = (dependencies: Dependencies = {}): Strength[] => [
         subject: GreatWall,
         improvement: CityWalls,
         scope: 'player',
+      },
+      // What a Fortress does for a defender (civ-clone/web-renderer#1272), in place of being fortified.
+      {
+        type: 'square_defence_multiplier',
+        subject: Fortress,
+        value: FORTRESS_MULTIPLIER,
+        unit: Land,
+        except: [Air, IgnoresFortifications],
       },
       // What each terrain does for a defender (civ-clone/web-renderer#620), where it does anything.
       ...terrainDefenceDescriptions()

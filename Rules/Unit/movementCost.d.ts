@@ -7,6 +7,7 @@ import Description from '@civ-clone/core-rule/Description';
 import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';
 import Terrain from '@civ-clone/core-terrain/Terrain';
 import Tile from '@civ-clone/core-world/Tile';
+import TileImprovement from '@civ-clone/core-tile-improvement/TileImprovement';
 import UnitAction from '@civ-clone/core-unit/Action';
 /** What a land unit's move onto each terrain costs: civ2-world's `@TERRAIN` movement costs, looked up by class. */
 export declare const terrainCost: (terrain: Terrain) => number | null;
@@ -32,6 +33,16 @@ export declare const describedTerrainJobs: [
   typeof UnitAction,
   Function,
   (typeof Terrain)[]
+][];
+/**
+ * The terrain jobs that take the same turns everywhere, which no terrain's entry gives, said on their tile
+ *  improvement's own entry (civ-clone/web-renderer#1272, civ-clone/web-renderer#621): building an Airbase, and cleaning
+ *  up Pollution, which takes it away.
+ */
+export declare const describedFlatJobs: [
+  typeof UnitAction,
+  typeof TileImprovement,
+  'build_turns' | 'removal_turns'
 ][];
 /**
  * The turns `Job` takes Settlers on `TerrainType` as `civ2TerrainJobTurns` gives them, counting the turn the order is
@@ -64,6 +75,15 @@ export declare const terrainJobDescription: (
   Job: typeof UnitAction,
   Improvement: Function,
   terrains: (typeof Terrain)[]
+) => Description;
+/**
+ * The turns a job that takes the same on every terrain takes, said once on its tile improvement's entry
+ *  (`describedFlatJobs`), as the player counts them.
+ */
+export declare const flatJobDescription: (
+  Job: typeof UnitAction,
+  Improvement: typeof TileImprovement,
+  type: string
 ) => Description;
 /** What a ship or an aircraft pays for each move, as base-unit-movement's `air-and-naval` rule charges it. */
 export declare const AIR_AND_NAVAL_MOVE_COST = 1;

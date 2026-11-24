@@ -35,6 +35,9 @@ import {
   refuelOnTileImprovement,
 } from '@civ-clone/base-unit-fuel/lib/refuel';
 import { Airbase } from '@civ-clone/civ2-world/TileImprovements';
+import Air from '@civ-clone/base-unit-type-air/Air';
+import Description from '@civ-clone/core-rule/Description';
+import { describedRule } from '../../lib/describedRule';
 import Criterion from '@civ-clone/core-rule/Criterion';
 import Effect from '@civ-clone/core-rule/Effect';
 import Moved from '@civ-clone/core-unit/Rules/Moved';
@@ -96,11 +99,15 @@ export const getRules = ({
     ),
     new Effect((): boolean => true)
   ),
-  refuelOnTileImprovement(
-    Airbase,
-    tileImprovementRegistry,
-    undefined,
-    'civ2-unit:unit/refuel/airbase'
+  // What an Airbase does, for the Civilopedia (civ-clone/web-renderer#1272).
+  describedRule(
+    refuelOnTileImprovement(
+      Airbase,
+      tileImprovementRegistry,
+      undefined,
+      'civ2-unit:unit/refuel/airbase'
+    ),
+    new Description({ type: 'refuels', subject: Airbase, unit: Air })
   ),
   refuelInStackWith(
     (base: Unit, unit: Unit): boolean =>

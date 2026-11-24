@@ -55,5 +55,7 @@ export declare const defenceMultipliers: ({
  *  attacker, and a `DefenceBonusVsAir` one against an aircraft or missile, multiply their defence; Partisans attack a
  *  unit with no attack at eight times their strength.
  */
+/** A land unit's defence on a Fortress, outside a city, against what doesn't fly or ignore walls. */
+export declare const FORTRESS_MULTIPLIER = 2;
 export declare const getRules: (dependencies?: Dependencies) => Strength[];
 export default getRules;

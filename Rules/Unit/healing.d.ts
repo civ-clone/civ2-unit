@@ -45,6 +45,8 @@ export interface HealingDependencies {
  * - a damaged land unit or ship has its moves cut in proportion to its hit points, in thirds of a move rounded up to a
  *   whole move, at least 1 on land and 2 at sea; aircraft aren't slowed.
  */
+/** The steps a unit resting on a Fortress heals a turn, where it would heal 1 elsewhere. */
+export declare const FORTRESS_REST_STEPS = 2;
 export declare const getRules: ({
   cityImprovementRegistry,
   cityRegistry,

@@ -1044,7 +1044,8 @@ describe('descriptions', (): void => {
       expect(on(Airbase)).to.true;
       expect(on(null)).to.false;
 
-      // On base-unit-lifecycle's rule as the game registers it, which still spares the stack where it did.
+      // On base-unit-lifecycle's rule as the game registers it. `combat.test.ts` ("kills the stack in the open, but not
+      //  on a Fortress or an Airbase") plays a battle through the registered rules, so the described rule behaves as before.
       const game = new Game();
 
       register(game);

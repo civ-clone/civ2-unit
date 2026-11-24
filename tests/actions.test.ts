@@ -167,10 +167,13 @@ describe('farmland (`unit_cmd_terraform` order 6)', function (): void {
       .actions(tile)
       .find((offer) => offer instanceof BuildFarmland) as BuildFarmland;
 
+    // Built with the game's own improvements, where finishing looks for the Irrigation (civ-clone/web-renderer#248).
+    expect(action.tileImprovementRegistry()).to.equal(game.tileImprovements);
+
     // `unit_terrain_work_turns` order 6: the irrigation order's turns.
     expect(turns(action)).to.equal(irrigationTurns);
 
-    BuildFarmland.complete(action, game.tileImprovements);
+    BuildFarmland.complete(action, action.tileImprovementRegistry());
 
     expect(has(Farmland)).to.true;
     expect(has(Irrigation)).to.true;

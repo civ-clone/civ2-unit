@@ -616,7 +616,11 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
         ].map(([Improvement, ActionType, ...extra]) => ({
             improvement: Improvement,
             extra,
-            effect: (unit, to, from = unit.tile()) => new ActionType(from, to, unit, ruleRegistry, turn),
+            effect: (unit, to, from = unit.tile()) => ActionType === Actions_1.BuildFarmland
+                ? // Finishing looks for the square's Irrigation among the game's own improvements
+                    //  (civ-clone/web-renderer#248).
+                    new Actions_1.BuildFarmland(from, to, unit, ruleRegistry, turn, undefined, tileImprovementRegistry)
+                : new ActionType(from, to, unit, ruleRegistry, turn),
         })),
         // The terrain each conversion changes (`lib/terrainConversions`), each saying what it makes of each terrain, for
         //  the Civilopedia (civ-clone/web-renderer#620), among the criteria as the airlift row's is.

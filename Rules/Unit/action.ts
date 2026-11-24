@@ -1289,7 +1289,20 @@ export const getRules = ({
             unit: Unit,
             to: Tile,
             from: Tile = unit.tile()
-          ): UnitAction => new ActionType(from, to, unit, ruleRegistry, turn),
+          ): UnitAction =>
+            ActionType === BuildFarmland
+              ? // Finishing looks for the square's Irrigation among the game's own improvements
+                //  (civ-clone/web-renderer#248).
+                new BuildFarmland(
+                  from,
+                  to,
+                  unit,
+                  ruleRegistry,
+                  turn,
+                  undefined,
+                  tileImprovementRegistry
+                )
+              : new ActionType(from, to, unit, ruleRegistry, turn),
         })
       ),
 

@@ -538,7 +538,7 @@ const getRules = ({ cityGrowthRegistry = CityGrowthRegistry_1.instance, clientRe
         {
             name: 'sleep',
             criteria: [...sleepCriteria],
-            effect: (unit, to, from = unit.tile()) => new Actions_1.Sleep(from, to, unit, ruleRegistry, turn),
+            effect: (unit, to, from = unit.tile()) => new Actions_1.Sleep(from, to, unit, ruleRegistry, turn, unitRegistry),
         },
         {
             name: 'activate',

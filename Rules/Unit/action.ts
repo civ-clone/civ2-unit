@@ -1160,7 +1160,7 @@ export const getRules = ({
         name: 'sleep',
         criteria: [...sleepCriteria],
         effect: (unit: Unit, to: Tile, from: Tile = unit.tile()): UnitAction =>
-          new Sleep(from, to, unit, ruleRegistry, turn),
+          new Sleep(from, to, unit, ruleRegistry, turn, unitRegistry),
       },
 
       {

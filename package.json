@@ -188,7 +188,7 @@
     "@civ-clone/base-unit-improvement-veteran": "^0.1.0",
     "@civ-clone/base-unit-ironclad": "^0.1.1",
     "@civ-clone/base-unit-knight": "^0.1.0",
-    "@civ-clone/base-unit-lifecycle": "^0.1.3",
+    "@civ-clone/base-unit-lifecycle": "^0.1.4",
     "@civ-clone/base-unit-marine": "^0.1.0",
     "@civ-clone/base-unit-mechanizedinfantry": "^0.1.0",
     "@civ-clone/base-unit-missilecruiser": "^0.1.0",

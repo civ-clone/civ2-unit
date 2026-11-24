@@ -159,7 +159,7 @@ export const defenceMultipliers =
           (!(attacker instanceof Air) &&
             !attacker.hasTrait(IgnoresFortifications)))
       ) {
-        multipliers.push([Fortress.name, 2]);
+        multipliers.push([Fortress.name, FORTRESS_MULTIPLIER]);
 
         return multipliers;
       }
@@ -242,6 +242,9 @@ const isMounted = (unit: Unit): boolean => {
   );
 };
 
+/** A land unit's defence on a Fortress, outside a city, against what doesn't fly or ignore walls. */
+export const FORTRESS_MULTIPLIER = 2;
+
 /**
  * Civilization II's battle modifiers (`unit_resolve_attack`), after the defence bonuses: an air-superiority attacker
  *  halves an aircraft's defence when it has no fuel (a Helicopter); a `DefenceBonusVsMounted` defender against a mounted
@@ -265,6 +268,14 @@ export const getRules = (dependencies: Dependencies = {}): Strength[] => [
         subject: GreatWall,
         improvement: CityWalls,
         scope: 'player',
+      },
+      // What a Fortress does for a defender (civ-clone/web-renderer#1272), in place of being fortified.
+      {
+        type: 'square_defence_multiplier',
+        subject: Fortress,
+        value: FORTRESS_MULTIPLIER,
+        unit: Land,
+        except: [Air, IgnoresFortifications],
       },
       // What each terrain does for a defender (civ-clone/web-renderer#620), where it does anything.
       ...terrainDefenceDescriptions()

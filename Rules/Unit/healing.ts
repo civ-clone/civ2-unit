@@ -95,6 +95,9 @@ export interface HealingDependencies {
   unitRegistry?: UnitRegistry;
 }
 
+/** The steps a unit resting on a Fortress heals a turn, where it would heal 1 elsewhere. */
+export const FORTRESS_REST_STEPS = 2;
+
 /**
  * Civilization II's healing (`civ_heal_units`, at the start of each of the player's turns, for the units that didn't
  *  move in their last one) and the slowing of damaged units (`unit_max_moves`):
@@ -152,7 +155,7 @@ export const getRules = ({
         prefix: 'civ2-unit',
         stepsPerMaximum: 10,
         restSteps: (unit: Unit): number =>
-          hasImprovement(unit.tile(), Fortress) ? 2 : 1,
+          hasImprovement(unit.tile(), Fortress) ? FORTRESS_REST_STEPS : 1,
         nearCity: {
           distance: NEAR_CITY_DISTANCE,
           appliesTo: (unit: Unit): boolean => domainOf(unit) === LAND,
@@ -202,7 +205,15 @@ export const getRules = ({
                 value: BARRACKS_NEAR_CITY_STEPS,
                 radius: NEAR_CITY_DISTANCE,
                 unit: Land,
-              }
+              },
+              // A Fortress's and an Airbase's (civ-clone/web-renderer#1272): a unit resting on a Fortress heals faster,
+              //  and an aircraft on an Airbase fully.
+              {
+                type: 'heals_resting',
+                subject: Fortress,
+                value: FORTRESS_REST_STEPS,
+              },
+              { type: 'heals', subject: Airbase, unit: domainUnitType(AIR) }
             )
           )
         : rule

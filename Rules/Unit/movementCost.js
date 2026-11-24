@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRules = exports.oceanMovementCostDescription = exports.AIR_AND_NAVAL_MOVE_COST = exports.terrainJobDescription = exports.workerTurns = exports.terrainJobWorker = exports.movementCostDescription = exports.terrainJobTime = exports.describedTerrainJobs = exports.MOVE_RULE = exports.civ2TerrainJobTurns = exports.rowsApart = exports.terrainCost = void 0;
+exports.getRules = exports.oceanMovementCostDescription = exports.AIR_AND_NAVAL_MOVE_COST = exports.flatJobDescription = exports.terrainJobDescription = exports.workerTurns = exports.terrainJobWorker = exports.movementCostDescription = exports.terrainJobTime = exports.describedFlatJobs = exports.describedTerrainJobs = exports.MOVE_RULE = exports.civ2TerrainJobTurns = exports.rowsApart = exports.terrainCost = void 0;
 const Actions_1 = require("../../Actions");
 const jobTurns_1 = require("@civ-clone/base-terrain-properties/lib/jobTurns");
 const terrainTable_1 = require("@civ-clone/base-terrain-properties/lib/terrainTable");
@@ -97,6 +97,15 @@ exports.describedTerrainJobs = [
         terrainsWhere(terrainProperties_1.transform, (outcome) => outcome !== null),
     ],
 ];
+/**
+ * The terrain jobs that take the same turns everywhere, which no terrain's entry gives, said on their tile
+ *  improvement's own entry (civ-clone/web-renderer#1272, civ-clone/web-renderer#621): building an Airbase, and cleaning
+ *  up Pollution, which takes it away.
+ */
+exports.describedFlatJobs = [
+    [Actions_1.BuildAirbase, TileImprovements_1.Airbase, 'build_turns'],
+    [Actions_1.CleanPollution, TileImprovements_1.Pollution, 'removal_turns'],
+];
 // A terrain to look a class up by: the lookups need only its class.
 const terrainOf = (TerrainType) => Object.create(TerrainType.prototype);
 /**
@@ -149,6 +158,20 @@ const terrainJobDescription = (Job, Improvement, terrains) => {
     })));
 };
 exports.terrainJobDescription = terrainJobDescription;
+/**
+ * The turns a job that takes the same on every terrain takes, said once on its tile improvement's entry
+ *  (`describedFlatJobs`), as the player counts them.
+ */
+const flatJobDescription = (Job, Improvement, type) => {
+    const [unit, rate] = (0, exports.terrainJobWorker)(Job);
+    return new Description_1.default({
+        type,
+        subject: Improvement,
+        value: (0, exports.workerTurns)((0, exports.terrainJobTime)(Job, landTerrains[0]), rate),
+        unit,
+    });
+};
+exports.flatJobDescription = flatJobDescription;
 /** What a ship or an aircraft pays for each move, as base-unit-movement's `air-and-naval` rule charges it. */
 exports.AIR_AND_NAVAL_MOVE_COST = 1;
 /** The Ocean a ship moves over, for its Civilopedia entry (civ-clone/web-renderer#620). */
@@ -164,11 +187,19 @@ exports.oceanMovementCostDescription = oceanMovementCostDescription;
  *  and effect as base-unit-movement's `movementCostRules` builds, with its `Description` among its own items. Built,
  *  not wrapped, so the path finder's every move pays nothing for the description.
  *
- * These 13 rules are copies of base-unit-movement's: a change to those rules there must be copied here. The id check
+ * These 15 rules are copies of base-unit-movement's: a change to those rules there must be copied here. The id check
  *  below catches a rename, but not a new criterion or a changed effect (`tests/descriptions` compares their answers).
  */
 const describeMovementCosts = (rules, jobs) => {
-    const id = (name) => `civ2-unit:unit/movement-cost/${name}`, isMove = new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), described = new Map([
+    const id = (name) => `civ2-unit:unit/movement-cost/${name}`, 
+    // base-unit-movement's rule for a terrain job, saying what it says.
+    jobRule = (Job, description) => {
+        const jobTurns = (terrain) => (0, jobTurns_1.terrainJobTurns)(jobs, Job, terrain);
+        return [
+            id(`action/${Job.name}`),
+            new MovementCost_1.default(id(`action/${Job.name}`), new Criterion_1.default((unit, action) => action instanceof Job), new Criterion_1.default((unit) => jobTurns(unit.tile().terrain()) !== null), new Effect_1.default((unit) => jobTurns(unit.tile().terrain())), description),
+        ];
+    }, isMove = new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), described = new Map([
         [
             exports.MOVE_RULE,
             new MovementCost_1.default(exports.MOVE_RULE, isMove, new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => (0, exports.terrainCost)(action.to().terrain()) !== null), new Effect_1.default((unit, action) => (0, exports.terrainCost)(action.to().terrain())), (0, exports.movementCostDescription)()),
@@ -177,13 +208,8 @@ const describeMovementCosts = (rules, jobs) => {
             id('air-and-naval'),
             new MovementCost_1.default(id('air-and-naval'), isMove, new Criterion_1.default((unit) => unit instanceof Air_1.default || unit instanceof Naval_1.default), new Effect_1.default(() => exports.AIR_AND_NAVAL_MOVE_COST), (0, exports.oceanMovementCostDescription)()),
         ],
-        ...exports.describedTerrainJobs.map(([Job, Improvement, terrains]) => {
-            const jobTurns = (terrain) => (0, jobTurns_1.terrainJobTurns)(jobs, Job, terrain);
-            return [
-                id(`action/${Job.name}`),
-                new MovementCost_1.default(id(`action/${Job.name}`), new Criterion_1.default((unit, action) => action instanceof Job), new Criterion_1.default((unit) => jobTurns(unit.tile().terrain()) !== null), new Effect_1.default((unit) => jobTurns(unit.tile().terrain())), (0, exports.terrainJobDescription)(Job, Improvement, terrains)),
-            ];
-        }),
+        ...exports.describedTerrainJobs.map(([Job, Improvement, terrains]) => jobRule(Job, (0, exports.terrainJobDescription)(Job, Improvement, terrains))),
+        ...exports.describedFlatJobs.map(([Job, Improvement, type]) => jobRule(Job, (0, exports.flatJobDescription)(Job, Improvement, type))),
     ]);
     // Every one built here replaces one of base-unit-movement's, or the ids have drifted.
     described.forEach((rule, ruleId) => {
@@ -207,9 +233,9 @@ const getRules = (tileImprovementRegistry = TileImprovementRegistry_1.instance, 
     routeOrCity = (Improvement) => (tile) => cityRegistry.getByTile(tile) !== null ||
         tileImprovementRegistry
             .getByTile(tile)
-            .some((improvement) => improvement instanceof Improvement), cityRoute = (name, Improvement, cost) => {
+            .some((improvement) => improvement instanceof Improvement), cityRoute = (name, Improvement, cost, description) => {
         const has = routeOrCity(Improvement);
-        return new MovementCost_1.default(`civ2-unit:unit/movement-cost/${name}`, new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => has(action.from())), new Criterion_1.default((unit, action) => has(action.to())), new Effect_1.default(() => cost));
+        return new MovementCost_1.default(`civ2-unit:unit/movement-cost/${name}`, new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => has(action.from())), new Criterion_1.default((unit, action) => has(action.to())), new Effect_1.default(() => cost), description);
     };
     return [
         ...describeMovementCosts((0, movementCostRules_1.default)('civ2-unit', { tileImprovementRegistry, transportRegistry }, {
@@ -226,8 +252,14 @@ const getRules = (tileImprovementRegistry = TileImprovementRegistry_1.instance, 
             ],
             jobs: exports.civ2TerrainJobTurns,
         }), exports.civ2TerrainJobTurns),
-        cityRoute('city-road', TileImprovements_1.Road, roadMove),
-        cityRoute('city-railroad', TileImprovements_1.Railroad, 0),
+        // What a road and a railroad give, for the Civilopedia (civ-clone/web-renderer#1272): on these rules, Civ2's own,
+        //  which each take in base-unit-movement's road or railroad rule as well as a city's square.
+        cityRoute('city-road', TileImprovements_1.Road, roadMove, new Description_1.default({
+            type: 'route_squares',
+            subject: TileImprovements_1.Road,
+            value: cosmic_1.cosmic.roadMoveMultiplier,
+        })),
+        cityRoute('city-railroad', TileImprovements_1.Railroad, 0, new Description_1.default({ type: 'route_free', subject: TileImprovements_1.Railroad })),
         new MovementCost_1.default('civ2-unit:unit/movement-cost/river', new Criterion_1.default((unit, action) => action instanceof Actions_1.Move), new Criterion_1.default((unit) => unit instanceof Land_1.default), new Criterion_1.default((unit, action) => hasRiver(action.from())), new Criterion_1.default((unit, action) => hasRiver(action.to())), 
         // Along the river only: a step to one of the four squares that share an edge with this one, one row up or down
         //  on the staggered grid (`dx == 1` and `|dy| == 1` on Civ2's doubled-x grid), across the wrapping seam too.

@@ -49,6 +49,8 @@ export declare const defenceMultipliers: ({
   defender: Unit,
   attacker: Unit | null
 ) => [string, number][];
+/** A land unit's defence on a Fortress, outside a city, against what doesn't fly or ignore walls. */
+export declare const FORTRESS_MULTIPLIER = 2;
 /**
  * Civilization II's battle modifiers (`unit_resolve_attack`), after the defence bonuses: an air-superiority attacker
  *  halves an aircraft's defence when it has no fuel (a Helicopter); a `DefenceBonusVsMounted` defender against a mounted

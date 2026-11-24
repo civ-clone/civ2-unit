@@ -1,5 +1,6 @@
 import {
   BARRACKS_NEAR_CITY_STEPS,
+  FORTRESS_REST_STEPS,
   HEAL_UNITS_RULE,
   NEAR_CITY_DISTANCE,
   NEAR_CITY_STEPS,
@@ -27,9 +28,20 @@ import action, {
   ALLIED_REPAIR_ACTION_RULE,
 } from '../Rules/Unit/action';
 import strength, {
+  FORTRESS_MULTIPLIER,
   cityWallsMultiplier,
   defenceMultipliers,
 } from '../Rules/Unit/strength';
+import {
+  Airbase,
+  Fortress,
+  Pollution,
+  Railroad,
+  Road,
+} from '@civ-clone/civ2-world/TileImprovements';
+import { BuildAirbase, CleanPollution } from '../Actions';
+import { cosmic } from '@civ-clone/civ2-rules/data/cosmic';
+import fuel from '../Rules/Unit/fuel';
 import Air from '@civ-clone/base-unit-type-air/Air';
 import Airport from '@civ-clone/base-city-improvement-airport/Airport';
 import Barracks from '@civ-clone/base-city-improvement-barracks/Barracks';
@@ -62,6 +74,7 @@ import movementCost, {
   MOVE_RULE,
   terrainCost,
   civ2TerrainJobTurns,
+  describedFlatJobs,
   describedTerrainJobs,
 } from '../Rules/Unit/movementCost';
 import {
@@ -118,6 +131,13 @@ describe('descriptions', (): void => {
         subject: GreatWall,
         improvement: CityWalls,
         scope: 'player',
+      },
+      {
+        type: 'square_defence_multiplier',
+        subject: Fortress,
+        value: FORTRESS_MULTIPLIER,
+        unit: Land,
+        except: [Air, IgnoresFortifications],
       },
     ]);
 
@@ -192,7 +212,10 @@ describe('descriptions', (): void => {
         radius: NEAR_CITY_DISTANCE,
         unit: Land,
       },
+      { type: 'heals_resting', subject: Fortress, value: FORTRESS_REST_STEPS },
+      { type: 'heals', subject: Airbase, unit: Air },
     ]);
+    expect(FORTRESS_REST_STEPS).to.equal(2);
     expect(rule.id()).to.equal(HEAL_UNITS_RULE);
     expect(base.id()).to.equal(HEAL_UNITS_RULE);
     expect(rule).to.be.instanceOf(base.constructor);
@@ -583,12 +606,23 @@ describe('descriptions', (): void => {
           }
         ),
         baseById = new Map(base.map((rule) => [rule.id(), rule])),
-        rebuilt = rules.filter((rule) => rule.descriptions().length > 0);
+        // Civ2's own city-route rules say what a road and a railroad give, and aren't base-unit-movement's.
+        rebuilt = rules.filter(
+          (rule) =>
+            rule.descriptions().length > 0 &&
+            !rule.id()!.startsWith('civ2-unit:unit/movement-cost/city-')
+        );
 
       // The move, air-and-naval and one rule per described job.
-      expect(rebuilt.length).to.equal(2 + describedTerrainJobs.length);
+      expect(rebuilt.length).to.equal(
+        2 + describedTerrainJobs.length + describedFlatJobs.length
+      );
 
-      const actions = [Move, ...describedTerrainJobs.map(([Job]) => Job)],
+      const actions = [
+          Move,
+          ...describedTerrainJobs.map(([Job]) => Job),
+          ...describedFlatJobs.map(([Job]) => Job),
+        ],
         units = [Warrior, Trireme, Fighter, Settlers, Engineer];
 
       rebuilt.forEach((rule) => {
@@ -860,6 +894,95 @@ describe('descriptions', (): void => {
 
       expect(irrigated).to.equal(5);
       expect(irrigated).to.equal(described(BuildIrrigation, Desert));
+    });
+  });
+
+  // What a road, a railroad, an Airbase, a Fortress and cleaning up Pollution say, for the tile improvements' entries
+  //  (civ-clone/web-renderer#1272, civ-clone/web-renderer#621).
+  describe('tile improvements', (): void => {
+    const registries = [
+        { getByTile: () => [] },
+        { hasUnit: () => false },
+        { getByTerrain: () => [] },
+        { getByTile: () => null },
+      ] as never[],
+      rules = (): Rule[] =>
+        (movementCost as (...args: never[]) => Rule[])(...registries),
+      described = (id: string): EffectDescription[] =>
+        rules()
+          .filter((rule) => rule.id() === id)
+          .flatMap((rule) => rule.descriptions());
+
+    it("a road says a land unit moves @COSMIC's road moves along it for each move, and a railroad that it moves for free", (): void => {
+      expect(described('civ2-unit:unit/movement-cost/city-road')).to.eql([
+        {
+          type: 'route_squares',
+          subject: Road,
+          value: cosmic.roadMoveMultiplier,
+        },
+      ]);
+      expect(cosmic.roadMoveMultiplier).to.equal(3);
+      expect(described('civ2-unit:unit/movement-cost/city-railroad')).to.eql([
+        { type: 'route_free', subject: Railroad },
+      ]);
+    });
+
+    it('an Airbase takes 4 turns to build, and Pollution 4 to clean up, said once on their own entries', (): void => {
+      expect(describedFlatJobs).to.eql([
+        [BuildAirbase, Airbase, 'build_turns'],
+        [CleanPollution, Pollution, 'removal_turns'],
+      ]);
+      expect(
+        described(`civ2-unit:unit/movement-cost/action/${BuildAirbase.name}`)
+      ).to.eql([
+        { type: 'build_turns', subject: Airbase, value: 4, unit: Settlers },
+      ]);
+      expect(
+        described(`civ2-unit:unit/movement-cost/action/${CleanPollution.name}`)
+      ).to.eql([
+        {
+          type: 'removal_turns',
+          subject: Pollution,
+          value: 4,
+          unit: Settlers,
+        },
+      ]);
+    });
+
+    it('a Fortress doubles a land defender outside a city, but not against an aircraft or what ignores walls', (): void => {
+      const tile = { terrain: () => new Grassland() },
+        defender = Object.assign(Object.create(Pikeman.prototype), {
+          tile: () => tile,
+        }),
+        attacker = (UnitType: Function, ignores: boolean) =>
+          Object.assign(Object.create(UnitType.prototype), {
+            hasTrait: () => ignores,
+          }),
+        multipliers = defenceMultipliers({
+          cityRegistry: { getByTile: () => null } as never,
+          terrainFeatureRegistry: { getByTerrain: () => [] } as never,
+          tileImprovementRegistry: {
+            getByTile: () => [Object.create(Fortress.prototype)],
+          } as never,
+          unitImprovementRegistry: { getByUnit: () => [] } as never,
+        });
+
+      expect(multipliers(defender, attacker(Warrior, false))).to.eql([
+        [Fortress.name, FORTRESS_MULTIPLIER],
+      ]);
+      expect(FORTRESS_MULTIPLIER).to.equal(2);
+      expect(multipliers(defender, attacker(Fighter, false))).to.eql([]);
+      expect(multipliers(defender, attacker(Warrior, true))).to.eql([]);
+    });
+
+    it('an Airbase says aircraft refuel on it, on the refuel rule as it was', (): void => {
+      const [rule] = fuel().filter(
+        (rule) => rule.id() === 'civ2-unit:unit/refuel/airbase'
+      );
+
+      expect(rule.descriptions()).to.eql([
+        { type: 'refuels', subject: Airbase, unit: Air },
+      ]);
     });
   });
 });

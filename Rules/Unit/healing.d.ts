@@ -31,6 +31,8 @@ export interface HealingDependencies {
   unitImprovementRegistry?: UnitImprovementRegistry;
   unitRegistry?: UnitRegistry;
 }
+/** The steps a unit resting on a Fortress heals a turn, where it would heal 1 elsewhere. */
+export declare const FORTRESS_REST_STEPS = 2;
 /**
  * Civilization II's healing (`civ_heal_units`, at the start of each of the player's turns, for the units that didn't
  *  move in their last one) and the slowing of damaged units (`unit_max_moves`):
